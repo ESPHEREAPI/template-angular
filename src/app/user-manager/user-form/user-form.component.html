@@ -1,0 +1,209 @@
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1>{{ isEditMode ? 'Edit User' : 'New User' }}</h1>
+          </div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="#">Home</a></li>
+              <li class="breadcrumb-item"><a routerLink="/users">Users</a></li>
+              <li class="breadcrumb-item active">{{ isEditMode ? 'Edit User' : 'New User' }}</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+  
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-md-12">
+            <!-- general form elements -->
+            <div class="card card-primary">
+              <div class="card-header">
+                <h3 class="card-title">{{ isEditMode ? 'Edit User' : 'New User' }}</h3>
+              </div>
+              <!-- /.card-header -->
+              
+              <!-- form start -->
+              <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+                <div class="card-body">
+                  <div class="row">
+                    <!-- Username -->
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="username">Username</label>
+                        <input 
+                          type="text" 
+                          class="form-control" 
+                          id="username" 
+                          formControlName="username" 
+                          placeholder="Enter username"
+                          [ngClass]="{ 'is-invalid': submitted && f['username'].errors }">
+                        <div *ngIf="submitted && f['username'].errors" class="invalid-feedback">
+                          <div *ngIf="f['username'].errors['required']">Username is required</div>
+                          <div *ngIf="f['username'].errors['minlength']">Username must be at least 4 characters long</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Email -->
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="email">Email</label>
+                        <input 
+                          type="email" 
+                          class="form-control" 
+                          id="email" 
+                          formControlName="email" 
+                          placeholder="Enter email"
+                          [ngClass]="{ 'is-invalid': submitted && f['email'].errors }">
+                        <div *ngIf="submitted && f['email'].errors" class="invalid-feedback">
+                          <div *ngIf="f['email'].errors['required']">Email is required</div>
+                          <div *ngIf="f['email'].errors['email']">Please enter a valid email address</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="row">
+                    <!-- First Name -->
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="firstName">First Name</label>
+                        <input 
+                          type="text" 
+                          class="form-control" 
+                          id="firstName" 
+                          formControlName="firstName" 
+                          placeholder="Enter first name"
+                          [ngClass]="{ 'is-invalid': submitted && f['firstName'].errors }">
+                        <div *ngIf="submitted && f['firstName'].errors" class="invalid-feedback">
+                          <div *ngIf="f['firstName'].errors['required']">First name is required</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Last Name -->
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input 
+                          type="text" 
+                          class="form-control" 
+                          id="lastName" 
+                          formControlName="lastName" 
+                          placeholder="Enter last name"
+                          [ngClass]="{ 'is-invalid': submitted && f['lastName'].errors }">
+                        <div *ngIf="submitted && f['lastName'].errors" class="invalid-feedback">
+                          <div *ngIf="f['lastName'].errors['required']">Last name is required</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="row">
+                    <!-- Password -->
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="password">{{ isEditMode ? 'New Password (leave blank to keep current)' : 'Password' }}</label>
+                        <input 
+                          type="password" 
+                          class="form-control" 
+                          id="password" 
+                          formControlName="password" 
+                          placeholder="Enter password"
+                          [ngClass]="{ 'is-invalid': submitted && f['password'].errors }">
+                        <div *ngIf="submitted && f['password'].errors" class="invalid-feedback">
+                          <div *ngIf="f['password'].errors['required']">Password is required</div>
+                          <div *ngIf="f['password'].errors['minlength']">Password must be at least 8 characters long</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Password Confirmation -->
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="passwordConfirm">{{ isEditMode ? 'Confirm New Password' : 'Confirm Password' }}</label>
+                        <input 
+                          type="password" 
+                          class="form-control" 
+                          id="passwordConfirm" 
+                          formControlName="passwordConfirm" 
+                          placeholder="Confirm password"
+                          [ngClass]="{ 'is-invalid': submitted && (f['passwordConfirm'].errors || userForm.hasError('passwordMismatch')) }">
+                        <div *ngIf="submitted && f['passwordConfirm'].errors" class="invalid-feedback">
+                          <div *ngIf="f['passwordConfirm'].errors['required']">Please confirm your password</div>
+                        </div>
+                        <div *ngIf="submitted && userForm.hasError('passwordMismatch') && !f['passwordConfirm'].errors" class="invalid-feedback">
+                          Passwords do not match
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="row">
+                    <!-- Role Selection -->
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="roleId">Role</label>
+                        <select 
+                          class="form-control" 
+                          id="roleId" 
+                          formControlName="roleId"
+                          [ngClass]="{ 'is-invalid': submitted && f['roleId'].errors }">
+                          <option value="" disabled>Select a role</option>
+                          <option *ngFor="let role of roles" [value]="role.id">{{ role.name }}</option>
+                        </select>
+                        <div *ngIf="submitted && f['roleId'].errors" class="invalid-feedback">
+                          <div *ngIf="f['roleId'].errors['required']">Please select a role</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <!-- Active Status -->
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <div class="custom-control custom-switch mt-4">
+                          <input 
+                            type="checkbox" 
+                            class="custom-control-input" 
+                            id="isActive" 
+                            formControlName="isActive">
+                          <label class="custom-control-label" for="isActive">Active Account</label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- /.card-body -->
+  
+                <div class="card-footer">
+                  <button 
+                    type="submit" 
+                    class="btn btn-primary" 
+                    [disabled]="loading">
+                    <i class="fa fa-spinner fa-spin" *ngIf="loading"></i>
+                    {{ isEditMode ? 'Update' : 'Create' }} User
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-default ml-2" 
+                    routerLink="/users">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+            <!-- /.card -->
+          </div>
+        </div>
+        <!-- /.row -->
+      </div><!-- /.container-fluid -->
+    </section>
+    <!-- /.content -->
+  </div>

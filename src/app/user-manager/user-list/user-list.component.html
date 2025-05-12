@@ -1,0 +1,111 @@
+<div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0">Gestion des utilisateurs</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a routerLink="/dashboard">Accueil</a></li>
+            <li class="breadcrumb-item active">Utilisateurs</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <section class="content">
+    <div class="container-fluid">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Liste des utilisateurs</h3>
+          <div class="card-tools">
+            <div class="input-group input-group-sm" style="width: 250px;">
+              <input type="text" name="table_search" class="form-control float-right" 
+                     placeholder="Rechercher..." [(ngModel)]="searchTerm" (keyup.enter)="onSearch()">
+  
+              <div class="input-group-append">
+                <button type="button" class="btn btn-default" (click)="onSearch()">
+                  <i class="fas fa-search"></i>
+                </button>
+                <button type="button" class="btn btn-default" (click)="onResetSearch()">
+                  <i class="fas fa-times"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card-body table-responsive p-0">
+          <table class="table table-hover text-nowrap">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nom d'utilisateur</th>
+                <th>Nom complet</th>
+                <th>Email</th>
+                <th>Rôle</th>
+                <th>Statut</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let user of users" (click)="viewUserDetails(user.id!)">
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.firstName }} {{ user.lastName }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role?.name }}</td>
+                <td>
+                  <span *ngIf="user.isActive" class="badge bg-success">Actif</span>
+                  <span *ngIf="!user.isActive" class="badge bg-danger">Inactif</span>
+                </td>
+                <td>
+                  <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-info" *ngIf="hasEditPermission()" 
+                            (click)="editUser(user.id!); $event.stopPropagation()">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-success" *ngIf="!user.isActive && hasEditPermission()" 
+                            (click)="activateUser(user.id!, $event)">
+                      <i class="fas fa-check"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-warning" *ngIf="user.isActive && hasEditPermission()" 
+                            (click)="deactivateUser(user.id!, $event)">
+                      <i class="fas fa-ban"></i>
+                    </button>
+                    <button type="button" class="btn btn-sm btn-danger" *ngIf="hasDeletePermission()" 
+                            (click)="deleteUser(user.id!, $event)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr *ngIf="users.length === 0 && !loading">
+                <td colspan="7" class="text-center">Aucun utilisateur trouvé</td>
+              </tr>
+              <tr *ngIf="loading">
+                <td colspan="7" class="text-center">Chargement...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="card-footer clearfix">
+          <div class="float-left">
+            <a routerLink="/users/create" *hasPermission="'users.create'" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Ajouter un utilisateur
+            </a>
+          </div>
+          <div class="float-right">
+            <pagination-controls 
+              [responsive]="true"
+              [previousLabel]="'Précédent'" 
+              [nextLabel]="'Suivant'"
+              (pageChange)="onPageChange($event)">
+            </pagination-controls>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>

@@ -1,0 +1,268 @@
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    <section class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1>User Details</h1>
+          </div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="#">Home</a></li>
+              <li class="breadcrumb-item"><a routerLink="/users">Users</a></li>
+              <li class="breadcrumb-item active">User Details</li>
+            </ol>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+  
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <!-- Loading Spinner -->
+        <div *ngIf="loading" class="text-center my-5">
+          <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+          </div>
+        </div>
+  
+        <!-- Error Alert -->
+        <div *ngIf="error" class="alert alert-danger alert-dismissible">
+          <button type="button" class="close" data-dismiss="alert" aria-hidden="true" (click)="error = null">&times;</button>
+          <h5><i class="icon fas fa-ban"></i> Error!</h5>
+          {{ error }}
+        </div>
+  
+        <!-- User Details Content -->
+        <div *ngIf="!loading && !error && user">
+          <div class="row">
+            <!-- User Profile Card -->
+            <div class="col-md-4">
+              <div class="card card-primary card-outline">
+                <div class="card-body box-profile">
+                  <div class="text-center">
+                    <img class="profile-user-img img-fluid img-circle" 
+                         src="https://adminlte.io/themes/v3/dist/img/user4-128x128.jpg" 
+                         alt="User profile picture">
+                  </div>
+  
+                  <h3 class="profile-username text-center">{{ user.firstName }} {{ user.lastName }}</h3>
+                  <p class="text-muted text-center">{{ role?.name || 'Loading role...' }}</p>
+  
+                  <ul class="list-group list-group-unbordered mb-3">
+                    <li class="list-group-item">
+                      <b>Username</b> <a class="float-right">{{ user.username }}</a>
+                    </li>
+                    <li class="list-group-item">
+                      <b>Email</b> <a class="float-right">{{ user.email }}</a>
+                    </li>
+                    <li class="list-group-item">
+                      <b>Status</b> 
+                      <span class="float-right">
+                        <span *ngIf="user.isActive" class="badge badge-success">Active</span>
+                        <span *ngIf="!user.isActive" class="badge badge-danger">Inactive</span>
+                      </span>
+                    </li>
+                  </ul>
+  
+                  <button (click)="onEdit()" class="btn btn-primary btn-block">
+                    <i class="fas fa-edit"></i> Edit User
+                  </button>
+                </div>
+                <!-- /.card-body -->
+              </div>
+              <!-- /.card -->
+            </div>
+            <!-- /.col -->
+  
+            <!-- User Details Cards -->
+            <div class="col-md-8">
+              <div class="card">
+                <div class="card-header p-2">
+                  <ul class="nav nav-pills">
+                    <li class="nav-item">
+                      <a class="nav-link active" href="#details" data-toggle="tab">Details</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#activity" data-toggle="tab">Activity</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#permissions" data-toggle="tab">Permissions</a>
+                    </li>
+                  </ul>
+                </div><!-- /.card-header -->
+                <div class="card-body">
+                  <div class="tab-content">
+                    <!-- User Details Tab -->
+                    <div class="active tab-pane" id="details">
+                      <div class="timeline timeline-inverse">
+                        <!-- Timeline item -->
+                        <div>
+                          <i class="fas fa-user bg-primary"></i>
+                          <div class="timeline-item">
+                            <span class="time"><i class="far fa-clock"></i> Account Details</span>
+                            <h3 class="timeline-header">
+                              <a>Personal Information</a>
+                            </h3>
+                            <div class="timeline-body">
+                              <div class="row">
+                                <div class="col-md-6">
+                                  <p><strong>First Name:</strong> {{ user.firstName }}</p>
+                                  <p><strong>Last Name:</strong> {{ user.lastName }}</p>
+                                  <p><strong>Username:</strong> {{ user.username }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                  <p><strong>Email:</strong> {{ user.email }}</p>
+                                  <p><strong>Role:</strong> {{ role?.name || 'Loading...' }}</p>
+                                  <p><strong>Status:</strong> 
+                                    <span *ngIf="user.isActive" class="badge badge-success">Active</span>
+                                    <span *ngIf="!user.isActive" class="badge badge-danger">Inactive</span>
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- END timeline item -->
+  
+                        <!-- Timeline item for system info -->
+                        <div>
+                          <i class="fas fa-cog bg-info"></i>
+                          <div class="timeline-item">
+                            <span class="time"><i class="far fa-clock"></i> System Information</span>
+                            <h3 class="timeline-header">
+                              <a>System Data</a>
+                            </h3>
+                            <div class="timeline-body">
+                              <div class="row">
+                                <div class="col-md-6">
+                                  <p><strong>User ID:</strong> {{ user.id }}</p>
+                                  <p><strong>Created:</strong> {{ user.createdAt | date:'medium' }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                  <p><strong>Last Updated:</strong> {{ user.updatedAt | date:'medium' }}</p>
+                                  <p><strong>Last Login:</strong> {{ user.lastLogin| date:'medium' }}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- END timeline item -->
+                        
+                        <div>
+                          <i class="far fa-clock bg-gray"></i>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- /.tab-pane -->
+  
+                    <!-- Activity Tab -->
+                    <div class="tab-pane" id="activity">
+                      <div class="post">
+                        <div class="user-block">
+                          <img class="img-circle img-bordered-sm" src="https://adminlte.io/themes/v3/dist/img/user1-128x128.jpg" alt="user image">
+                          <span class="username">
+                            <a href="#">System</a>
+                          </span>
+                          <span class="description">User activity will be shown here</span>
+                        </div>
+                        <!-- /.user-block -->
+                        <p>
+                          User activity tracking is not enabled for this account. Upgrade to premium to track user activity and login history.
+                        </p>
+                      </div>
+                    </div>
+                    <!-- /.tab-pane -->
+  
+                    <!-- Permissions Tab -->
+                    <div class="tab-pane" id="permissions">
+                      <div class="card card-primary card-outline card-outline-tabs">
+                        <div class="card-header p-0 border-bottom-0">
+                          <ul class="nav nav-tabs" id="custom-tabs-four-tab" role="tablist">
+                            <li class="nav-item">
+                              <a class="nav-link active" id="custom-tabs-four-home-tab" data-toggle="pill" href="#custom-tabs-four-home" role="tab" aria-controls="custom-tabs-four-home" aria-selected="true">Role Permissions</a>
+                            </li>
+                            <li class="nav-item">
+                              <a class="nav-link" id="custom-tabs-four-profile-tab" data-toggle="pill" href="#custom-tabs-four-profile" role="tab" aria-controls="custom-tabs-four-profile" aria-selected="false">Custom Permissions</a>
+                            </li>
+                          </ul>
+                        </div>
+                        <div class="card-body">
+                          <div class="tab-content" id="custom-tabs-four-tabContent">
+                            <div class="tab-pane fade show active" id="custom-tabs-four-home" role="tabpanel" aria-labelledby="custom-tabs-four-home-tab">
+                              <p>Role: <strong>{{ role?.name || 'Loading...' }}</strong></p>
+                              <p>Description: {{ role?.description || 'No description available' }}</p>
+                              
+                              <div class="callout callout-info">
+                                <h5>Role Permissions</h5>
+                                <p>These permissions are inherited from the user's role.</p>
+                              </div>
+                              
+                              <ul class="list-group">
+                                <li class="list-group-item">
+                                  <i class="fas fa-check text-success"></i> View Users
+                                </li>
+                                <li class="list-group-item" *ngIf="role?.name === 'Admin'">
+                                  <i class="fas fa-check text-success"></i> Create Users
+                                </li>
+                                <li class="list-group-item" *ngIf="role?.name === 'Admin'">
+                                  <i class="fas fa-check text-success"></i> Edit Users
+                                </li>
+                                <li class="list-group-item" *ngIf="role?.name === 'Admin'">
+                                  <i class="fas fa-check text-success"></i> Delete Users
+                                </li>
+                                <li class="list-group-item" *ngIf="role?.name !== 'Admin'">
+                                  <i class="fas fa-times text-danger"></i> Create Users
+                                </li>
+                                <li class="list-group-item" *ngIf="role?.name !== 'Admin'">
+                                  <i class="fas fa-times text-danger"></i> Edit Users
+                                </li>
+                                <li class="list-group-item" *ngIf="role?.name !== 'Admin'">
+                                  <i class="fas fa-times text-danger"></i> Delete Users
+                                </li>
+                              </ul>
+                            </div>
+                            <div class="tab-pane fade" id="custom-tabs-four-profile" role="tabpanel" aria-labelledby="custom-tabs-four-profile-tab">
+                              <div class="callout callout-warning">
+                                <h5>Custom Permissions</h5>
+                                <p>No custom permissions have been assigned to this user.</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <!-- /.card -->
+                      </div>
+                    </div>
+                    <!-- /.tab-pane -->
+                  </div>
+                  <!-- /.tab-content -->
+                </div><!-- /.card-body -->
+              </div>
+              <!-- /.card -->
+            </div>
+            <!-- /.col -->
+          </div>
+          <!-- /.row -->
+  
+          <!-- Action Buttons -->
+          <div class="row mt-4">
+            <div class="col-12">
+              <div class="float-right">
+                <button type="button" class="btn btn-default mr-2" (click)="onBack()">
+                  <i class="fas fa-arrow-left"></i> Back to List
+                </button>
+                <button type="button" class="btn btn-primary mr-2" (click)="onEdit()">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <button type="button" class="btn btn-danger" (click)="onDelete()">
+                  <i class="fas fa-trash"></i> Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div><!-- /.container-fluid -->
+    </section>
+    <!-- /.content -->
+  </div>

@@ -1,0 +1,18 @@
+<!-- src/app/layouts/admin-layout/admin-layout.component.html -->
+
+<div class="wrapper">
+    <app-header></app-header>
+    <app-sidebar [user]="user"></app-sidebar>
+    
+    <div class="content-wrapper">
+      <app-content-header></app-content-header>
+      <section class="content">
+        <div class="container-fluid">
+          <router-outlet></router-outlet>
+        </div>
+      </section>
+    </div>
+    
+    <app-footer></app-footer>
+    <app-control-sidebar></app-control-sidebar>
+  </div>

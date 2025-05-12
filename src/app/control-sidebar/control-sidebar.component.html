@@ -1,0 +1,54 @@
+<!-- Control Sidebar -->
+<aside class="control-sidebar control-sidebar-dark">
+    <!-- Control sidebar content goes here -->
+    <div class="p-3 control-sidebar-content">
+      <h5>Personnaliser AdminLTE</h5>
+      <hr class="mb-2">
+      
+      <div class="mb-4">
+        <label>Mode sombre</label>
+        <div class="custom-control custom-switch">
+          <input type="checkbox" class="custom-control-input" id="darkModeSwitch" [(ngModel)]="darkMode" (change)="changeTheme()">
+          <label class="custom-control-label" for="darkModeSwitch"></label>
+        </div>
+      </div>
+      
+      <div class="mb-4">
+        <label>Thème Sidebar</label>
+        <div class="custom-control custom-radio">
+          <input class="custom-control-input" type="radio" id="sidebarDark" name="sidebarSkin" value="dark" [(ngModel)]="sidebarSkin" (change)="changeSidebarSkin()">
+          <label for="sidebarDark" class="custom-control-label">Sombre</label>
+        </div>
+        <div class="custom-control custom-radio">
+          <input class="custom-control-input" type="radio" id="sidebarLight" name="sidebarSkin" value="light" [(ngModel)]="sidebarSkin" (change)="changeSidebarSkin()">
+          <label for="sidebarLight" class="custom-control-label">Clair</label>
+        </div>
+      </div>
+      
+      <div class="mb-4">
+        <label>Variante Navbar</label>
+        <select class="custom-select form-control-border" [(ngModel)]="navbarVariant" (change)="changeNavbarVariant()">
+          <option value="primary">Primary</option>
+          <option value="secondary">Secondary</option>
+          <option value="info">Info</option>
+          <option value="success">Success</option>
+          <option value="danger">Danger</option>
+          <option value="warning">Warning</option>
+          <option value="white">White</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+      
+      <div class="mb-4">
+        <label>Couleur d'accentuation</label>
+        <select class="custom-select form-control-border" [(ngModel)]="accentColor" (change)="changeAccentColor()">
+          <option value="primary">Primary</option>
+          <option value="success">Success</option>
+          <option value="warning">Warning</option>
+          <option value="danger">Danger</option>
+          <option value="info">Info</option>
+        </select>
+      </div>
+    </div>
+  </aside>
+  <!-- /.control-sidebar -->

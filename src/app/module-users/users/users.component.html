@@ -1,0 +1,123 @@
+<app-content-header [pageTitle]="pageTitle" [breadcrumbItems]="breadcrumbItems"></app-content-header>
+<div class="row">
+<div class="content-wrapper">
+    <!-- Content Header (Page header) -->
+    
+
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Liste des utilisateurs</h3>
+                <div class="card-tools">
+                  <div class="input-group input-group-sm" style="width: 350px;">
+                    <input 
+                      type="text" 
+                      [(ngModel)]="searchTerm" 
+                      class="form-control float-right" 
+                      placeholder="Rechercher par nom, email ou rôle..." 
+                      (input)="searchUsers()"
+                    >
+                    <div class="input-group-append">
+                      <button type="button" class="btn btn-default" (click)="searchUsers()">
+                        <i class="fas fa-search"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- /.card-header -->
+              <div class="card-body table-responsive p-0">
+                <table class="table table-hover text-nowrap">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nom</th>
+                      <th>Email</th>
+                      <th>Rôle</th>
+                      <th>Statut</th>
+                      <th>Date d'inscription</th>
+                      <th>État eCheck</th>
+                      <th>Message eCheck</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let user of getPaginatedUsers()" [ngClass]="{'table-secondary': user.status === 'inactive'}">
+                      <td>{{ user.id }}</td>
+                      <td>{{ user.nom }}</td>
+                      <td>{{ user.email }}</td>
+                      <td>
+                        <span class="badge" [ngClass]="{
+                          'badge-danger': user.roles === 'Admin',
+                          'badge-primary': user.roles === 'Manager',
+                          'badge-warning': user.roles === 'Editor',
+                          'badge-success': user.roles === 'User'
+                        }">
+                          {{ user.roles }}
+                        </span>
+                      </td>
+                      <td>
+                        <span class="badge" [ngClass]="user.status === 'active' ? 'badge-success' : 'badge-danger'">
+                          {{ user.status === 'active' ? 'Actif' : 'Inactif' }}
+                        </span>
+                      </td>
+                      <td>{{ user.registeredDate | date:'dd/MM/yyyy' }}</td>
+                      <td>
+                        <span class="badge" [ngClass]="user.echeck_connection ? 'badge-success' : 'badge-danger'">
+                          {{ user.echeck_connection ? 'Connecté' : 'Déconnecté' }}
+                        </span>
+                      </td>
+                      <td>{{ user.messageEcheck || 'N/A' }}</td>
+                      <td>
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-info btn-sm" [routerLink]="['/users/edit', user.id]">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button type="button" class="btn btn-warning btn-sm" (click)="toggleStatus(user)">
+                            <i class="fas fa-sync-alt"></i>
+                          </button>
+                          <button type="button" class="btn btn-danger btn-sm" (click)="deleteUser(user.id)">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <!-- /.card-body -->
+              <div class="card-footer clearfix">
+                <div class="float-left text-muted" *ngIf="filteredUsers.length > 0">
+                  Affichage de {{ getDisplayedRange().start }} à {{ getDisplayedRange().end }} sur {{ totalItems }} utilisateurs
+                </div>
+                <div class="float-left text-danger" *ngIf="filteredUsers.length === 0">
+                  Aucun utilisateur trouvé pour "{{ searchTerm }}"
+                </div>
+                <ul class="pagination pagination-sm m-0 float-right" *ngIf="totalItems > itemsPerPage">
+                  <li class="page-item" [ngClass]="{'disabled': currentPage === 1}">
+                    <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage - 1)">&laquo;</a>
+                  </li>
+                  <li class="page-item" *ngFor="let page of getTotalPages()" [ngClass]="{'active': page === currentPage}">
+                    <a class="page-link" href="javascript:void(0)" (click)="changePage(page)">{{ page }}</a>
+                  </li>
+                  <li class="page-item" [ngClass]="{'disabled': currentPage === getTotalPages().length}">
+                    <a class="page-link" href="javascript:void(0)" (click)="changePage(currentPage + 1)">&raquo;</a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+            <!-- /.card -->
+          </div>
+        </div>
+        <!-- /.row -->
+      </div>
+      <!-- /.container-fluid -->
+    </section>
+    <!-- /.content -->
+  </div>
+</div>
+  <!-- /.content-wrapper -->

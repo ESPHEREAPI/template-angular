@@ -1,0 +1,140 @@
+<!-- role-permission.component.html -->
+
+<div class="content-wrapper">
+    <!-- Content Header -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">Gestion des Rôles et Permissions</h1>
+          </div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-right">
+              <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+              <li class="breadcrumb-item active">Rôles et Permissions</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Main content -->
+    <section class="content">
+      <div class="container-fluid">
+        <div class="row">
+          <!-- Formulaire de rôle -->
+          <div class="col-md-6">
+            <div class="card card-primary">
+              <div class="card-header">
+                <h3 class="card-title">{{ editMode ? 'Modifier Rôle' : 'Ajouter un Rôle' }}</h3>
+              </div>
+              <form [formGroup]="roleForm" (ngSubmit)="onRoleSubmit()">
+                <div class="card-body">
+                  <div class="form-group">
+                    <label for="roleName">Nom du rôle</label>
+                    <input type="text" class="form-control" id="roleName" formControlName="name" placeholder="Entrez le nom du rôle">
+                    <div *ngIf="roleForm.get('name')?.invalid && roleForm.get('name')?.touched" class="text-danger">
+                      Le nom du rôle est requis
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label for="roleDescription">Description</label>
+                    <textarea class="form-control" id="roleDescription" formControlName="description" placeholder="Description du rôle" rows="3"></textarea>
+                  </div>
+                  <div class="form-group">
+                    <div class="custom-control custom-checkbox">
+                      <input class="custom-control-input" type="checkbox" id="isDefault" formControlName="isDefault">
+                      <label for="isDefault" class="custom-control-label">Rôle par défaut</label>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-footer">
+                  <button type="submit" class="btn btn-primary" [disabled]="roleForm.invalid">{{ editMode ? 'Mettre à jour' : 'Ajouter' }}</button>
+                  <button type="button" class="btn btn-default ml-2" (click)="resetRoleForm()">Annuler</button>
+                </div>
+              </form>
+            </div>
+          </div>
+  
+          <!-- Liste des rôles -->
+          <div class="col-md-6">
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Rôles existants</h3>
+              </div>
+              <div class="card-body p-0">
+                <table class="table table-striped">
+                  <thead>
+                    <tr>
+                      <th>Nom</th>
+                      <th>Description</th>
+                      <th>Par défaut</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let role of roles">
+                      <td>{{ role.name }}</td>
+                      <td>{{ role.description }}</td>
+                      <td>
+                        <span class="badge" [ngClass]="role.isDefault ? 'badge-success' : 'badge-secondary'">
+                          {{ role.isDefault ? 'Oui' : 'Non' }}
+                        </span>
+                      </td>
+                      <td>
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-sm btn-info" (click)="editRole(role)">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button type="button" class="btn btn-sm btn-danger" (click)="deleteRole(role.id)">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                          <button type="button" class="btn btn-sm btn-primary" (click)="managePermissions(role)">
+                            <i class="fas fa-key"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+  
+        <!-- Gestion des permissions -->
+        <div class="row mt-4" *ngIf="selectedRole">
+          <div class="col-12">
+            <div class="card card-info">
+              <div class="card-header">
+                <h3 class="card-title">Permissions pour: {{ selectedRole.name }}</h3>
+              </div>
+              <div class="card-body">
+                <div *ngFor="let module of getUniqueModules()" class="mb-4">
+                  <h5>Module: {{ module }}</h5>
+                  <div class="row">
+                    <div class="col-md-3" *ngFor="let permission of getPermissionsByModule(module)">
+                      <div class="custom-control custom-checkbox">
+                        <input class="custom-control-input" type="checkbox" 
+                               [id]="'permission-' + permission.id" 
+                               [checked]="isPermissionSelected(permission)"
+                               (change)="togglePermission(permission)">
+                        <label [for]="'permission-' + permission.id" class="custom-control-label">
+                          {{ permission.name }}
+                          <small class="form-text text-muted">{{ permission.description }}</small>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer">
+                <button type="button" class="btn btn-success" (click)="saveRolePermissions()">Enregistrer les permissions</button>
+                <button type="button" class="btn btn-default ml-2" (click)="cancelPermissionEdit()">Annuler</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
