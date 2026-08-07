@@ -260,7 +260,6 @@ console.log(this.searchTerm);
         article.categories?.libelle.toLowerCase().includes(searchLower)
       );
     }
-    this.currentPage = 1;
   }
 
   //get paginatedArticles(): Produit[] {
@@ -339,13 +338,8 @@ console.log(this.searchTerm);
   }
 
   onSearch(term: string): void {
-    console.log("recherche");
-     console.log();
     this.searchTerm = term;
-         console.log(  this.searchTerm );
-    this.currentPage = 1;
     this.loadArticles(0);
-    //this.applyFilter();
   }
 
   private loadArticles(page: number = 0): void {
