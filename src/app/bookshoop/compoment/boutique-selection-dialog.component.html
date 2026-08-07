@@ -110,12 +110,12 @@
 
       <ng-template pTemplate="footer">
         <button
-          *ngIf="!creationMode"
           pButton
           type="button"
           label="Valider"
           icon="pi pi-check"
           class="p-button-primary"
+          [hidden]="creationMode"
           [disabled]="!selectedBoutique || loading"
           (click)="onConfirm()">
         </button>
