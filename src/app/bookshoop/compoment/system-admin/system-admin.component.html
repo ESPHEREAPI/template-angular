@@ -1,0 +1,172 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Administrateurs Système</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Administrateurs Système</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Liste des Administrateurs Système</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-primary" (click)="openModal()">
+            <i class="fas fa-plus"></i> Nouvel Administrateur Système
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Identifiant</th>
+                <th>Nom</th>
+                <th>Email</th>
+                <th>Actif</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let admin of systemAdmins">
+                <td>{{ admin.id }}</td>
+                <td>{{ admin.userName }}</td>
+                <td>{{ admin.firstName }} {{ admin.lastname }}</td>
+                <td>{{ admin.email || '-' }}</td>
+                <td>
+                  <span class="badge" [class.badge-success]="admin.isActive" [class.badge-secondary]="!admin.isActive">
+                    {{ admin.isActive ? 'Actif' : 'Inactif' }}
+                  </span>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="resetPassword(admin)">
+                    <i class="fas fa-key"></i> Réinitialiser le mot de passe
+                  </button>
+                  <button type="button" class="btn btn-sm" [class.btn-outline-warning]="admin.isActive" [class.btn-outline-success]="!admin.isActive"
+                          (click)="toggleActive(admin)">
+                    <i class="fas" [class.fa-ban]="admin.isActive" [class.fa-check]="!admin.isActive"></i>
+                    {{ admin.isActive ? 'Désactiver' : 'Activer' }}
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="!loading && systemAdmins.length === 0">
+                <td colspan="6" class="text-center">Aucun administrateur système trouvé</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal creation -->
+<div class="modal fade" id="systemAdminModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Nouvel Administrateur Système</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="alert alert-info">
+            L'identifiant et le mot de passe sont générés automatiquement et affichés à la fin.
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="firstName">Nom</label>
+                <input type="text" class="form-control" id="firstName"
+                       [(ngModel)]="newSystemAdmin.firstName" name="firstName">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="lastname">Prénom</label>
+                <input type="text" class="form-control" id="lastname"
+                       [(ngModel)]="newSystemAdmin.lastname" name="lastname">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" class="form-control" id="email"
+                       [(ngModel)]="newSystemAdmin.email" name="email">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="tel">Téléphone</label>
+                <input type="text" class="form-control" id="tel"
+                       [(ngModel)]="newSystemAdmin.tel" name="tel">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="save()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal identifiants generes (creation ou reinitialisation) -->
+<div class="modal fade" id="credentialsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Identifiants</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">À noter maintenant, ce mot de passe ne sera plus jamais réaffiché.</div>
+        <div class="form-group">
+          <label>Identifiant</label>
+          <div class="input-group">
+            <input type="text" class="form-control" readonly [value]="credentialsUsername">
+            <div class="input-group-append">
+              <button type="button" class="btn btn-outline-secondary" (click)="copyToClipboard(credentialsUsername)">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" *ngIf="credentialsPassword">
+          <label>Mot de passe</label>
+          <div class="input-group">
+            <input type="text" class="form-control" readonly [value]="credentialsPassword">
+            <div class="input-group-append">
+              <button type="button" class="btn btn-outline-secondary" (click)="copyToClipboard(credentialsPassword)">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,41 @@
+ .cursor-pointer {
+    cursor: pointer;
+  }
+
+  .transition-all {
+    transition: all 0.3s ease;
+  }
+
+  .info-box {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    transition: all 0.3s ease;
+  }
+
+  .info-box:hover {
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+    transform: translateY(-2px);
+  }
+
+  .table tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+  }
+
+  .opacity-50 {
+    opacity: 0.5;
+  }
+
+  .card {
+    border-radius: 0.5rem;
+  }
+
+  .card-body {
+    padding: 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .table { font-size: 0.75rem; }
+    .table th, .table td { padding: 0.4rem; }
+    .btn-sm { padding: 0.25rem 0.5rem; font-size: 0.65rem; }
+    .info-box-icon { font-size: 1.5rem; }
+  }

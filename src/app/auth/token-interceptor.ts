@@ -1,5 +1,7 @@
 import { HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from "@angular/common/http";
 import { Injectable } from "@angular/core";
+import { Router } from "@angular/router";
+import { ToastrService } from "ngx-toastr";
 import { BehaviorSubject, catchError, filter, Observable, switchMap, take, throwError } from "rxjs";
 import { AuthService } from "./auth.service";
 
@@ -8,7 +10,7 @@ export class TokenInterceptor implements HttpInterceptor{
     private isRefreshing = false;
   private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null);
 
-  constructor(private authService: AuthService) { }
+  constructor(private authService: AuthService, private router: Router, private toastr: ToastrService) { }
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     // Ajouter le token d'authentification si l'utilisateur est connecté
@@ -19,9 +21,15 @@ export class TokenInterceptor implements HttpInterceptor{
 
     return next.handle(request).pipe(
       catchError(error => {
-        if (error instanceof HttpErrorResponse && error.status === 401) {
+        if (error instanceof HttpErrorResponse && error.status === 401 && !request.url.includes('/auth/login')) {
           // Gérer les erreurs 401 (non autorisé)
           return this.handle401Error(request, next);
+        }
+        if (error instanceof HttpErrorResponse && error.status === 403) {
+          this.toastr.error("Vous n'avez pas les droits nécessaires pour cette action.", 'Accès refusé');
+        }
+        if (error instanceof HttpErrorResponse && error.status === 402) {
+          this.toastr.error('Licence expirée ou invalide, contactez votre administrateur.', 'Licence');
         }
         return throwError(error);
       })
@@ -50,6 +58,8 @@ export class TokenInterceptor implements HttpInterceptor{
         catchError(error => {
           this.isRefreshing = false;
           this.authService.logout();
+          this.toastr.warning('Votre session a expiré, veuillez vous reconnecter.', 'Session expirée');
+          this.router.navigate(['/login']);
           return throwError(error);
         })
       );

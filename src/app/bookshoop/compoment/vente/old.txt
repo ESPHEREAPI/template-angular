@@ -1,0 +1,510 @@
+<!-- point-vente.component.html -->
+<div class="point-vente-container">
+    <!-- Header -->
+    <div class="header-section">
+        <div class="ticket-info">
+            <h2>Point de Vente</h2>
+            <div class="ticket-number">
+                <span class="label">N° Ticket:</span>
+                <span class="value">{{ numeroTicket }}</span>
+            </div>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-secondary" (click)="refreshApplication()" [disabled]="loading">
+                <i class="fas fa-plus"></i> Nouvelle Vente
+            </button>
+        </div>
+
+    </div>
+
+    <div class="main-content">
+        
+        <!-- Left Panel - Caisse -->
+        <div class="caisse-panel">
+            <!-- Barcode Input -->
+            <div class="barcode-section">
+                <form [formGroup]="venteForm">
+                    <div class="input-group">
+                        <input #barcodeInput type="text" class="form-control barcode-input"
+                            placeholder="Scanner ou saisir le code-barres / N° commande e-commerce" 
+                            formControlName="barcode"
+                            (keyup.enter)="onBarcodeInput($event)" 
+                            [disabled]="loading"
+                            autocomplete="off">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="button" (click)="openArticleModal()"
+                                    title="Rechercher un article">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Search Section -->
+            <div class="search-section">
+                <div class="input-group">
+                    <input type="text" class="form-control" 
+                           placeholder="Rechercher par référence..." 
+                           #referenceInput
+                           (keyup.enter)="onSearchInputRef(referenceInput.value); referenceInput.value=''" 
+                           autocomplete="off">
+                    <div class="input-group-append">
+                        <button class="btn btn-outline-secondary" type="button"
+                                title="Rechercher">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+       
+
+            <!-- Quick Actions -->
+            <div class="quick-actions">
+                <button class="btn btn-outline-primary btn-sm" (click)="openArticleModal()">
+                    <i class="fas fa-plus"></i> Ajouter Article
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" (click)="showClientModal = true">
+                    <i class="fas fa-user-plus"></i> Nouveau Client
+                </button>
+            </div>
+
+            <!-- Panier -->
+            <div class="panier-section">
+                <h4>Panier ({{ caisseItems.length }} articles)</h4>
+
+                <div class="panier-items" *ngIf="caisseItems.length > 0; else emptyCart">
+                    <div class="item-row" *ngFor="let item of caisseItems; let i = index">
+                        <div class="item-info">
+                            <div class="item-name">{{ reduireLibelle(item.article.libelle) }}</div>
+                            <div class="item-ref">Réf: {{ item.article.reference }} || Qte: {{item.article.stockFinal}}
+                            </div>
+
+                        </div>
+
+                        <div class="item-controls">
+                            <div class="quantity-control">
+                                <button class="btn btn-sm btn-outline-secondary"
+                                    (click)="modifierQuantite(item, item.quantite - 1)" [disabled]="item.quantite <= 1">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" class="form-control quantity-input" [value]="item.quantite"
+                                    (change)="onQuantiteChange(item, $event)" min="1">
+                                <button class="btn btn-sm btn-outline-secondary"
+                                    (click)="modifierQuantite(item, item.quantite + 1)">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+
+                            <div class="price-control" *ngIf="item.article.prixVenteModifiable">
+                                <input type="number" class="form-control price-input" [value]="item.prixUnitaire"
+                                    (change)="onPrixChange(item, $event)" step="0.01" min="0">
+                            </div>
+                            <div class="price-display" *ngIf="!item.article.prixVenteModifiable">
+                                {{ item.prixUnitaire | currency:'XAF':'symbol':'1.0-0' }}
+                            </div>
+                        </div>
+
+                        <div class="item-total">
+                            {{ item.montantTotal | currency:'XAF':'symbol':'1.0-0' }}
+                        </div>
+
+                        <div class="item-actions">
+                            <button class="btn btn-sm btn-danger" (click)="supprimerItem(i)" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <ng-template #emptyCart>
+                    <div class="empty-cart">
+                        <i class="fas fa-shopping-cart"></i>
+                        <p>Panier vide</p>
+                        <small>Scannez un code-barres ou recherchez un article</small>
+                    </div>
+                </ng-template>
+            </div>
+        </div>
+
+        <!-- Right Panel - Totaux et Paiement -->
+        <div class="totaux-panel">
+            <!-- Client Selection -->
+            <form [formGroup]="venteForm">
+                <div>
+                    <label>Client</label>
+                    <select class="form-control" formControlName="client">
+                        <option value="">Client de passage</option>
+                        <option *ngFor="let personne of personnes" [value]="personne.id">
+                            {{ personne.nom }} {{ personne.prenom }}
+                        </option>
+                    </select>
+                </div>
+            </form>
+            <!-- Remise -->
+            <form [formGroup]="venteForm">
+                <label>Type de remise</label>
+                <div>
+                    <label class="mr-3">
+                        <input type="radio" value="taux" formControlName="typeRemise" /> En %
+                    </label>
+                    <label>
+                        <input type="radio" value="montant" formControlName="typeRemise" /> En montant (FCFA)
+                    </label>
+                </div>
+
+                <div class="remise-section" *ngIf="venteForm.get('typeRemise')?.value === 'taux'">
+                    <label>Remise (%)</label>
+
+                    <input type="number" class="form-control" formControlName="remise" min="0" max="100" step="5">
+
+                </div>
+                <div class="remise-section" *ngIf="venteForm.get('typeRemise')?.value === 'montant'">
+
+                    <label>Remise (montant)</label>
+                    <input type="number" class="form-control" formControlName="remise" min="0">
+
+                </div>
+            </form>
+            <!-- Totaux -->
+            <div class="totaux-display">
+                <div class="total-line">
+                    <span>Sous-total:</span>
+                    <span class="amount">{{ montantTotal | currency:'XAF':'symbol':'1.0-0' }}</span>
+                </div>
+
+                <div class="total-line" *ngIf="venteForm.get('remise')?.value > 0">
+                    <span *ngIf="venteForm.get('typeRemise')?.value === 'taux'">Remise ({{
+                        venteForm.get('remise')?.value }}%):</span>
+                    <span *ngIf="venteForm.get('typeRemise')?.value === 'montant'">Remise ({{
+                        venteForm.get('remise')?.value }} FCFA):</span>
+
+                    <span class="amount discount">
+                        -{{ montantRemise | currency:'XAF':'symbol':'1.0-0' }}
+                    </span>
+                </div>
+
+                <div class="total-line final-total" *ngIf="venteForm.get('remise')?.value==0">
+                    <span>Total à payer:</span>
+                    <span class="amount">{{ (montantTotal) | currency:'XAF':'symbol':'1.0-0' }}</span>
+                </div>
+                <div class="total-line final-total" *ngIf="venteForm.get('remise')?.value > 0">
+                    <span>Total à payer:</span>
+                    <span class="amount">{{ (montantTotalApaye) | currency:'XAF':'symbol':'1.0-0' }}</span>
+                </div>
+
+                <div class="total-words">
+                    <small>{{ getMontantEnLettres() }}</small>
+                </div>
+            </div>
+
+            <!-- Bon d'achat -->
+            <div class="bon-achat-section" *ngIf="montantTotal > 0">
+                <div class="form-group">
+                    <label>Code bon d'achat (optionnel)</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" [(ngModel)]="bonAchatCode" placeholder="Entrer le code">
+                        <div class="input-group-append">
+                            <button class="btn btn-outline-primary" (click)="verifierBonAchat()"
+                                [disabled]="!bonAchatCode">
+                                Vérifier
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-success" *ngIf="bonAchatValide">
+                    <strong>Bon d'achat valide!</strong><br>
+                    Montant utilisé: {{ montantBonAchat | currency:'XAF':'symbol':'1.0-0' }}<br>
+                    Reste à payer: {{ resteApresBonAchat | currency:'XAF':'symbol':'1.0-0' }}
+                </div>
+            </div>
+
+            <!-- Boutons de paiement -->
+            <div class="paiement-buttons" *ngIf="montantTotal > 0">
+                <button class="btn btn-success btn-block btn-lg" (click)="openPaiementModal('especes')"
+                    [disabled]="loading">
+                    <i class="fas fa-money-bill-wave"></i>
+                    Payer en Espèces
+                </button>
+
+                <button class="btn btn-primary btn-block btn-lg" (click)="openPaiementModal('autre')"
+                    [disabled]="loading">
+                    <i class="fas fa-credit-card"></i>
+                    Autre Mode de Paiement
+                </button>
+
+                <button class="btn btn-warning btn-block" (click)="showBonAchatModal = true" [disabled]="loading">
+                    <i class="fas fa-gift"></i>
+                    Créer Bon d'Achat
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Article -->
+<div class="modal fade" [class.show]="showArticleModal" [style.display]="showArticleModal ? 'block' : 'none'">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Sélectionner un article</h5>
+                <button type="button" class="close" (click)="showArticleModal = false">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Tabs -->
+                <ul class="nav nav-tabs" id="articleTabs">
+                    <li class="nav-item">
+                        <a class="nav-link active" data-toggle="tab" href="#articles-stock">Articles en stock</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" data-toggle="tab" href="#article-libre">Article libre</a>
+                    </li>
+                </ul>
+
+                <div class="tab-content">
+                    <!-- Articles en stock -->
+                    <div class="tab-pane fade show active" id="articles-stock">
+                        <div class="search-box mt-3">
+                            <input type="text" class="form-control" placeholder="Rechercher..."
+                                (input)="onSearchInput($event)">
+                        </div>
+
+                        <div class="articles-list mt-3">
+                            <div class="article-item" *ngFor="let article of filteredArticles"
+                                (click)="ajouterArticleVente(article)">
+                                <div class="article-info">
+                                    <strong>{{ article.libelle }}</strong>
+                                    <div class="article-details">
+                                        <span class="ref">{{ article.reference }}</span>
+                                        <span class="stock">Stock: {{ article.stockFinal }}</span>
+                                    </div>
+                                </div>
+                                <div class="article-price">
+                                    {{ article.prixVenteTTC| currency:'XAF':'symbol':'1.0-0' }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Article libre -->
+                    <div class="tab-pane fade" id="article-libre">
+                        <form [formGroup]="articleForm" class="mt-3">
+                            <div class="form-group">
+                                <label>Libellé</label>
+                                <input type="text" class="form-control" formControlName="libelle"
+                                    (input)="onSearchInput($event)">
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Quantité</label>
+                                        <input type="number" class="form-control" formControlName="quantite" min="1">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Prix unitaire</label>
+                                        <input type="number" class="form-control" formControlName="prixUnitaire"
+                                            step="0.01">
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-primary" (click)="ajouterArticleNonStock()"
+                                [disabled]="!articleForm.valid">
+                                Ajouter à la vente
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Paiement -->
+<div class="modal fade" [class.show]="showPaiementModal" [style.display]="showPaiementModal ? 'block' : 'none'">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Paiement</h5>
+                <button type="button" class="close" (click)="showPaiementModal = false">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="paiement-info">
+                    <div class="total-display">
+                        <h4>Total: {{ montantTotalApaye | currency:'XAF':'symbol':'1.0-0' }}</h4>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Type de paiement</label>
+                        <select class="form-control" [(ngModel)]="typePaiementSelectionne">
+                            <option *ngFor="let type of typesPaiement" [value]="type">
+                                {{ type }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group" *ngIf="typePaiementSelectionne === 'ESPECES'">
+                        <label>Montant reçu</label>
+                        <input type="number" class="form-control" [(ngModel)]="montantRecu"
+                            (input)="onMontantRecuInput($event)" step="0.01" min="0">
+
+                        <div class="monnaie-info mt-2" *ngIf="montantRecu > 0">
+                            <strong>Monnaie à rendre: {{ monnaieRendue | currency:'XAF':'symbol':'1.2-2':'fr'
+                                }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="showPaiementModal = false">
+                    Annuler
+                </button>
+                <button type="button" class="btn btn-success" (click)="validerVente()"
+                    [disabled]="loading || (typePaiementSelectionne === 'ESPECES' && montantRecu < montantTotalApaye)">
+                    <span *ngIf="loading" class="spinner-border spinner-border-sm mr-2"></span>
+                    Valider la vente
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Bon d'achat -->
+<div class="modal fade" [class.show]="showBonAchatModal" [style.display]="showBonAchatModal ? 'block' : 'none'">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Créer un bon d'achat</h5>
+                <button type="button" class="close" (click)="showBonAchatModal = false">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form [formGroup]="bonAchatForm">
+                    <div class="form-group">
+                        <label>Bénéficiaire</label>
+                        <select class="form-control" formControlName="personne">
+                            <option value="">Sélectionner une personne</option>
+                            <option *ngFor="let personne of personnes" [value]="personne.id">
+                                {{ personne.nom }} {{ personne.prenom }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Montant du bon</label>
+                        <input type="number" class="form-control" formControlName="montant" step="0.01" min="0"
+                            [max]="montantTotal">
+                        <small class="form-text text-muted">
+                            Maximum: {{ montantTotal | currency:'XAF':'symbol':'1.2-2':'fr' }}
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Rendu en espèces</label>
+                        <input type="number" class="form-control" formControlName="renduEspece" step="0.01" min="0">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="showBonAchatModal = false">
+                    Annuler
+                </button>
+                <button type="button" class="btn btn-primary" [disabled]="!bonAchatForm.valid">
+                    Créer le bon
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Client -->
+<div class="modal fade" [class.show]="showClientModal" [style.display]="showClientModal ? 'block' : 'none'">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouveau client</h5>
+                <button type="button" class="close" (click)="showClientModal = false">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form [formGroup]="clientForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Nom *</label>
+                                <input type="text" class="form-control" formControlName="nom">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Prénom *</label>
+                                <input type="text" class="form-control" formControlName="prenom">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Téléphone</label>
+                        <input type="tel" class="form-control" formControlName="telephone">
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" class="form-control" formControlName="email">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="showClientModal = false">
+                    Annuler
+                </button>
+                <button type="button" class="btn btn-primary" (click)="creerClient()" [disabled]="!clientForm.valid">
+                    Créer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmation -->
+<div class="modal fade" [class.show]="showConfirmationModal" [style.display]="showConfirmationModal ? 'block' : 'none'">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Vente confirmée</h5>
+            </div>
+            <div class="modal-body text-center">
+                <i class="fas fa-check-circle text-success" style="font-size: 3rem;"></i>
+                <h4 class="mt-3">Vente enregistrée avec succès!</h4>
+                <p>Ticket N°: <strong>{{ numeroTicket }}</strong></p>
+                <p>Montant: <strong>{{ montantTotalApaye | currency:'XAF':'symbol':'1.0-0' }}</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary" (click)="telechargerTicket(0)">
+                    <i class="fas fa-download"></i> Télécharger
+                </button>
+                <button type="button" class="btn btn-primary" (click)="imprimerTicket(0)">
+                    <i class="fas fa-print"></i> Imprimer
+                </button>
+                <button type="button" class="btn btn-success" (click)="refreshApplication()">
+                    <i class="fas fa-plus"></i> Nouvelle vente
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" *ngIf="loading">
+    <div class="spinner-border text-primary" role="status">
+        <span class="sr-only">Chargement...</span>
+    </div>
+</div>

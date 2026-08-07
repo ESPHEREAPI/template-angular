@@ -1,0 +1,80 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Compte Client</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Compte Client</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Sélection du client</h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-8 form-group">
+            <label>Client *</label>
+            <select class="form-control" [(ngModel)]="clientId" name="client">
+              <option [ngValue]="null">-- Sélectionner un client --</option>
+              <option *ngFor="let client of clients" [ngValue]="client.id">{{ client.nom }}</option>
+            </select>
+          </div>
+          <div class="col-md-4 form-group d-flex align-items-end">
+            <button type="button" class="btn btn-primary btn-block" (click)="charger()">
+              <i class="fas fa-search"></i> Charger le relevé
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" *ngIf="versements.length > 0 || clientId">
+      <div class="card-header">
+        <h3 class="card-title">Historique des Versements</h3>
+        <div class="card-tools">
+          <span class="badge badge-success">Total versé : {{ getTotalVerse() }}</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>N° Versement</th>
+                <th>Date</th>
+                <th>Montant</th>
+                <th>Mode Paiement</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let versement of versements">
+                <td>{{ versement.numeroVersement }}</td>
+                <td>{{ versement.dateVersement | date:'dd/MM/yyyy' }}</td>
+                <td>{{ versement.montant }}</td>
+                <td>{{ versement.modePaiement }}</td>
+                <td>{{ versement.statut }}</td>
+              </tr>
+              <tr *ngIf="versements.length === 0">
+                <td colspan="5" class="text-center">Aucun versement trouvé pour ce client</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="text-muted small">
+          Relevé basé sur les versements enregistrés. Les bons d'achat ne sont pas encore consolidés ici (registre client distinct).
+        </p>
+      </div>
+    </div>
+  </div>
+</section>

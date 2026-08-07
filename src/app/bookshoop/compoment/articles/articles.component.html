@@ -1,0 +1,424 @@
+
+<!-- article-management.component.html -->
+
+ 
+<app-content-header [pageTitle]="pageTitle" [breadcrumbItems]="breadcrumbItems"></app-content-header>
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      
+      <!-- Form Section -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-tools">
+            <button type="button" class="btn btn-primary btn-sm" (click)="onSubmit()" [disabled]="!isFormValid">
+              <i class="fas fa-save"></i> {{ isEditMode ? 'Modifier' : 'Ajouter' }}
+            </button>
+            <button type="button" class="btn btn-warning btn-sm ml-2" (click)="resetForm()" [disabled]="isEditMode && selectedArticle?.deletes">
+              <i class="fas fa-edit"></i> Modifier
+            </button>
+            <button type="button" class="btn btn-info btn-sm ml-2" (click)="refresh()">
+              <i class="fas fa-sync-alt"></i> Rafraîchir
+            </button>
+          </div>
+        </div>
+        
+        <div class="card-body">
+          <!-- Alert Messages -->
+          <div class="alert alert-info alert-dismissible" *ngIf="loading">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <i class="icon fas fa-info"></i> Chargement en cours...
+          </div>
+
+          <!-- Tabs -->
+          <ul class="nav nav-tabs" id="custom-tabs" role="tablist">
+            <li class="nav-item">
+              <a class="nav-link" [class.active]="activeTab === 'article'" 
+                 (click)="activeTab = 'article'" role="tab">
+                Article
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" [class.active]="activeTab === 'specifique'" 
+                 (click)="activeTab = 'specifique'" role="tab">
+                Spécifique
+              </a>
+            </li>
+          </ul>
+
+          <div class="tab-content mt-3">
+            <!-- Article Tab -->
+            <div class="tab-pane fade" [class.show]="activeTab === 'article'" [class.active]="activeTab === 'article'">
+              <form [formGroup]="articleForm" (ngSubmit)="onSubmit()">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="reference">Référence Article:</label>
+                      <input type="text" class="form-control" id="reference" 
+                             formControlName="reference" placeholder="Code de référence">
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="libelle">Libellé: <span class="text-danger">*</span></label>
+                      <input type="text" class="form-control" id="libelle" 
+                             formControlName="libelle" placeholder="Libellé de l'article"
+                             [class.is-invalid]="articleForm.get('libelle')?.invalid && articleForm.get('libelle')?.touched">
+                      <div class="invalid-feedback" *ngIf="articleForm.get('libelle')?.invalid && articleForm.get('libelle')?.touched">
+                        Le libellé est requis
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="categories">Catégorie: <span class="text-danger">*</span></label>
+                      <select class="form-control" id="categories" formControlName="categories"
+                              [class.is-invalid]="articleForm.get('categories')?.invalid && articleForm.get('categories')?.touched">
+                        <option value="">-- Choisir --</option>
+                        <option *ngFor="let category of categories" [ngValue]="category">
+                          {{ category.libelle }}
+                        </option>
+                      </select>
+                      <div class="invalid-feedback" *ngIf="articleForm.get('categories')?.invalid && articleForm.get('categories')?.touched">
+                        La catégorie est requise
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label>Prix de vente modifiable:</label>
+                      <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="prixModifiable" 
+                               formControlName="prixVenteModifiable">
+                        <label class="custom-control-label" for="prixModifiable">
+                          {{ articleForm.get('prixVenteModifiable')?.value ? 'Oui' : 'Non' }}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label>Article vendu par paquet:</label>
+                      <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="pacquets" 
+                               formControlName="pacquets" (change)="onPacquetsChange()">
+                        <label class="custom-control-label" for="pacquets">
+                          {{ articleForm.get('pacquets')?.value ? 'Oui' : 'Non' }}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-6" *ngIf="articleForm.get('pacquets')?.value">
+                    <div class="form-group">
+                      <label for="quantiteByPacquet">Quantité par paquet: <span class="text-danger">*</span></label>
+                      <input type="number" class="form-control" id="quantiteByPacquet" 
+                             formControlName="quantiteByPacquet" min="1"
+                             [class.is-invalid]="articleForm.get('quantiteByPacquet')?.invalid && articleForm.get('quantiteByPacquet')?.touched">
+                      <div class="invalid-feedback" *ngIf="articleForm.get('quantiteByPacquet')?.invalid && articleForm.get('quantiteByPacquet')?.touched">
+                        La quantité par paquet est requise
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row" *ngIf="isEditMode">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label>Supprimer:</label>
+                      <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="deletes" 
+                               formControlName="deletes">
+                        <label class="custom-control-label" for="deletes">
+                          {{ articleForm.get('deletes')?.value ? 'Oui' : 'Non' }}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Specifique Tab -->
+            <div class="tab-pane fade" [class.show]="activeTab === 'specifique'" [class.active]="activeTab === 'specifique'">
+              <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                  <thead>
+                    <tr>
+                      <th style="width: 200px;">Spécifique</th>
+                      <th>Libellé</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let spec of articleSpecifications">
+                      <td>{{ spec.specifique.libelle }}</td>
+                      <td>
+                        <input type="text" class="form-control" 
+                               [(ngModel)]="spec.libelle" 
+                               (blur)="updateSpecification(spec)">
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div *ngIf="articleSpecifications.length === 0" class="text-center text-muted py-4">
+                  Aucune spécification disponible
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Articles Table -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Liste des Articles</h3>
+          <div class="card-tools">
+            <div class="input-group input-group-sm" style="width: 250px;">
+            <input type="text" class="form-control float-right" placeholder="Rechercher..."
+              (input)="onSearch(searchInput.value)" #searchInput>
+            <div class="input-group-append">
+              <button type="submit" class="btn btn-default" (click)="onSearch(searchInput.value)">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+          </div>
+        </div>
+
+        <div class="card-body table-responsive p-0">
+          <table class="table table-hover text-nowrap">
+            <thead>
+              <tr>
+                <th style="width: 80px;">Options</th>
+                <th>ID</th>
+                <th>Référence</th>
+                <th>Libellé</th>
+                <th>Catégorie</th>
+                <th>Prix Modifiable</th>
+                <th>Vendu par Paquet</th>
+                <th>Qté/Paquet</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let article of articles; trackBy: trackByFn" 
+                  (dblclick)="editArticle(article)" style="cursor: pointer;">
+                <td>
+                  <button type="button" class="btn btn-info btn-xs mr-1" 
+                          (click)="editArticle(article)" title="Modifier">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button type="button" class="btn btn-warning btn-xs" 
+                          (click)="showFournisseurs(article)" title="Fournisseurs">
+                    <i class="fas fa-truck"></i>
+                  </button>
+                </td>
+                <td>{{ article.id }}</td>
+                <td>{{ article.reference }}</td>
+                <td>{{ article.libelle }}</td>
+                <td>{{ article.categories?.libelle }}</td>
+                <td>
+                  <span class="badge" [class.badge-success]="article.prixVenteModifiable" 
+                        [class.badge-secondary]="!article.prixVenteModifiable">
+                    {{ article.prixVenteModifiable ? 'Oui' : 'Non' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [class.badge-success]="article.pacquets" 
+                        [class.badge-secondary]="!article.pacquets">
+                    {{ article.pacquets ? 'Oui' : 'Non' }}
+                  </span>
+                </td>
+                <td>{{ article.quantiteByPacquet || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div *ngIf="articles.length === 0" class="text-center text-muted py-4">
+            Aucun article trouvé
+          </div>
+        </div>
+
+        <!-- Pagination -->
+         <!-- Pagination -->
+      <div class="card-footer clearfix">
+        <div class="row">
+          <div class="col-sm-12 col-md-5">
+            <div class="dataTables_info">
+              Affichage de {{ (currentPage * pageSize) + 1 }} à
+              {{ Math.min((currentPage + 1) * pageSize, totalElements) }}
+              sur {{ totalElements }} entrées
+
+              <!--<pre>
+  pageSize: {{ pageSize }},
+  currentPage: {{ currentPage }},
+  totalElements: {{ totalElements }}
+</pre>-->
+            </div>
+          </div>
+          <div class="col-sm-12 col-md-7">
+            <div class="dataTables_paginate paging_simple_numbers float-right">
+              <ul class="pagination">
+                <li class="paginate_button page-item previous" [class.disabled]="currentPage === 0">
+                  <a class="page-link" (click)="onPageChange(currentPage - 1)" *ngIf="currentPage > 0">Précédent</a>
+                  <span class="page-link" *ngIf="currentPage === 0">Précédent</span>
+                </li>
+
+                <li class="paginate_button page-item" *ngFor="let page of getPageNumbers()"
+                  [class.active]="page === currentPage">
+                  <a class="page-link" (click)="onPageChange(page)">{{ page + 1 }}</a>
+                </li>
+
+                <li class="paginate_button page-item next" [class.disabled]="currentPage === getTotalPages() - 1">
+                  <a class="page-link" (click)="onPageChange(currentPage + 1)"
+                    *ngIf="currentPage < getTotalPages() - 1">Suivant</a>
+                  <span class="page-link" *ngIf="currentPage === getTotalPages() - 1">Suivant</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Page size selector -->
+        <div class="row mt-2">
+          <div class="col-md-3">
+            <select class="form-control form-control-sm" [ngModel]="pageSize"
+              (ngModelChange)="onPageSizeChange($event)">
+              <option *ngFor="let size of pageSizeOptions" [value]="size">
+                {{ size }} par page
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+      </div>
+    </div>
+  </section>
+
+
+<!-- Delete Confirmation Modal -->
+<ng-template #deleteModal let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title">Confirmation de suppression</h4>
+    <button type="button" class="close" aria-label="Close" (click)="modal.dismiss()">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <div class="modal-body">
+    <p>Êtes-vous sûr de vouloir supprimer cet article ?</p>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-danger" (click)="deleteArticle()">
+      <i class="fas fa-trash"></i> Supprimer
+    </button>
+    <button type="button" class="btn btn-secondary ml-2" (click)="modal.dismiss()">
+      Annuler
+    </button>
+  </div>
+</ng-template>
+
+<!-- Fournisseurs Modal -->
+<ng-template #fournisseurModal let-modal>
+  <div class="modal-header">
+    <h4 class="modal-title">Fournisseurs</h4>
+    <button type="button" class="close" aria-label="Close" (click)="modal.dismiss()">
+      <span aria-hidden="true">&times;</span>
+    </button>
+  </div>
+  <div class="modal-body">
+    <h5 *ngIf="selectedArticle">
+      {{ selectedArticle.reference }} - {{ selectedArticle.libelle }}
+    </h5>
+    <hr>
+    <div class="table-responsive">
+      <table class="table table-bordered table-striped">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Fournisseur</th>
+            <th>Téléphone</th>
+            <th>Email</th>
+            <th>Ville</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let cmd of fournisseurs">
+            <td>{{ cmd.depot.fournisseur?.id }}</td>
+            <td>{{ cmd.depot.fournisseur?.nom }}</td>
+            <td>{{ cmd.depot.fournisseur?.tel }}</td>
+            <td>{{ cmd.depot.fournisseur?.email }}</td>
+            <td>{{ cmd.depot.fournisseur?.ville }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div *ngIf="fournisseurs.length === 0" class="text-center text-muted py-4">
+        Aucun fournisseur trouvé
+      </div>
+
+       <!-- Pagination -->
+      <div class="card-footer clearfix">
+        <div class="row">
+          <div class="col-sm-12 col-md-5">
+            <div class="dataTables_info">
+              Affichage de {{ (currentPage * pageSize) + 1 }} à
+              {{ Math.min((currentPage + 1) * pageSize, totalElements) }}
+              sur {{ totalElements }} entrées
+
+              <!--<pre>
+  pageSize: {{ pageSize }},
+  currentPage: {{ currentPage }},
+  totalElements: {{ totalElements }}
+</pre>-->
+            </div>
+          </div>
+          <div class="col-sm-12 col-md-7">
+            <div class="dataTables_paginate paging_simple_numbers float-right">
+              <ul class="pagination">
+                <li class="paginate_button page-item previous" [class.disabled]="currentPage === 0">
+                  <a class="page-link" (click)="onPageChange(currentPage - 1)" *ngIf="currentPage > 0">Précédent</a>
+                  <span class="page-link" *ngIf="currentPage === 0">Précédent</span>
+                </li>
+
+                <li class="paginate_button page-item" *ngFor="let page of getPageNumbers()"
+                  [class.active]="page === currentPage">
+                  <a class="page-link" (click)="onPageChange(page)">{{ page + 1 }}</a>
+                </li>
+
+                <li class="paginate_button page-item next" [class.disabled]="currentPage === getTotalPages() - 1">
+                  <a class="page-link" (click)="onPageChange(currentPage + 1)"
+                    *ngIf="currentPage < getTotalPages() - 1">Suivant</a>
+                  <span class="page-link" *ngIf="currentPage === getTotalPages() - 1">Suivant</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Page size selector -->
+        <div class="row mt-2">
+          <div class="col-md-3">
+            <select class="form-control form-control-sm" [ngModel]="pageSize"
+              (ngModelChange)="onPageSizeChange($event)">
+              <option *ngFor="let size of pageSizeOptions" [value]="size">
+                {{ size }} par page
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="modal-footer">
+    <button type="button" class="btn btn-secondary" (click)="modal.dismiss()">
+      Fermer
+    </button>
+  </div>
+</ng-template>

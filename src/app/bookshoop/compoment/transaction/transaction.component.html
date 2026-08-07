@@ -1,0 +1,340 @@
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">
+          <i class="fas fa-exchange-alt"></i> Transfert de stock
+        </h1>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="container-fluid">
+
+    <!-- Chargement initial -->
+    <div *ngIf="chargementMagasins" class="alert alert-info">
+      <i class="fas fa-spinner fa-spin"></i> Chargement des dépôts...
+    </div>
+
+    <!-- Messages d'erreur et succès -->
+    <div *ngIf="erreur" class="alert alert-danger alert-dismissible fade show">
+      <i class="fas fa-exclamation-circle"></i> {{ erreur }}
+      <button type="button" class="close" (click)="erreur = ''">
+        <span>&times;</span>
+      </button>
+    </div>
+
+    <div *ngIf="succes" class="alert alert-success alert-dismissible fade show">
+      <i class="fas fa-check-circle"></i> {{ succes }}
+      <button type="button" class="close" (click)="succes = ''">
+        <span>&times;</span>
+      </button>
+    </div>
+
+    <!-- Réponse du transfert -->
+    <div *ngIf="reponseTransfert" class="alert alert-info">
+      <div class="row">
+        <div class="col-md-6">
+          <h5><i class="fas fa-check"></i> Transfert effectué</h5>
+          <p><strong>ID du transfert:</strong> {{ reponseTransfert.transfertId }}</p>
+          <p><strong>Produit:</strong> {{ reponseTransfert.produit.libelle }}</p>
+          <p><strong>Quantité:</strong> {{ reponseTransfert.quantite | number: '1.2-2' }}</p>
+          <p><strong>Valeur estimée:</strong> {{ reponseTransfert.valeurEstimation | currency: 'XAF' }}</p>
+        </div>
+        <div class="col-md-6">
+          <h5>Stocks après transfert</h5>
+          <p>
+            <strong>{{ reponseTransfert.source.libelle }}:</strong>
+            {{ reponseTransfert.source.stockFinal | number: '1.2-2' }} unités
+          </p>
+          <p>
+            <strong>{{ reponseTransfert.destination.libelle }}:</strong>
+            {{ reponseTransfert.destination.stockFinal | number: '1.2-2' }} unités
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Formulaire -->
+    <div class="row" *ngIf="!chargementMagasins">
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header with-border bg-primary">
+            <h3 class="card-title">
+              <i class="fas fa-plus-circle"></i> Nouveau transfert
+            </h3>
+          </div>
+
+          <form [formGroup]="formulaire" (ngSubmit)="soumettre()">
+            <div class="card-body">
+
+              <!-- ÉTAPE 1: Sélection du dépôt SOURCE -->
+              <div class="form-group">
+                <label for="magasinSourceId">
+                  <strong>
+                    <span class="badge badge-primary">1</span>
+                    Dépôt source <span class="text-danger">*</span>
+                  </strong>
+                </label>
+                <select class="form-control"
+                        id="magasinSourceId"
+                        formControlName="magasinSourceId"
+                        (change)="onMagasinSourceChange()"
+                        [class.is-invalid]="formulaire.get('magasinSourceId')?.invalid && formulaire.get('magasinSourceId')?.touched">
+                  <option value="">-- Sélectionner le dépôt source --</option>
+                  <option *ngFor="let magasin of magasins" [value]="magasin.id">
+                    {{ magasin.libelle }}
+                    <span *ngIf="magasin.boutique === null">(Magasin)</span>
+                    <span *ngIf="magasin.boutique !== null">(Point de vente)</span>
+                  </option>
+                </select>
+                <small class="form-text text-muted">
+                  <i class="fas fa-info-circle"></i> 
+                  Sélectionnez d'abord le dépôt depuis lequel vous voulez transférer
+                </small>
+                <div class="invalid-feedback d-block"
+                     *ngIf="formulaire.get('magasinSourceId')?.invalid && formulaire.get('magasinSourceId')?.touched">
+                  Veuillez sélectionner un dépôt source
+                </div>
+              </div>
+
+              <!-- ÉTAPE 2: Sélection du PRODUIT (chargé dynamiquement) -->
+              <div class="form-group">
+                <label for="produitId">
+                  <strong>
+                    <span class="badge badge-primary">2</span>
+                    Produit <span class="text-danger">*</span>
+                  </strong>
+                </label>
+                
+                <!-- Indicateur de chargement -->
+                <div *ngIf="chargementProduits" class="alert alert-info">
+                  <i class="fas fa-spinner fa-spin"></i> Chargement des produits disponibles...
+                </div>
+
+                <select class="form-control"
+                        id="produitId"
+                        formControlName="produitId"
+                        (change)="onProduitChange()"
+                        [class.is-invalid]="formulaire.get('produitId')?.invalid && formulaire.get('produitId')?.touched"
+                        *ngIf="!chargementProduits">
+                  <option value="">-- Sélectionner un produit --</option>
+                  <option *ngFor="let produit of produitsDisponibles" [value]="produit.id">
+                    {{ produit.libelle }} ({{ produit.reference }}) - 
+                    Stock: {{ produit.stockDisponible | number: '1.2-2' }}
+                  </option>
+                </select>
+                
+                <small class="form-text text-muted" *ngIf="produitsDisponibles.length > 0">
+                  <i class="fas fa-info-circle"></i> 
+                  {{ produitsDisponibles.length }} produit(s) en stock dans ce dépôt
+                </small>
+                
+                <div class="invalid-feedback d-block"
+                     *ngIf="formulaire.get('produitId')?.invalid && formulaire.get('produitId')?.touched">
+                  Veuillez sélectionner un produit
+                </div>
+
+                <!-- Affichage du stock source -->
+                <div *ngIf="stockSource > 0" class="alert alert-info mt-2">
+                  <i class="fas fa-cubes"></i>
+                  <strong>Stock disponible:</strong> {{ stockSource | number: '1.2-2' }} unités
+                  <span *ngIf="stockSource <= 10" class="badge badge-warning float-right">
+                    <i class="fas fa-exclamation-triangle"></i> Stock faible
+                  </span>
+                </div>
+              </div>
+
+              <!-- ÉTAPE 3: Sélection du dépôt DESTINATION -->
+              <div class="form-group">
+                <label for="magasinDestinationId">
+                  <strong>
+                    <span class="badge badge-primary">3</span>
+                    Dépôt destination <span class="text-danger">*</span>
+                  </strong>
+                </label>
+                <select class="form-control"
+                        id="magasinDestinationId"
+                        formControlName="magasinDestinationId"
+                        (change)="onMagasinDestinationChange()"
+                        [class.is-invalid]="formulaire.get('magasinDestinationId')?.invalid && formulaire.get('magasinDestinationId')?.touched">
+                  <option value="">-- Sélectionner le dépôt destination --</option>
+                  <option *ngFor="let magasin of magasins" 
+                          [value]="magasin.id"
+                          [disabled]="magasin.id === formulaire.get('magasinSourceId')?.value">
+                    {{ magasin.libelle }}
+                    <span *ngIf="magasin.boutique === null">(Magasin)</span>
+                    <span *ngIf="magasin.boutique !== null">(Point de vente)</span>
+                  </option>
+                </select>
+                <small class="form-text text-muted">
+                  <i class="fas fa-info-circle"></i> 
+                  Doit être différent du dépôt source
+                </small>
+                <div class="invalid-feedback d-block"
+                     *ngIf="formulaire.get('magasinDestinationId')?.invalid && formulaire.get('magasinDestinationId')?.touched">
+                  Veuillez sélectionner un dépôt destination
+                </div>
+
+                <!-- Affichage du stock destination -->
+                <div *ngIf="formulaire.get('magasinDestinationId')?.value" class="alert alert-info mt-2">
+                  <i class="fas fa-cubes"></i>
+                  <strong>Stock actuel:</strong> {{ stockDestination | number: '1.2-2' }} unités
+                </div>
+              </div>
+
+              <!-- ÉTAPE 4: Quantité à transférer -->
+              <div class="form-group">
+                <label for="quantite">
+                  <strong>
+                    <span class="badge badge-primary">4</span>
+                    Quantité à transférer <span class="text-danger">*</span>
+                  </strong>
+                </label>
+                <div class="input-group">
+                  <input type="number"
+                         class="form-control"
+                         id="quantite"
+                         formControlName="quantite"
+                         step="0.01"
+                         min="0"
+                         (input)="onQuantiteChange()"
+                         [class.is-invalid]="formulaire.get('quantite')?.invalid && formulaire.get('quantite')?.touched"
+                         placeholder="0.00">
+                  <div class="input-group-append">
+                    <span class="input-group-text">unités</span>
+                  </div>
+                </div>
+                <div class="invalid-feedback d-block"
+                     *ngIf="formulaire.get('quantite')?.invalid && formulaire.get('quantite')?.touched">
+                  Veuillez entrer une quantité valide
+                </div>
+
+                <!-- Alerte de disponibilité -->
+                <div *ngIf="formulaire.get('quantite')?.value" class="mt-2">
+                  <div *ngIf="!stockDisponible" class="alert alert-danger">
+                    <i class="fas fa-times-circle"></i>
+                    Quantité indisponible! Maximum: {{ stockSource | number: '1.2-2' }} unités
+                  </div>
+                  <div *ngIf="stockDisponible" class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    Quantité disponible ✓
+                  </div>
+                </div>
+              </div>
+
+              <!-- Notes -->
+              <div class="form-group">
+                <label for="notes">
+                  <strong>Notes</strong> (optionnel)
+                </label>
+                <textarea class="form-control"
+                          id="notes"
+                          formControlName="notes"
+                          rows="3"
+                          placeholder="Ajouter des notes sur ce transfert..."></textarea>
+                <small class="form-text text-muted">500 caractères maximum</small>
+              </div>
+
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="card-footer">
+              <button type="submit"
+                      class="btn btn-primary"
+                      [disabled]="soumission || !formulaire.valid || !stockDisponible">
+                <i class="fas fa-paper-plane"></i>
+                <span *ngIf="!soumission">Effectuer le transfert</span>
+                <span *ngIf="soumission">
+                  <i class="fas fa-spinner fa-spin"></i> Traitement...
+                </span>
+              </button>
+
+              <button type="button"
+                      class="btn btn-secondary"
+                      (click)="reinitialiser()"
+                      [disabled]="soumission">
+                <i class="fas fa-redo"></i> Réinitialiser
+              </button>
+
+              <a routerLink="/dashboard" class="btn btn-outline-secondary float-right">
+                <i class="fas fa-arrow-left"></i> Retour au dashboard
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Panneau d'information -->
+      <div class="col-lg-4">
+        <div class="card">
+          <div class="card-header with-border bg-info">
+            <h3 class="card-title">
+              <i class="fas fa-info-circle"></i> Guide d'utilisation
+            </h3>
+          </div>
+          <div class="card-body">
+            <h5>Processus en 4 étapes:</h5>
+            <ol class="pl-3">
+              <li class="mb-2">
+                <strong>Dépôt source:</strong> Sélectionnez d'où vient le stock
+              </li>
+              <li class="mb-2">
+                <strong>Produit:</strong> Choisissez le produit à transférer
+                <small class="text-muted d-block">
+                  (Seuls les produits en stock s'affichent)
+                </small>
+              </li>
+              <li class="mb-2">
+                <strong>Dépôt destination:</strong> Vers quel dépôt transférer
+              </li>
+              <li class="mb-2">
+                <strong>Quantité:</strong> Combien d'unités transférer
+              </li>
+            </ol>
+
+            <hr>
+
+            <h5>Types de transferts:</h5>
+            <ul class="list-unstyled">
+              <li><i class="fas fa-arrow-right text-primary"></i> Magasin → Magasin</li>
+              <li><i class="fas fa-arrow-right text-primary"></i> Magasin → Point de vente</li>
+              <li><i class="fas fa-arrow-right text-success"></i> Point de vente → Magasin</li>
+              <li><i class="fas fa-arrow-right text-success"></i> Point de vente → Point de vente</li>
+            </ul>
+
+            <hr>
+
+            <h5>Règles importantes:</h5>
+            <ul class="list-unstyled small">
+              <li><i class="fas fa-check text-success"></i> Source ≠ Destination</li>
+              <li><i class="fas fa-check text-success"></i> Quantité ≤ Stock disponible</li>
+              <li><i class="fas fa-check text-success"></i> Historique complet conservé</li>
+              <li><i class="fas fa-check text-success"></i> Stocks mis à jour automatiquement</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Performance -->
+        <div class="card card-success">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-bolt"></i> Optimisé
+            </h3>
+          </div>
+          <div class="card-body">
+            <p class="mb-0">
+              <i class="fas fa-check-circle text-success"></i>
+              Chargement rapide et progressif<br>
+              <small class="text-muted">
+                Les produits sont chargés uniquement pour le dépôt sélectionné
+              </small>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

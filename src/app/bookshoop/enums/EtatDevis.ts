@@ -1,0 +1,8 @@
+export enum EtatDevis {
+  EN_ATTENTE = 'EN_ATTENTE',
+  ACCEPTE = 'ACCEPTE',
+  REFUSE = 'REFUSE',
+  CONVERTI = 'CONVERTI',
+  EXPIRE = 'EXPIRE',
+  ANNULE = 'ANNULE'
+}

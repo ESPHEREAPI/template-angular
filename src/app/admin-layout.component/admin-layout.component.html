@@ -1,0 +1,30 @@
+<!-- src/app/layouts/admin-layout/admin-layout.component.html -->
+
+<div class="wrapper">
+    <app-header [boutique]="boutique"></app-header>
+    <app-sidebar [user]="user"></app-sidebar>
+    
+    <div class="content-wrapper">
+      <app-content-header></app-content-header>
+
+      <section class="content">
+        <div class="container-fluid">
+          <div class="alert alert-info" *ngIf="estCompteSysteme && infosSysteme" role="alert">
+            <strong>Vue plateforme</strong> —
+            {{ infosSysteme.totalCompagnies }} compagnie(s) au total,
+            {{ infosSysteme.compagniesActives }} active(s),
+            {{ infosSysteme.compagniesInactives }} inactive(s).
+            Les donnees de gestion d'une compagnie (ventes, stock, factures...) ne sont pas accessibles a un compte administrateur systeme.
+          </div>
+          <router-outlet></router-outlet>
+        </div>
+      </section>
+    </div>
+     <!-- ✅ Alerte Approvisionnement : TOUJOURS <app-alert-stock #alertBox></app-alert-stock> visible (hors layout visible) -->
+  <app-alert-stock #alertBox></app-alert-stock>
+    <app-footer></app-footer>
+    
+
+    <app-control-sidebar></app-control-sidebar>
+    
+  </div>

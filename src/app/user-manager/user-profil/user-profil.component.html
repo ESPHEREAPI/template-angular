@@ -1,0 +1,122 @@
+<!-- user-profil.component.html -->
+
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">Profils et droits d'accès</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Profils</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="row">
+      <!-- Liste des profils -->
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">Profils</h3>
+            <button type="button" class="btn btn-sm btn-primary" (click)="basculerFormulaireAjout()">
+              <i class="fas" [ngClass]="afficherFormulaireAjout ? 'fa-times' : 'fa-plus'"></i>
+              {{ afficherFormulaireAjout ? 'Annuler' : 'Nouveau profil' }}
+            </button>
+          </div>
+
+          <div class="card-body border-bottom" *ngIf="afficherFormulaireAjout">
+            <div class="form-group">
+              <label>Code</label>
+              <input type="text" class="form-control" [(ngModel)]="nouveauCode" placeholder="Ex: GESTIONNAIRE_STOCK" [disabled]="creationEnCours">
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <input type="text" class="form-control" [(ngModel)]="nouvelleDescription" placeholder="Description courte" [disabled]="creationEnCours">
+            </div>
+            <div *ngIf="erreurCreation" class="text-danger small mb-2">{{ erreurCreation }}</div>
+            <button type="button" class="btn btn-success btn-sm" (click)="creerProfil()" [disabled]="creationEnCours">
+              {{ creationEnCours ? 'Création...' : 'Créer' }}
+            </button>
+          </div>
+
+          <div class="card-body p-0">
+            <div *ngIf="chargementProfils" class="p-3 text-muted">Chargement...</div>
+            <div *ngIf="erreur" class="p-3 text-danger">Erreur lors du chargement des profils.</div>
+            <div class="list-group list-group-flush">
+              <button type="button" *ngFor="let profil of profils"
+                      class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                      [class.active]="selectedProfil?.id === profil.id"
+                      (click)="selectionnerProfil(profil)">
+                <span>
+                  <strong>{{ profil.code }}</strong>
+                  <br *ngIf="profil.description">
+                  <small [class.text-muted]="selectedProfil?.id !== profil.id">{{ profil.description }}</small>
+                </span>
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Matrice Profil x Menu x Action -->
+      <div class="col-md-8">
+        <div class="card card-info" *ngIf="selectedProfil">
+          <div class="card-header">
+            <h3 class="card-title">Droits du profil : {{ selectedProfil.code }}</h3>
+            <div class="card-tools">
+              <button type="button" class="btn btn-sm btn-default" (click)="fermerMatrice()">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small">
+              Un utilisateur ayant ce profil hérite automatiquement de tous les droits ci-dessous, sur tous ses écrans.
+              Cocher/décocher une case s'applique immédiatement.
+            </p>
+            <div *ngIf="chargementMatrice" class="text-muted">Chargement de la matrice...</div>
+
+            <div *ngFor="let groupe of modulesGroupes" class="mb-4">
+              <h5 class="border-bottom pb-1">{{ groupe.moduleDescription }}</h5>
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Menu</th>
+                    <th class="text-center" *ngFor="let action of actions">{{ libelleAction[action] }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let menu of groupe.menus">
+                    <td>{{ menu.menuDescription }}</td>
+                    <td class="text-center" *ngFor="let action of actions">
+                      <input type="checkbox"
+                             [checked]="aLaction(menu, action)"
+                             (change)="basculerAction(menu, action)">
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div *ngIf="!chargementMatrice && modulesGroupes.length === 0" class="text-muted">
+              Aucun menu dans le catalogue.
+            </div>
+          </div>
+        </div>
+
+        <div class="card" *ngIf="!selectedProfil">
+          <div class="card-body text-muted text-center py-5">
+            Sélectionnez un profil à gauche pour configurer ses droits d'accès.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

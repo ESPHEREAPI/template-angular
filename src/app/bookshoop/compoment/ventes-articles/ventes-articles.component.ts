@@ -1,0 +1,1170 @@
+import { Component, ElementRef, ViewChild } from '@angular/core';
+import { Subject, takeUntil } from 'rxjs';
+import { Produit } from '../../model/produit';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { CaisseItem } from '../../model/caisse-item';
+import { Person } from '../../model/person';
+import { Vente } from '../../model/vente';
+import { BarcodeService } from '../../service/barcode.service';
+import { NotificationService } from '../../service/notification.service';
+import { PrixArticlesService } from '../../service/prix-articles.service';
+import { UserService } from '../../service/user-service.service';
+import { PrintService } from '../../service/print.service';
+import { StockServiceService } from '../../service/stock-service.service';
+import jsPDF from 'jspdf';
+import { CommonModule } from '@angular/common';
+import { CalendarModule } from 'primeng/calendar';
+import { Route, Router } from '@angular/router';
+import { User } from '../../model/user';
+import { AuthService } from '../../../auth/auth.service';
+
+@Component({
+  selector: 'app-ventes-articles',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, FormsModule,CalendarModule],
+  templateUrl: './ventes-articles.component.html',
+  styleUrl: './ventes-articles.component.css'
+})
+export class VentesArticlesComponent {
+  @ViewChild('barcodeInput') barcodeInput!: ElementRef<HTMLInputElement>;
+  private destroy$ = new Subject<void>();
+
+  articleSearchRef!: Produit;
+
+  // Forms
+  venteForm!: FormGroup;
+  articleForm!: FormGroup;
+  bonAchatForm!: FormGroup;
+  clientForm!: FormGroup;
+
+  // Data
+  caisseItems: CaisseItem[] = [];
+  articles: Produit[] = [];
+  filteredArticles: Produit[] = [];
+  personnes: Person[] = [];
+  typesPaiement: string[] = ['ESPECES', 'MOBILE_MONEY', 'ORANGE_MONEY', 'EXPRESS_UNION', 'CARTE_BANCAIRE', 'VIREMENT', 'CHEQUE'];
+
+  // UI State
+  loading = false;
+  showArticleModal = false;
+  showPaiementModal = false;
+  showBonAchatModal = false;
+  showClientModal = false;
+  showConfirmationModal = false;
+  isLoading = false;
+
+  // Vente data
+  numeroTicket = '';
+  montantTotal = 0;
+  montantTotalApaye = 0;
+  montantRemise = 0;
+  typePaiementSelectionne = 'ESPECES';
+  montantRecu = 0;
+  monnaieRendue = 0;
+  venteValidee!: Vente; // Pour stocker les données de la vente validée
+
+  // Bon d'achat
+  bonAchatCode = '';
+  bonAchatValide = false;
+  montantBonAchat = 0;
+  resteApresBonAchat = 0;
+  venteid!: number;
+  venteCreee = false;
+    numerocommande:number=0;
+    user: User | null = null;
+        userSession: any;
+
+  constructor(
+    private fb: FormBuilder, private barcodeService: BarcodeService, private notificationService: NotificationService,
+    private prixArticlesService: PrixArticlesService, private userService: UserService, private printService: PrintService,
+    private stockService: StockServiceService,private router:Router,private authService: AuthService
+  ) {
+    this.initializeForms();
+  }
+
+  ngOnInit(): void {
+    this.userSession = this.authService.currentUserValue;
+    if (this.userSession && this.userSession.usersDTO) {
+      console.log(this.user)
+      this.user = this.userSession.usersDTO;
+      console.log("verification du stock");
+    
+    }
+    this.genererNumeroTicket();
+    this.chargerDonnees();
+    this.focusBarcodeInput();
+    // 🔁 Réagir à un article ajouté ailleurs
+    this.prixArticlesService.articleAjoute$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        this.chargerArticles(); // recharge la liste d’articles automatiquement
+      });
+
+    // Écouter les changements de valeur sur le champ 'remise'
+    this.venteForm.get('remise')?.valueChanges.subscribe((nouvelleValeur) => {
+      console.log('Nouvelle valeur de remise :', nouvelleValeur ?? 0);
+
+      // Tu peux faire des traitements ici, ex : recalcul d’un total
+      this.recalculerTotalAvecRemise(nouvelleValeur ?? 0 );
+    });
+
+    // Écouter les changements du type de remise
+    this.venteForm.get('typeRemise')?.valueChanges.subscribe(value  => {
+      console.log('Type de remise sélectionné :', value ?? 'taux');
+
+      if (value  === 'taux' || value==null) {
+        this.venteForm.get('remise')?.reset();
+      } else  {
+        this.venteForm.get('remise')?.reset();
+      }
+      
+    });
+  }
+  recalculerTotalAvecRemise(remise: number) {
+    if (this.venteForm.get('typeRemise')?.value === 'taux') {
+      this.montantRemise = (this.montantTotal * remise / 100)
+      this.montantTotalApaye = this.montantTotal - this.montantRemise;
+    } else {
+      this.montantRemise = (remise)
+      this.montantTotalApaye = this.montantTotal - this.montantRemise;
+    }
+
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+  private initializeForms(): void {
+    this.venteForm = this.fb.group({
+      barcode: [''],
+      client: [''],
+      dateSave: [new Date()],
+      typeRemise: ['taux'], // valeur par défaut
+      remise: [0, [Validators.min(0), Validators.max(100)]]
+    });
+
+    this.articleForm = this.fb.group({
+      libelle: ['', Validators.required],
+      quantite: [1, [Validators.required, Validators.min(1)]],
+      prixUnitaire: [0, [Validators.required, Validators.min(0)]]
+    });
+
+    this.bonAchatForm = this.fb.group({
+      personne: ['', Validators.required],
+      montant: [0, [Validators.required, Validators.min(0)]],
+      renduEspece: [0, [Validators.min(0)]]
+    });
+
+    this.clientForm = this.fb.group({
+      nom: ['', Validators.required],
+      prenom: ['', Validators.required],
+      telephone: [''],
+      email: ['', Validators.email]
+    });
+  }
+
+  private genererNumeroTicket(): void {
+    const now = new Date();
+    const timestamp = now.getTime().toString().slice(-6);
+    this.numeroTicket = `TKT${timestamp}`;
+  }
+
+  private async chargerDonnees(): Promise<void> {
+    try {
+      this.loading = true;
+      // Simuler le chargement des données
+      await this.chargerArticles();
+      await this.chargerPersonnes();
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+    } finally {
+      this.loading = false;
+    }
+  }
+  private handleError(message: string, error: any): void {
+    console.error(message, error);
+    this.notificationService.error(message);
+    this.isLoading = false;
+
+  }
+  resetArticles() {
+    this.loading = true;
+    this.articles = [];
+    this.filteredArticles = [];
+    if(!this.user) return;
+    this.barcodeService.getProduitsAutoComplet(this.user.boutiqueid?? 0)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (produits) => {
+          this.articles = produits;
+
+          this.filteredArticles = [...this.articles];
+          this.loading = false;
+        },
+        error: (error) => this.handleError('Erreur lors du chargement des produits', error)
+      });
+  }
+  private async chargerArticles(): Promise<void> {
+  if(!this.user) return;
+
+    this.barcodeService.getProduitsAutoComplet(this.user.boutiqueid?? 0)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (produits) => this.articles = produits,
+        error: (error) => this.handleError('Erreur lors du chargement des produits', error)
+      });
+    // Simuler un appel API
+    /**  this.articles = [
+        {
+          id: 1,
+          libelle: 'Article Test 1',
+          reference: 'ART001',
+          prixVenteTTC: 1500,
+          stockFinal: 10,
+          prixVenteModifiable: false,
+          pacquets:false,
+          quantiteByPacquet:0,
+          quantitePrete:0,
+          quantiteLivree:0,
+          prixVenteNet:1500,
+          deletes:false,
+          remise:0,
+          tva:0
+  
+        },
+        {
+          id: 2,
+          libelle: 'Article Test 2',
+          reference: 'ART002',
+          prixVenteTTC: 2500,
+          stockFinal: 5,
+          prixVenteModifiable: true,
+          pacquets:false,
+          quantiteByPacquet:0,
+          quantitePrete:0,
+          quantiteLivree:0,
+          prixVenteNet:1500,
+          deletes:false,
+          remise:0,
+          tva:0
+        }
+      ];*/
+    this.filteredArticles = [...this.articles];
+  }
+  public getstockProduit(article: Produit) {
+    let qte;
+    console.log(article)
+    if (!article.id) return;
+    this.barcodeService.getStockcurrentProduit(article.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (stock) => {
+          qte = stock;
+
+
+        },
+        error: (error) => {
+          this.handleError('Erreur lors du chargement du produit par sa référence', error);
+        }
+      });
+    return qte;
+  }
+
+  private async chargerPersonnes(): Promise<void> {
+    // Simuler un appel API
+
+    this.barcodeService.getAllPersons().subscribe({
+      next: (data: Person[]) => this.personnes = data,
+
+      error: (err) => {
+        this.handleError('Erreur lors du chargement des clients', err);
+      },
+
+    })
+    /** this.personnes = [
+       {
+         id: 1,
+         matricule: "00012",
+         nom: 'Dupont',
+         prenom: 'Jean',
+         telephone: '123456789',
+         email: 'jean.dupont@email.com'
+       }
+     ];*/
+  }
+
+  private focusBarcodeInput(): void {
+    setTimeout(() => {
+      if (this.barcodeInput) {
+        this.barcodeInput.nativeElement.focus();
+      }
+    }, 100);
+  }
+
+  // Event handlers
+// Event handlers
+  onBarcodeInput(event: any): void {
+    const barcode = event.target.value;
+    if (barcode) {
+
+       this.barcodeService.verificationNumeTicketForEcom(barcode).subscribe({
+    next: (venteExistante:Vente) => {
+      if (venteExistante && venteExistante.id) {
+        this.numerocommande=venteExistante.numerocommande || 0;
+        this.caisseItems=[...venteExistante.items];
+      this.venteForm.patchValue({ barcode: '' });
+      this.calculerMontantTotal();
+        //alert('Ce numéro de ticket existe déjà avec l\'ID : ' + venteExistante.id);
+        this.loading = false;
+        return;
+      }
+
+    },
+    error: (error) => {
+      console.error('Erreur lors de la vérification du ticket :', error);
+      alert('Erreur réseau lors de la vérification du ticket');
+      this.loading = false;
+      this.numerocommande=0;
+    }
+  });
+      //this.rechercherArticleParCodeBarre(barcode);
+    }
+  }
+  onSearchInput(event: any): void {
+
+    const searchTerm = event.target.value.toLowerCase();
+    this.filteredArticles = this.articles.filter(article =>
+      article.libelle.toLowerCase().includes(searchTerm) ||
+      article.reference.toLowerCase().includes(searchTerm)
+    );
+  }
+  onSearchInputRef(ref: string): void {
+    const reference = ref.trim();
+    if (!reference) return;
+
+    this.barcodeService.getArticleByReference(reference)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (article) => {
+          if (!article || !article.id) {
+            this.openArticleModal();
+            return;
+          }
+
+          this.articleSearchRef = article;
+          this.ajouterArticleVente(article);
+        },
+        error: (error) => {
+          this.handleError('Erreur lors du chargement du produit par sa référence', error);
+        }
+      });
+  }
+
+
+  onSearchInputReference(event: any): void {
+    const searchTerm = event.target.value.toLowerCase();
+    if(!this.user) return;
+
+    if (searchTerm.size >= 6) {
+      console.log("size ")
+      console.log()
+
+      this.barcodeService.getProduitsAutoComplet(this.user.boutiqueid?? 0)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (produits) => this.articles = produits,
+          error: (error) => this.handleError('Erreur lors du chargement des produits', error)
+        });
+      this.filteredArticles = [...this.articles];
+    }
+
+  }
+
+  onQuantiteChange(item: CaisseItem, event: any): void {
+    const newQuantite = parseInt(event.target.value);
+    if (newQuantite > 0) {
+      this.modifierQuantite(item, newQuantite);
+    }
+  }
+
+  onPrixChange(item: CaisseItem, event: any): void {
+    const newPrix = parseFloat(event.target.value);
+    if (newPrix >= 0) {
+      item.prixUnitaire = newPrix;
+      item.montantTotal = item.quantite * newPrix;
+      this.calculerMontantTotal();
+    }
+  }
+
+  onMontantRecuInput(event: any): void {
+    this.montantRecu = parseFloat(event.target.value) || 0;
+    if (this.montantTotalApaye !== 0) {
+      this.monnaieRendue = Math.max(0, this.montantRecu - this.montantTotalApaye);
+    } else {
+      this.monnaieRendue = Math.max(0, this.montantRecu - this.montantTotal);
+    }
+
+  }
+
+  // Article methods
+  private rechercherArticleParCodeBarre(barcode: string): void {
+    const article = this.articles.find(a => a.reference === barcode);
+    if (article) {
+      this.ajouterArticleVente(article);
+      this.venteForm.patchValue({ barcode: '' });
+    } else {
+      //alert('Article non trouvé');
+      this.openArticleModal();
+    }
+  }
+
+
+
+  ajouterArticleVente(article: Produit): void {
+
+    // Vérification du stock avant ajout
+    if (article.stockFinal <= 0) {
+      this.notificationService.error('Stock insuffisant pour cet article');
+      return;
+    }
+
+    let stockfinal = 0;
+    const productid = article.id ?? 0;
+    this.barcodeService.getStockcurrentProduit(productid).pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (stock) =>
+          article.stockFinal = stock,
+        error: (error) => this.handleError('Erreur lors du chargement des produits', error)
+      });
+
+
+    const existingItem = this.caisseItems.find(item => item.article.id === article.id);
+
+    if (existingItem) {
+      const nouvelleQuantite = existingItem.quantite + 1;
+      // Vérifier si la nouvelle quantité ne dépasse pas le stock
+      if (nouvelleQuantite > article.stockFinal) {
+        this.notificationService.warning(`Stock insuffisant. Stock disponible: ${article.stockFinal}`);
+        return;
+      }
+      this.modifierQuantite(existingItem, nouvelleQuantite);
+    } else {
+      
+      const newItem: CaisseItem = {
+        //id: Date.now().toString(),
+        article: article,
+        quantite: 1,
+        prixUnitaire: article.prixVenteTTC,
+        montantTotal: article.prixVenteTTC
+
+      };
+     
+
+      this.caisseItems.push(newItem);
+    }
+    this.calculerMontantTotal();
+    
+    //this.showArticleModal = false;
+    //this.focusBarcodeInput();
+  }
+   reduireLibelle(libelle: string, maxLength: number = 25): string {
+  //if (!libelle) return '';
+  console.log(libelle);
+  return libelle.length > maxLength ? libelle.slice(0, maxLength) + '...' : libelle;
+}
+  ajouterArticleNonStock(): void {
+    if (this.articleForm.valid) {
+      const formValue = this.articleForm.value;
+      const articleLibre: Produit = {
+        id: Date.now(),
+        libelle: formValue.libelle,
+        reference: `LIBRE_${Date.now()}`,
+        prixVenteTTC: formValue.prixUnitaire,
+        stockFinal: 999,
+        prixVenteModifiable: true,
+        pacquets: false,
+        quantiteByPacquet: 0,
+        quantitePrete: 0,
+        quantiteLivree: 0,
+        prixVenteNet: 1500,
+        deletes: false,
+        remise: 0,
+        tva: 0
+      };
+
+      const newItem: CaisseItem = {
+        //id: Date.now().toString(),
+        article: articleLibre,
+        quantite: formValue.quantite,
+        prixUnitaire: formValue.prixUnitaire,
+        montantTotal: formValue.quantite * formValue.prixUnitaire
+      };
+
+      this.caisseItems.push(newItem);
+      this.calculerMontantTotal();
+      this.articleForm.reset();
+      this.showArticleModal = false;
+      this.focusBarcodeInput();
+    }
+  }
+
+  modifierQuantite(item: CaisseItem, nouvelleQuantite: number): void {
+    if (nouvelleQuantite > 0) {
+      // Vérifier le stock disponible
+      if (nouvelleQuantite > item.article.stockFinal) {
+        this.notificationService.warning(`Stock insuffisant. Stock disponible: ${item.article.stockFinal}`);
+        return;
+      }
+      item.quantite = nouvelleQuantite;
+      item.montantTotal = item.quantite * item.prixUnitaire;
+      this.calculerMontantTotal();
+    }
+  }
+
+  supprimerItem(index: number): void {
+    this.caisseItems.splice(index, 1);
+    this.calculerMontantTotal();
+  }
+
+  // Modal methods
+  openArticleModal(): void {
+
+    this.showArticleModal = true;
+
+    this.filteredArticles = [...this.articles];
+  }
+
+  openPaiementModal(type: string): void {
+    this.typePaiementSelectionne = type === 'especes' ? 'ESPECES' : 'CARTE_BANCAIRE';
+    this.montantRecu = 0;
+    this.monnaieRendue = 0;
+    this.showPaiementModal = true;
+    this.montantTotalApaye = this.montantTotal - this.montantRemise;
+  }
+
+  // Calculs
+  private calculerMontantTotal(): void {
+    let total = this.caisseItems.reduce((sum, item) => sum + item.montantTotal, 0);
+    this.montantTotal=total
+   
+
+   const remise = this.venteForm.get('remise')?.value || 0;
+    if (remise > 0) {
+       this.recalculerTotalAvecRemise(remise);
+     // total = total * (1 - remise / 100);
+    }
+ 
+    
+   
+  }
+
+  getMontantEnLettres(): string {
+    // Implémentation simplifiée pour la conversion en lettres
+    if (this.montantTotal === 0) return '';
+
+    // Fonction basique de conversion (peut être améliorée)
+    const montant = Math.floor(this.montantTotal);
+    const unites = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+    const dizaines = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
+    const centaines = ['', 'cent', 'deux-cent', 'trois-cent', 'quatre-cent', 'cinq-cent', 'six-cent', 'sept-cent', 'huit-cent', 'neuf-cent'];
+
+    if (montant < 10) {
+      return `${unites[montant]} franc${montant > 1 ? 's' : ''} CFA`;
+    } else if (montant < 1000) {
+      return `${montant} francs CFA`;
+    } else {
+      return `${montant.toLocaleString('fr-FR')} francs CFA`;
+    }
+  }
+
+  // Bon d'achat methods
+  verifierBonAchat(): void {
+    if (!this.bonAchatCode) return;
+
+    // Simuler la vérification du bon d'achat
+    // Dans un vrai système, ceci ferait un appel API
+    setTimeout(() => {
+      this.bonAchatValide = true;
+      this.montantBonAchat = Math.min(1000, this.montantTotal); // Exemple
+      this.resteApresBonAchat = Math.max(0, this.montantTotal - this.montantBonAchat);
+    }, 500);
+  }
+
+  // Client methods
+  creerClient(): void {
+    if (this.clientForm.valid) {
+      const nouveauClient: Person = {
+        // id: Date.now(),
+        ...this.clientForm.value
+      };
+      this.barcodeService.createPerson(nouveauClient).subscribe({
+        next: (cl: Person) => {
+          if (cl) {
+            this.personnes.push(cl);
+          }
+        },
+        error: (erro) => {
+          this.handleError('Erreur de creation client', nouveauClient.nom);
+        }
+      });
+      this.personnes.push(nouveauClient);
+      this.venteForm.patchValue({ client: nouveauClient.id });
+      this.clientForm.reset();
+      this.showClientModal = false;
+    }
+  }
+
+  // Vente methods
+   validerVente(): void {
+  if (this.caisseItems.length === 0) {
+    alert('Aucun article dans le panier');
+    return;
+  }
+
+  if (!this.verifierStockAvantVente() && this.numerocommande===0) {
+    alert('Problème stock vérification');
+    return;
+  }
+
+  if (this.typePaiementSelectionne === 'ESPECES' && this.montantRecu < this.montantTotalApaye) {
+    alert('Montant reçu insuffisant');
+    return;
+  }
+
+  this.loading = true;
+
+  // Vérifie si une vente avec ce ticket existe déjà
+  this.barcodeService.verificationNumeTicket(this.numeroTicket).subscribe({
+    next: (venteExistante) => {
+      if (venteExistante && venteExistante.id) {
+        this.venteid=venteExistante.id;
+       alert('Ce numéro de ticket existe déjà avec l\'ID : ' + venteExistante.id);
+        this.loading = false;
+        return;
+      }
+
+      // Aucun ticket existant, procéder à l'enregistrement
+      this.enregistrerVente().then(() => {
+        console.log('Vente enregistrée avec succès');
+      }).catch(error => {
+        console.error('Erreur lors de l\'enregistrement de la vente:', error);
+        alert('Erreur lors de l\'enregistrement de la vente');
+      }).finally(() => {
+        this.loading = false;
+      });
+    },
+    error: (error) => {
+      console.error('Erreur lors de la vérification du ticket :', error);
+      alert('Erreur réseau lors de la vérification du ticket');
+      this.loading = false;
+    }
+  });
+}
+  private checkMontantApaye(): number {
+    if (this.montantTotalApaye == 0) {
+      return this.montantTotal;
+    }
+    return this.montantTotalApaye;
+  }
+  private async enregistrerVente(): Promise<void> {
+    const userinsert = this.userService.getUserConnected();
+    // Simuler un appel API
+    //controller le type de paiement mobile money orange money, express union autres sauf bon achat
+
+   /**  if (this.typePaiementSelectionne === 'MOBILE_MONEY' || 'ORANGE_MONEY' || 'EXPRESS_UNION' || 'CARTE_BANCAIRE') {
+      this.montantRecu = this.montantTotalApaye;
+      // alert('Montant reçu insuffisant');
+      //return;
+    }*/
+    const paiementsAutoMontantRecu = ['MOBILE_MONEY', 'ORANGE_MONEY', 'EXPRESS_UNION', 'CARTE_BANCAIRE'];
+  if (paiementsAutoMontantRecu.includes(this.typePaiementSelectionne)) {
+    this.montantRecu = this.montantTotalApaye;
+  }
+    return new Promise(resolve => {
+      setTimeout(() => {
+        // Stocker les données de la vente pour l'impression
+        this.venteValidee = {
+          numeroTicket: this.numeroTicket,
+          date: this.venteForm.get('dateSave')?.value,
+          items: [...this.caisseItems],
+          montantTotal: this.montantTotal,
+          typePaiement: this.typePaiementSelectionne,
+          montantRecu: this.montantRecu,
+          monnaieRendue: this.monnaieRendue,
+          montantNet: this.checkMontantApaye(),
+          client: this.getDefautClient(),
+          userinsert: userinsert.username,
+          remise: this.montantRemise || 0,
+          statut: 'TERMINEE'
+        };
+        console.log("donnee vente");
+        console.log(this.venteValidee);
+        const venteCreation$ = this.barcodeService.createVente(this.venteValidee,this.numerocommande)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe({
+            next: (vente) => {
+
+              this.venteid = vente;
+
+              this.showPaiementModal = false;
+              this.showConfirmationModal = true;
+              resolve();
+            },
+
+            error: (error) => {
+              this.handleError('Erreur lors de la creation de vente', error)
+              resolve();
+            }
+          });
+        console.log('Vente enregistrée:', this.venteValidee);
+
+
+        resolve();
+      }, 1000);
+    });
+
+
+
+
+  }
+
+  //verification ticket
+  verificationNumeTicket(){
+    setTimeout(() => {
+    this.barcodeService.verificationNumeTicket(this.numeroTicket).subscribe({
+      next: data => {
+       this.venteid=data.id ?? 0;
+
+    
+      },
+      error: err => {
+        console.error('Erreur lors de la récupération des prix', err);
+      }
+    });
+  }, 500); // délai de  5 milli secondes
+}
+
+
+
+  // 8. Ajoutez une méthode pour actualiser un article spécifique
+  private actualiserArticleStock(articleId: number): void {
+    this.barcodeService.getArticleById(articleId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (articleMisAJour: Produit) => {
+          // Mettre à jour l'article dans la liste
+          const index = this.articles.findIndex(a => a.id === articleId);
+          if (index !== -1) {
+            this.articles[index] = articleMisAJour;
+          }
+
+          // Mettre à jour aussi dans les articles filtrés
+          const filteredIndex = this.filteredArticles.findIndex(a => a.id === articleId);
+          if (filteredIndex !== -1) {
+            this.filteredArticles[filteredIndex] = articleMisAJour;
+          }
+        },
+        error: (error: any) => {
+          console.error('Erreur lors de l\'actualisation de l\'article:', error);
+        }
+      });
+  }
+
+
+  // 9. Méthode pour recharger tous les stocks après une vente
+  private rechargerStocks(): void {
+    //let articlesIds: number[] = this.caisseItems.map(item => item.article.id); 
+    let articlesIds: number[] = this.caisseItems
+      .map(item => item.article.id)
+      .filter((id): id is number => id !== undefined);
+
+    articlesIds.forEach((id) => {
+      this.actualiserArticleStock(id);
+    });
+  }
+  // 6. Ajoutez une méthode pour vérifier le stock avant validation
+  private verifierStockAvantVente(): boolean {
+    for (const item of this.caisseItems) {
+      if (item.quantite > item.article.stockFinal) {
+        this.notificationService.error(
+          `Stock insuffisant pour ${item.article.libelle}. Stock disponible: ${item.article.stockFinal}`
+        );
+        return false;
+      }
+    }
+    return true;
+  }
+  private getDefautClient(): Person | undefined {
+    const clientId = this.venteForm.get('client')?.value;
+    if (clientId) {
+      const client = this.personnes.find(p => p.id == clientId);
+      return client;
+    }
+    const clientDefaut: Person = {
+      matricule: "0000000",
+      nom: 'Client de passage',
+      prenom: "",
+      telephone: "0000000",
+      email: ""
+
+    }
+    return clientDefaut;
+  }
+  private getClientInfo(): string {
+    const clientId = this.venteForm.get('client')?.value;
+    if (clientId) {
+      const client = this.personnes.find(p => p.id == clientId);
+      return client ? `${client.nom} ${client.prenom}` : 'Client de passage';
+    }
+    return 'Client de passage';
+  }
+
+
+
+/**refreshPage(): void {
+   this.loading = true;
+   this.showConfirmationModal = false;
+  this.router.navigate([this.router.url]); // recharge la même route
+  this.loading = false;
+}**/
+refreshApplication(): void {
+   this.loading = true;
+   this.showConfirmationModal = false;
+  //this.router.navigate([this.router.url]); // recharge la même route
+  this.loading = false;
+  window.location.reload();
+
+}
+
+ async nouvelleVente(): Promise<void> {
+  this.loading = true;
+
+  // Actualisation du stock de chaque article (asynchrone en parallèle si nécessaire)
+  const articlesValides = this.caisseItems.filter(item => item.article?.id && item.quantite);
+  const delaiTotal = articlesValides.length * 100;
+
+  console.log(`Attente de ${delaiTotal} ms avant de passer à la tâche suivante...`);
+
+  // Lancement des mises à jour sans attendre leur résultat individuellement
+  for (const item of articlesValides) {
+    this.actualiserArticleStock(item.article.id!);
+  }
+
+  await this.attendre(delaiTotal);
+
+  // Réinitialisation des données de vente
+
+   // Écouter les changements de valeur sur le champ 'remise'
+    this.venteForm.get('remise')?.valueChanges.subscribe((nouvelleValeur) => {
+      console.log('Nouvelle valeur de remise :', nouvelleValeur ?? 0);
+
+      // Tu peux faire des traitements ici, ex : recalcul d’un total
+      this.recalculerTotalAvecRemise(nouvelleValeur ?? 0 );
+    });
+
+    // Écouter les changements du type de remise
+    this.venteForm.get('typeRemise')?.valueChanges.subscribe(value  => {
+      console.log('Type de remise sélectionné :', value ?? 'taux');
+
+      if (value  === 'taux' || value==null) {
+        this.venteForm.get('remise')?.reset();
+      } else  {
+        this.venteForm.get('remise')?.reset();
+      }
+      
+    });
+  this.montantTotal = 0;
+   this.venteForm.get('remise')?.reset();
+  this.venteForm.get('typeRemise')?.setValue('taux');
+  this.venteForm.reset();
+  this.venteForm.reset({
+  typeRemise: 'taux',
+  // Autres champs par défaut si besoin
+}); 
+
+
+
+  this.venteValidee = {
+    numeroTicket: "",
+    date: new Date(),
+    items: [],
+    montantTotal: 0,
+    typePaiement: '',
+    montantRecu: 0,
+    monnaieRendue: 0,
+    montantNet: 0,
+    client: undefined,
+    userinsert: '',
+    remise: this.montantRemise || 0,
+    statut: "TERMINEE"
+  };
+
+  // Réinitialisation des champs de l'écran
+  this.caisseItems = [];
+  this.venteForm.reset();
+  this.bonAchatCode = '';
+  this.bonAchatValide = false;
+  this.montantBonAchat = 0;
+  this.resteApresBonAchat = 0;
+  this.showConfirmationModal = false;
+  this.articles = [];
+
+  // Rechargement
+  await this.chargerArticles(); // ← si `chargerArticles` est asynchrone
+  this.genererNumeroTicket();
+  this.focusBarcodeInput();
+  
+  this.loading = false;
+ 
+}
+
+
+  // Print & Download methods
+  imprimerTicket(ticketId: number): void {
+    /* if (this.venteValidee) {
+       // Générer le PDF et l'ouvrir pour impression
+       const pdf = this.genererTicketPDF(this.venteValidee);
+       pdf.autoPrint();
+       window.open(pdf.output('bloburl'), '_blank');
+     }*/
+
+    if (this.venteid) {
+      this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe(blob => {
+        const file = new Blob([blob], { type: 'text/plain;charset=utf-8' });
+        this.printService.imprimerAvecPrevisualisation(file);
+        // const url = window.URL.createObjectURL(blob);gggggggg
+        // window.open(url); // ✅ Ouvre dans un nouvel onglet
+      });
+    }
+    /* *this.barcodeService.downloadTicketVente(this.venteid).subscribe(blob => {
+       const url = window.URL.createObjectURL(blob);
+       window.open(url); // ✅ Ouvre dans un nouvel onglet
+     });*/
+  }
+
+  telechargerTicket(ticketId: number): void {
+    /**   if (this.venteValidee) {
+        // Générer et télécharger le PDF du ticket
+        const pdf = this.genererTicketPDF(this.venteValidee);
+        pdf.save(`ticket_${this.venteValidee.numeroTicket}.pdf`);
+      }*/
+    if (this.venteid) {
+
+      this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe(blob => {
+
+        /**  const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `ticket-vente-${this.venteid}.pdf`;
+          link.click();*/
+        // ✅ Convertir en fichier avec le bon MIME
+        const file = new Blob([blob], { type: 'text/plain;charset=utf-8' });
+
+        // ✅ Créer un lien temporaire pour téléchargement
+        const url = window.URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ticket.txt'; // nom du fichier
+        a.click();
+
+        // ✅ Libérer l'URL
+        window.URL.revokeObjectURL(url);
+      });
+    }
+  }
+
+
+
+  private genererTicketPDF(vente: any): jsPDF {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [80, 200] // Format ticket de caisse (80mm de largeur)
+    });
+
+    // Configuration des polices et couleurs
+    doc.setFont('helvetica');
+    doc.setFontSize(10);
+
+    let yPosition = 10;
+    const lineHeight = 4;
+    const pageWidth = 80;
+    const margin = 5;
+
+    // En-tête du magasin
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    this.addCenteredText(doc, 'POINT DE VENTE', yPosition, pageWidth);
+    yPosition += lineHeight + 2;
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    this.addCenteredText(doc, 'Votre magasin de confiance', yPosition, pageWidth);
+    yPosition += lineHeight;
+    this.addCenteredText(doc, 'Tel: +237 6XX XX XX XX', yPosition, pageWidth);
+    yPosition += lineHeight + 3;
+
+    // Ligne de séparation
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 3;
+
+    // Informations du ticket
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Ticket N°: ${vente.numeroTicket}`, margin, yPosition);
+    yPosition += lineHeight;
+
+    doc.setFont('helvetica', 'normal');
+    const dateStr = vente.date.toLocaleDateString('fr-FR') + ' ' +
+      vente.date.toLocaleTimeString('fr-FR');
+    doc.text(`Date: ${dateStr}`, margin, yPosition);
+    yPosition += lineHeight;
+
+    doc.text(`Client: ${vente.client}`, margin, yPosition);
+    yPosition += lineHeight;
+
+    if (vente.remise > 0) {
+      doc.text(`Remise: ${vente.remise}%`, margin, yPosition);
+      yPosition += lineHeight;
+    }
+
+    yPosition += 2;
+
+    // Ligne de séparation
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 3;
+
+    // Articles
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ARTICLES', margin, yPosition);
+    yPosition += lineHeight;
+
+    doc.setFont('helvetica', 'normal');
+
+    vente.items.forEach((item: CaisseItem) => {
+      // Nom de l'article
+      const articleLines = this.splitText(doc, item.article.libelle, pageWidth - 2 * margin);
+      articleLines.forEach((line: string) => {
+        doc.text(line, margin, yPosition);
+        yPosition += lineHeight;
+      });
+
+      // Détails : quantité x prix = total
+      const detailText = `${item.quantite} x ${this.formatCurrency(item.prixUnitaire)} = ${this.formatCurrency(item.montantTotal)}`;
+      doc.text(detailText, margin + 2, yPosition);
+      yPosition += lineHeight + 1;
+    });
+
+    yPosition += 2;
+
+    // Ligne de séparation
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 3;
+
+    // Totaux
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+
+    const sousTotal = vente.items.reduce((sum: number, item: CaisseItem) => sum + item.montantTotal, 0);
+    doc.text(`Sous-total: ${this.formatCurrency(sousTotal)}`, margin, yPosition);
+    yPosition += lineHeight;
+
+    if (vente.remise > 0) {
+      const montantRemise = sousTotal * vente.remise / 100;
+      doc.text(`Remise (${vente.remise}%): -${this.formatCurrency(montantRemise)}`, margin, yPosition);
+      yPosition += lineHeight;
+    }
+
+    doc.setFontSize(11);
+    doc.text(`TOTAL: ${this.formatCurrency(vente.montantTotal)}`, margin, yPosition);
+    yPosition += lineHeight + 2;
+
+    // Paiement
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Mode de paiement: ${this.getTypePaiementLibelle(vente.typePaiement)}`, margin, yPosition);
+    yPosition += lineHeight;
+
+    if (vente.typePaiement === 'ESPECES') {
+      doc.text(`Montant reçu: ${this.formatCurrency(vente.montantRecu)}`, margin, yPosition);
+      yPosition += lineHeight;
+      doc.text(`Monnaie rendue: ${this.formatCurrency(vente.monnaieRendue)}`, margin, yPosition);
+      yPosition += lineHeight;
+    }
+
+    yPosition += 3;
+
+    // Ligne de séparation
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 3;
+
+    // Pied de page
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    this.addCenteredText(doc, 'Merci pour votre visite !', yPosition, pageWidth);
+    yPosition += lineHeight;
+    this.addCenteredText(doc, 'Conservez votre ticket', yPosition, pageWidth);
+    yPosition += lineHeight + 2;
+
+    // Montant en lettres
+    doc.setFontSize(7);
+    const montantEnLettres = this.getMontantEnLettres();
+    if (montantEnLettres) {
+      const lettresLines = this.splitText(doc, montantEnLettres, pageWidth - 2 * margin);
+      lettresLines.forEach((line: string) => {
+        this.addCenteredText(doc, line, yPosition, pageWidth);
+        yPosition += lineHeight - 1;
+      });
+    }
+
+    return doc;
+  }
+
+  private addCenteredText(doc: jsPDF, text: string, y: number, pageWidth: number): void {
+    const textWidth = doc.getTextWidth(text);
+    const x = (pageWidth - textWidth) / 2;
+    doc.text(text, x, y);
+  }
+
+  private splitText(doc: jsPDF, text: string, maxWidth: number): string[] {
+    return doc.splitTextToSize(text, maxWidth);
+  }
+
+  private formatCurrency(amount: number): string {
+    console.log(amount);
+    return new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount).replace('/', ' ') + ' FCFA';
+  }
+
+  /**private formatCurrency(amount: number): string {
+  if (isNaN(amount) || amount == null) return '0 FCFA';
+
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'XAF',
+    currencyDisplay: 'code', // ou 'symbol' si tu veux juste FCFA
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount).replace('XOF', 'XAF');
+}*/
+
+  private getTypePaiementLibelle(type: string): string {
+    const types: { [key: string]: string } = {
+      'ESPECES': 'Espèces',
+      'CARTE_BANCAIRE': 'Carte bancaire',
+      'VIREMENT': 'Virement',
+      'CHEQUE': 'Chèque',
+      'MOBILE_MONEY': 'Mobile Money',
+      'ORANGE_MONEY': 'Orange Money'
+    };
+    return types[type] || type;
+  }
+
+  private attendre(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+}

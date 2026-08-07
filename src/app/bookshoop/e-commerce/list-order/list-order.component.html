@@ -1,0 +1,126 @@
+<div class="container mt-2">
+
+    
+      <br/> <br/>
+     
+        <div><strong><h3>LISTE DES COMMANDES</h3></strong></div>
+      
+        <div class="container">
+            <p-card header="Simple Card">
+            <div class="mb-3">
+                <p-button 
+                    type="button" 
+                    icon="pi pi-chevron-left" 
+                    (click)="preview()" 
+                    [disabled]="isFirstPage()" 
+                    styleClass="p-button-text" ></p-button>
+                <p-button 
+                    type="button"
+                    icon="pi pi-refresh" 
+                    (click)="reset()" 
+                    styleClass="p-button-text" ></p-button>
+                <p-button 
+                    type="button" 
+                    icon="pi pi-chevron-right" 
+                    (click)="next()" 
+                    [disabled]="isLastPage()" 
+                    styleClass="p-button-text" ></p-button>
+            </div>
+            <div class="card">
+                <p-table
+                    [value]="orders"
+                    [paginator]="true"
+                    [rows]="5"
+                    [first]="first"
+                    [showCurrentPageReport]="true"
+                    [tableStyle]="{ 'min-width': '50rem' }"
+                    currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+                    (onPage)="pageChange($event)"
+                    [rowsPerPageOptions]="[10, 25, 50]"
+                >
+                    <ng-template pTemplate="header">
+                        <tr>
+                            <th >Numero Comande</th>
+                            <th >Client</th>
+                            <th >TelPhone</th>
+                            <th >Total</th>
+                            <th >Date Enregistremet</th>
+                            <th >Date Payement</th>
+                            <th >Detail Commande</th>
+
+
+                        </tr>
+                    </ng-template>
+                    <ng-template pTemplate="body" let-orders>
+                        <tr >
+                            <td >{{orders.id}}</td>
+                            <td>{{ orders.client.name}}</td>
+                            <td>{{ orders.client.phoneNumber}}</td>
+                            <td>{{orders.totalAmount}}</td>
+                            <td>{{orders.date | date :"dd MMMM yyyy hh:mm:ss"}}</td>
+                            <td>{{orders.payement | date :"dd MMMM yyyy hh:mm:ss"}}</td>
+                            <td>   <p-button (click)="showDialogDetailOrders(orders)" label="Show"   ></p-button></td>
+
+                            <td>
+                              
+                              
+                            </td>
+                        </tr>
+                    </ng-template>
+                    
+                    
+                </p-table>
+              
+            </div>
+           		<p-button   label="Aller a la commande" icon="pi pi-angle-double-left" (onClick)="commande()"
+						class="p-button-secondary">
+					</p-button>
+        </p-card>
+          
+              
+<p-dialog 
+    header="{{numero_commande}}"
+    [modal]="true"
+    [(visible)]="visible" 
+    [style]="{ width: '50rem' }" 
+    [breakpoints]="{ '1199px': '75vw', '575px': '90vw' }"
+    [maximizable]="true">
+    
+    <p-table
+    [value]="itemproduct"
+    [paginator]="true"
+    [rows]="10"
+    [first]="first_product"
+    [showCurrentPageReport]="true"
+    [tableStyle]="{ 'min-width': '50rem' }"
+    currentPageReportTemplate="Showing {first} to {last_product} of {totalRecords} entries"
+    (onPage)="pageChange_product($event)"
+    [rowsPerPageOptions]="[10, 25, 50,100]"
+>
+    <ng-template pTemplate="header">
+        <tr>
+            <th >ID</th>
+            <th >Name</th>
+            <th >Quantite</th>
+            <th >Prix</th>
+        </tr>
+    </ng-template>
+    <ng-template pTemplate="body" let-itemproduct>
+        <tr>
+            <td >{{ itemproduct.product.id }}</td>
+            <td>{{ itemproduct.product.libelle }}</td>
+            <td>{{ itemproduct.quantite }}</td>
+            <td>{{ itemproduct.price}}</td>
+            
+        </tr>
+    </ng-template>
+    
+    
+</p-table>
+
+</p-dialog>
+
+            </div>
+        </div>          
+    
+    

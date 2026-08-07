@@ -1,0 +1,381 @@
+<!-- src/app/features/versements/pages/versement-form/versement-form.component.html -->
+
+
+  <!-- Content Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>
+            <i class="fas fa-money-bill-wave"></i>
+            Nouveau Versement
+          </h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i> Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/versements">Versements</a></li>
+            <li class="breadcrumb-item active">Créer</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      
+      <form [formGroup]="versementForm" (ngSubmit)="onSubmit()">
+        
+        <div class="row">
+          <!-- Formulaire de versement -->
+          <div class="col-md-8">
+            
+            <!-- Sélection de la Facture -->
+            <div class="card card-primary">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-file-invoice"></i> Facture à Régler
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="factureId">Facture <span class="text-danger">*</span></label>
+                  <select 
+                    class="form-control" 
+                    id="factureId" 
+                    formControlName="factureId"
+                    [class.is-invalid]="versementForm.get('factureId')?.invalid && versementForm.get('factureId')?.touched"
+                  >
+                    <option value="" selected disabled>Sélectionner une facture</option>
+                    <option *ngFor="let facture of factures" [value]="facture.id">
+                      {{ facture.numeroFacture }} - {{ facture.client.nom }} - 
+                      Solde: {{ formatMontant(facture.soldeRestant??0) }}
+                    </option>
+                  </select>
+                  <div class="invalid-feedback">
+                    Veuillez sélectionner une facture
+                  </div>
+                </div>
+                
+                <!-- Informations de la facture sélectionnée -->
+                <div *ngIf="factureSelectionnee" class="alert alert-info">
+                  <h5><i class="icon fas fa-info"></i> Informations Facture</h5>
+                  <div class="row">
+                    <div class="col-md-6">
+                      <strong>Client:</strong> {{ factureSelectionnee.client.nom }}<br>
+                      <strong>Montant Total:</strong> {{ formatMontant(factureSelectionnee.totalTtc) }}<br>
+                      <strong>Déjà Payé:</strong> 
+                      <span class="bg-success">{{ formatMontant(factureSelectionnee.montantPaye) }}</span>
+                    </div>
+                    <div class="col-md-6">
+                      <strong>Solde Restant:</strong> 
+                      <span class="text-danger">
+                        <h4>{{ formatMontant(factureSelectionnee.soldeRestant ?? 0) }}</h4>
+                      </span>
+                      <div class="progress" style="height: 25px;">
+                        <div 
+                          class="progress-bar bg-success" 
+                          role="progressbar" 
+                          [style.width.%]="getPourcentagePaye()"
+                        >
+                          {{ getPourcentagePaye() | number:'1.0-0' }}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Informations du Versement -->
+            <div class="card card-success">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-money-check"></i> Informations du Versement
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="dateVersement">Date de Versement <span class="text-danger">*</span></label>
+                      <input 
+                        type="date" 
+                        class="form-control" 
+                        id="dateVersement" 
+                        formControlName="dateVersement"
+                        [class.is-invalid]="versementForm.get('dateVersement')?.invalid && versementForm.get('dateVersement')?.touched"
+                      >
+                      <div class="invalid-feedback">
+                        Date requise
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="montant">Montant <span class="text-danger">*</span></label>
+                      <div class="input-group">
+                        <input 
+                          type="number" 
+                          class="form-control" 
+                          id="montant" 
+                          formControlName="montant"
+                          step="0.01"
+                          min="1"
+                          placeholder="0.00"
+                          [class.is-invalid]="versementForm.get('montant')?.invalid && versementForm.get('montant')?.touched"
+                        >
+                        <div class="input-group-append">
+                          <span class="input-group-text">XAF</span>
+                        </div>
+                        <div class="invalid-feedback">
+                          Montant requis (minimum 1 XAF)
+                        </div>
+                      </div>
+                      <small class="form-text text-muted" *ngIf="factureSelectionnee">
+                        Maximum: {{ formatMontant(factureSelectionnee.montantRestant) }}
+                      </small>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="row">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="modePaiement">Mode de Paiement <span class="text-danger">*</span></label>
+                      <select 
+                        class="form-control" 
+                        id="modePaiement" 
+                        formControlName="modePaiement"
+                        [class.is-invalid]="versementForm.get('modePaiement')?.invalid && versementForm.get('modePaiement')?.touched"
+                      >
+                        <option value="" selected disabled>Sélectionner un mode</option>
+                        <option *ngFor="let mode of modePaiementOptions" [value]="mode">
+                          {{ getModePaiementLibelle(mode) }}
+                        </option>
+                      </select>
+                      <div class="invalid-feedback">
+                        Veuillez sélectionner un mode de paiement
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="referencePaiement">
+                        Référence de Paiement
+                        <span class="text-danger" *ngIf="selectedModePaiement && isReferenceObligatoire(selectedModePaiement)">*</span>
+                      </label>
+                      <input 
+                        type="text" 
+                        class="form-control" 
+                        id="referencePaiement" 
+                        formControlName="referencePaiement"
+                        placeholder="N° de chèque, référence de virement, etc."
+                        [class.is-invalid]="versementForm.get('referencePaiement')?.invalid && versementForm.get('referencePaiement')?.touched"
+                      >
+                      <div class="invalid-feedback">
+                        Référence requise pour ce mode de paiement
+                      </div>
+                      <small class="form-text text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        <span *ngIf="selectedModePaiement === 'CHEQUE'">N° du chèque</span>
+                        <span *ngIf="selectedModePaiement === 'VIREMENT'">Référence du virement bancaire</span>
+                        <span *ngIf="selectedModePaiement === 'MOBILE_MONEY'">ID de transaction Mobile Money</span>
+                      </small>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Informations bancaires (si applicable) -->
+                <div class="row" *ngIf="showBanqueFields()">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="banque">Banque</label>
+                      <input 
+                        type="text" 
+                        class="form-control" 
+                        id="banque" 
+                        formControlName="banque"
+                        placeholder="Nom de la banque"
+                      >
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label for="numeroCompte">N° de Compte</label>
+                      <input 
+                        type="text" 
+                        class="form-control" 
+                        id="numeroCompte" 
+                        formControlName="numeroCompte"
+                        placeholder="Numéro de compte bancaire"
+                      >
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="row">
+                  <div class="col-md-12">
+                    <div class="form-group">
+                      <label for="remarques">Remarques</label>
+                      <textarea 
+                        class="form-control" 
+                        id="remarques" 
+                        formControlName="remarques"
+                        rows="3"
+                        placeholder="Notes ou commentaires sur ce versement"
+                      ></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="card">
+              <div class="card-body">
+                <div class="float-right">
+                  <button 
+                    type="button" 
+                    class="btn btn-secondary mr-2" 
+                    (click)="onCancel()"
+                    [disabled]="submitting"
+                  >
+                    <i class="fas fa-times"></i> Annuler
+                  </button>
+                  
+                  <button 
+                    type="submit" 
+                    class="btn btn-success"
+                    [disabled]="versementForm.invalid || submitting"
+                  >
+                    <i class="fas fa-save"></i>
+                    <span *ngIf="!submitting">Enregistrer le Versement</span>
+                    <span *ngIf="submitting">
+                      <i class="fas fa-spinner fa-spin"></i> Enregistrement...
+                    </span>
+                  </button>
+                </div>
+                
+                <div class="clearfix"></div>
+                
+                <div class="mt-3" *ngIf="versementForm.invalid && versementForm.touched">
+                  <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Veuillez remplir tous les champs obligatoires.
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+
+          <!-- Guide d'aide -->
+          <div class="col-md-4">
+            <div class="card card-info">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-question-circle"></i> Guide
+                </h3>
+              </div>
+              <div class="card-body">
+                <h5>Modes de Paiement</h5>
+                <ul class="list-unstyled">
+                  <li class="mb-2">
+                    <i class="fas fa-money-bill-wave text-success"></i>
+                    <strong>Espèces:</strong> Paiement en liquide
+                  </li>
+                  <li class="mb-2">
+                    <i class="fas fa-money-check text-primary"></i>
+                    <strong>Chèque:</strong> Nécessite le n° de chèque
+                  </li>
+                  <li class="mb-2">
+                    <i class="fas fa-university text-info"></i>
+                    <strong>Virement:</strong> Nécessite la référence
+                  </li>
+                  <li class="mb-2">
+                    <i class="fas fa-credit-card text-warning"></i>
+                    <strong>Carte:</strong> Paiement par carte bancaire
+                  </li>
+                  <li class="mb-2">
+                    <i class="fas fa-mobile-alt text-success"></i>
+                    <strong>Mobile Money:</strong> Nécessite l'ID de transaction
+                  </li>
+                </ul>
+                
+                <hr>
+                
+                <h5>Informations Importantes</h5>
+                <div class="callout callout-info">
+                  <p><i class="icon fas fa-info"></i> Le montant ne peut pas dépasser le solde restant de la facture.</p>
+                </div>
+                
+                <div class="callout callout-warning">
+                  <p><i class="icon fas fa-exclamation-triangle"></i> La référence de paiement est obligatoire pour certains modes (chèque, virement, mobile money).</p>
+                </div>
+                
+                <div class="callout callout-success">
+                  <p><i class="icon fas fa-check"></i> Un reçu de paiement sera généré automatiquement après validation.</p>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Informations sur les modes de paiement -->
+            <div class="card card-warning" *ngIf="selectedModePaiement">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-info-circle"></i> Mode Sélectionné
+                </h3>
+              </div>
+              <div class="card-body">
+                <h5>{{ getModePaiementLibelle(selectedModePaiement) }}</h5>
+                
+                <div *ngIf="selectedModePaiement === 'ESPECES'">
+                  <p>Paiement en liquide. Aucune référence n'est nécessaire.</p>
+                </div>
+                
+                <div *ngIf="selectedModePaiement === 'CHEQUE'">
+                  <p>
+                    <strong>Informations requises:</strong><br>
+                    - Numéro de chèque (obligatoire)<br>
+                    - Nom de la banque<br>
+                    - Numéro de compte
+                  </p>
+                </div>
+                
+                <div *ngIf="selectedModePaiement === 'VIREMENT'">
+                  <p>
+                    <strong>Informations requises:</strong><br>
+                    - Référence du virement (obligatoire)<br>
+                    - Nom de la banque<br>
+                    - Numéro de compte
+                  </p>
+                </div>
+                
+                <div *ngIf="selectedModePaiement === 'CARTE_BANCAIRE'">
+                  <p>
+                    Paiement par carte bancaire. La transaction sera vérifiée automatiquement.
+                  </p>
+                </div>
+                
+                <div *ngIf="selectedModePaiement === 'MOBILE_MONEY'">
+                  <p>
+                    <strong>Informations requises:</strong><br>
+                    - ID de la transaction Mobile Money (obligatoire)<br>
+                    - Opérateur (Orange Money, MTN Money, etc.)
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+      </form>
+      
+    </div>
+  </section>

@@ -1,0 +1,153 @@
+<!-- src/app/products/products-list/products-list.component.html -->
+<div class="content-wrapper">
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Gestion des Produits</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+            <li class="breadcrumb-item active">Produits</li>
+          </ol>
+        </div>
+      </div>
+    </div><!-- /.container-fluid -->
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Liste des produits</h3>
+              <div class="card-tools">
+                <button type="button" class="btn btn-primary" (click)="openAddForm()">
+                  <i class="fas fa-plus"></i> Ajouter un produit
+                </button>
+              </div>
+            </div>
+            <!-- /.card-header -->
+            <div class="card-body">
+              <div *ngIf="loading" class="d-flex justify-content-center">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="sr-only">Chargement...</span>
+                </div>
+              </div>
+              
+              <div *ngIf="error" class="alert alert-danger">
+                {{ error }}
+              </div>
+              
+              <div class="table-responsive" *ngIf="!loading && !error">
+                <table class="table table-bordered table-striped">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Nom</th>
+                      <th>Catégorie</th>
+                      <th>Prix d'achat</th>
+                      <th>Prix de vente</th>
+                      <th>Quantité</th>
+                      <th>Qté min.</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let product of products" [ngClass]="{'table-danger': product.quantity < product.minQuantity}">
+                      <td>{{ product.id }}</td>
+                      <td>{{ product.name }}</td>
+                      <td>{{ product.category }}</td>
+                      <td>{{ product.buyPrice | currency:'EUR' }}</td>
+                      <td>{{ product.sellPrice | currency:'EUR' }}</td>
+                      <td>{{ product.quantity }}</td>
+                      <td>{{ product.minQuantity }}</td>
+                      <td>
+                        <div class="btn-group">
+                          <button type="button" class="btn btn-info btn-sm" (click)="openEditForm(product)">
+                            <i class="fas fa-edit"></i>
+                          </button>
+                          <button type="button" class="btn btn-warning btn-sm" (click)="openTransferForm(product)">
+                            <i class="fas fa-exchange-alt"></i>
+                          </button>
+                          <button type="button" class="btn btn-danger btn-sm" (click)="deleteProduct(product.id!)">
+                            <i class="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              
+              <div *ngIf="!loading && !error && products.length === 0" class="alert alert-info">
+                Aucun produit trouvé.
+              </div>
+            </div>
+            <!-- /.card-body -->
+          </div>
+          <!-- /.card -->
+        </div>
+        <!-- /.col -->
+      </div>
+      <!-- /.row -->
+    </div>
+    <!-- /.container-fluid -->
+  </section>
+  <!-- /.content -->
+  
+  <!-- Modal pour ajouter un produit -->
+  <div *ngIf="showAddForm" class="modal fade show" style="display: block; padding-right: 15px;" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Ajouter un nouveau produit</h4>
+          <button type="button" class="close" (click)="closeForm()" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <app-product-form (saved)="onProductSaved()" (canceled)="closeForm()"></app-product-form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal pour éditer un produit -->
+  <div *ngIf="showEditForm && selectedProduct" class="modal fade show" style="display: block; padding-right: 15px;" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Modifier le produit</h4>
+          <button type="button" class="close" (click)="closeForm()" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <app-product-form [product]="selectedProduct" (saved)="onProductSaved()" (canceled)="closeForm()"></app-product-form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal pour transfert de stock -->
+  <div *ngIf="showTransferForm && selectedProduct" class="modal fade show" style="display: block; padding-right: 15px;" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">Transfert de stock: {{ selectedProduct.name }}</h4>
+          <button type="button" class="close" (click)="closeForm()" aria-label="Close">
+            <span aria-hidden="true">×</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <app-transfer-stock [product]="selectedProduct" (transferComplete)="onTransferComplete()" (canceled)="closeForm()"></app-transfer-stock>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,455 @@
+<!-- En-tête -->
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">
+          <i class="fas fa-file-contract text-primary mr-2"></i>
+          {{ getTitre() }}
+          <span *ngIf="modeAffichage === 'detail'" class="badge badge-info ml-2">
+            <i class="fas fa-eye mr-1"></i>Lecture seule
+          </span>
+        </h1>
+      </div>
+      <div class="col-sm-6 text-right">
+        <button type="button" 
+                class="btn btn-secondary"
+                (click)="annuler()"
+                [disabled]="chargement">
+          <i class="fas fa-arrow-left mr-2"></i>Retour à la liste
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loader initial -->
+<div *ngIf="chargementInitial" class="content">
+  <div class="container-fluid">
+    <div class="overlay-wrapper">
+      <div class="overlay text-center">
+        <i class="fas fa-3x fa-sync-alt fa-spin text-primary"></i>
+        <div class="text-bold pt-2">Chargement des données...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Contenu -->
+<div class="content" *ngIf="!chargementInitial">
+  <div class="container-fluid">
+    
+    <form [formGroup]="devisForm" (ngSubmit)="sauvegarder()" novalidate>
+      
+      <!-- SECTION CLIENT & TVA -->
+      <div class="card card-primary card-outline">
+        <div class="card-header bg-primary">
+          <h3 class="card-title">
+            <i class="fas fa-user-circle mr-2"></i>Informations Client
+          </h3>
+        </div>
+        
+        <div class="card-body">
+          <div class="row">
+            <!-- Client -->
+            <div class="col-12 col-md-6">
+              <div class="form-group">
+                <label for="clientId" class="font-weight-bold">
+                  <i class="fas fa-user text-success mr-1"></i>
+                  Client
+                  <span class="text-danger" *ngIf="!lectureSeule">*</span>
+                </label>
+                
+                <!-- Mode édition/création -->
+                <select *ngIf="!lectureSeule"
+                        class="form-control form-control-lg"
+                        formControlName="clientId"
+                        [ngClass]="{'is-invalid': isFieldInvalid('clientId')}"
+                        id="clientId"
+                        aria-label="Sélectionner un client">
+                  <option value="">-- Sélectionner un client --</option>
+                  <option *ngFor="let c of clients" [ngValue]="c">
+                    {{ c.nom }} ({{ c.code }})
+                  </option>
+                </select>
+                
+                <!-- Mode lecture seule -->
+                <div *ngIf="lectureSeule" class="form-control-plaintext font-weight-bold">
+                  <i class="fas fa-user-circle text-primary mr-2"></i>
+                  {{ devis.client.nom }} 
+                  <small class="text-muted">({{ devis.client.code }})</small>
+                </div>
+                
+                <small class="form-text text-danger" 
+                       *ngIf="!lectureSeule && isFieldInvalid('clientId')">
+                  <i class="fas fa-exclamation-circle mr-1"></i>Client requis
+                </small>
+              </div>
+            </div>
+
+            <!-- Validité -->
+            <div class="col-12 col-md-3">
+              <div class="form-group">
+                <label for="validiteJours" class="font-weight-bold">
+                  <i class="fas fa-calendar-alt text-warning mr-1"></i>
+                  Validité (jours)
+                </label>
+                
+                <!-- Mode édition/création -->
+                <input *ngIf="!lectureSeule"
+                       type="number" 
+                       class="form-control form-control-lg"
+                       formControlName="validiteJours"
+                       id="validiteJours"
+                       min="1" 
+                       max="365"
+                       placeholder="30"
+                       aria-label="Validité en jours">
+                
+                <!-- Mode lecture seule -->
+                <div *ngIf="lectureSeule" class="form-control-plaintext font-weight-bold">
+                  {{ devis.validiteJours }} jours
+                </div>
+                
+                <small class="form-text text-muted">
+                  <i class="fas fa-info-circle mr-1"></i>
+                  Expiration: {{ getDateExpiration() | date: 'dd/MM/yyyy' }}
+                </small>
+              </div>
+            </div>
+
+            <!-- Configuration TVA -->
+            <div class="col-12 col-md-3">
+              <div class="form-group">
+                <label class="font-weight-bold d-block">
+                  <i class="fas fa-percent text-info mr-1"></i>
+                  Configuration TVA
+                </label>
+                
+                <!-- Mode édition/création -->
+                <div *ngIf="!lectureSeule">
+                  <!-- Switch TVA -->
+                  <div class="custom-control custom-switch mb-2">
+                    <input type="checkbox" 
+                           class="custom-control-input" 
+                           id="appliquerTVASwitch"
+                           [(ngModel)]="appliquerTVA"
+                           [ngModelOptions]="{standalone: true}"
+                           (change)="toggleTVA()">
+                    <label class="custom-control-label font-weight-bold" for="appliquerTVASwitch">
+                      <span [ngClass]="appliquerTVA ? 'text-success' : 'text-muted'">
+                        {{ appliquerTVA ? '✓ TVA activée' : 'TVA désactivée' }}
+                      </span>
+                    </label>
+                  </div>
+                  
+                  <!-- Input taux TVA -->
+                  <div *ngIf="appliquerTVA" class="input-group input-group-sm">
+                    <input type="number" 
+                           class="form-control"
+                           [(ngModel)]="tauxTVA"
+                           [ngModelOptions]="{standalone: true}"
+                           (change)="calculerTotal()"
+                           min="0" 
+                           max="100"
+                           step="0.01"
+                           placeholder="19.25">
+                    <div class="input-group-append">
+                      <span class="input-group-text">%</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Mode lecture seule -->
+                <div *ngIf="lectureSeule" class="form-control-plaintext">
+                  <span [ngClass]="appliquerTVA ? 'badge badge-success' : 'badge badge-secondary'">
+                    {{ appliquerTVA ? '✓ TVA ' + tauxTVA + '%' : 'Sans TVA' }}
+                  </span>
+                </div>
+                
+                <small *ngIf="!lectureSeule && appliquerTVA" class="form-text text-info">
+                  <i class="fas fa-info-circle mr-1"></i>
+                  Taux: {{ tauxTVA }}%
+                </small>
+                <small *ngIf="!lectureSeule && !appliquerTVA" class="form-text text-muted">
+                  <i class="fas fa-info-circle mr-1"></i>
+                  Le total sera HT uniquement
+                </small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECTION ARTICLES -->
+      <div class="card card-warning card-outline mt-3">
+        <div class="card-header bg-warning">
+          <h3 class="card-title">
+            <i class="fas fa-list mr-2"></i>Articles ({{ items.length }})
+          </h3>
+          <div class="card-tools" *ngIf="!lectureSeule">
+            <button type="button" 
+                    class="btn btn-sm btn-success"
+                    (click)="ajouterLigne()"
+                    [disabled]="chargement"
+                    title="Ajouter une nouvelle ligne">
+              <i class="fas fa-plus-circle mr-1"></i>Ajouter Article
+            </button>
+          </div>
+        </div>
+        
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-bordered table-hover mb-0">
+              <thead class="bg-light">
+                <tr>
+                  <th style="width: 5%">#</th>
+                  <th style="width: 35%">Article</th>
+                  <th style="width: 12%" class="text-center">Quantité</th>
+                  <th style="width: 15%" class="text-right">Prix Unitaire</th>
+                  <th style="width: 15%" class="text-right">Remise</th>
+                  <th style="width: 15%" class="text-right">Total Ligne</th>
+                  <th *ngIf="!lectureSeule" style="width: 8%" class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of items; let i = index" class="align-middle">
+                  <!-- Numéro -->
+                  <td class="text-center font-weight-bold">{{ i + 1 }}</td>
+                  
+                  <!-- Article -->
+                  <td>
+                    <!-- Mode édition/création -->
+                    <input *ngIf="!lectureSeule"
+                           type="text" 
+                           class="form-control"
+                           [(ngModel)]="item.searchTerm"
+                           [ngModelOptions]="{standalone: true}"
+                           (input)="onSearchProduit(i, item.searchTerm || '')"
+                           placeholder="Rechercher un article..."
+                           [disabled]="chargement">
+                    
+                    <!-- Dropdown autocomplete -->
+                    <div *ngIf="!lectureSeule && item.showDropdown" 
+                         class="dropdown-menu show" 
+                         style="width: 100%; max-height: 200px; overflow-y: auto;">
+                      <a *ngFor="let p of item.filteredProduits" 
+                         class="dropdown-item cursor-pointer"
+                         (click)="selectionnerProduit(i, p)">
+                        <strong>{{ p.reference }}</strong> - {{ p.libelle }}
+                        <br>
+                        <small class="text-muted">{{ p.prixVenteNet | number: '1.0-0' }} XAF</small>
+                      </a>
+                    </div>
+                    
+                    <!-- Mode lecture seule -->
+                    <div *ngIf="lectureSeule" class="font-weight-bold">
+                      {{ item.produit }}
+                    </div>
+                  </td>
+                  
+                  <!-- Quantité -->
+                  <td>
+                    <input *ngIf="!lectureSeule"
+                           type="number" 
+                           class="form-control text-center"
+                           [(ngModel)]="item.quantite"
+                           [ngModelOptions]="{standalone: true}"
+                           (change)="calculerTotal()"
+                           min="1"
+                           [disabled]="chargement">
+                    
+                    <div *ngIf="lectureSeule" class="text-center font-weight-bold">
+                      {{ item.quantite }}
+                    </div>
+                  </td>
+                  
+                  <!-- Prix Unitaire -->
+                  <td>
+                    <input *ngIf="!lectureSeule"
+                           type="number" 
+                           class="form-control text-right"
+                           [(ngModel)]="item.prixUnitaire"
+                           [ngModelOptions]="{standalone: true}"
+                           (change)="calculerTotal()"
+                           min="0"
+                           step="100"
+                           [disabled]="chargement">
+                    
+                    <div *ngIf="lectureSeule" class="text-right font-weight-bold">
+                      {{ item.prixUnitaire | number: '1.0-0' }} XAF
+                    </div>
+                  </td>
+                  
+                  <!-- Remise -->
+                  <td>
+                    <div *ngIf="!lectureSeule" class="input-group input-group-sm">
+                      <input type="number" 
+                             class="form-control text-right"
+                             [(ngModel)]="item.remise"
+                             [ngModelOptions]="{standalone: true}"
+                             (change)="calculerTotal()"
+                             min="0"
+                             [disabled]="chargement">
+                      <select class="custom-select" 
+                              [(ngModel)]="item.typeRemise"
+                              [ngModelOptions]="{standalone: true}"
+                              (change)="calculerTotal()"
+                              style="max-width: 70px;"
+                              [disabled]="chargement">
+                        <option value="POURCENTAGE">%</option>
+                        <option value="MONTANT">XAF</option>
+                      </select>
+                    </div>
+                    
+                    <div *ngIf="lectureSeule" class="text-right">
+                      {{ item.remise }} 
+                      {{ item.typeRemise === 'POURCENTAGE' ? '%' : 'XAF' }}
+                    </div>
+                  </td>
+                  
+                  <!-- Total Ligne -->
+                  <td class="text-right font-weight-bold text-success">
+                    {{ item.totalLigne | number: '1.0-0' }} XAF
+                  </td>
+                  
+                  <!-- Actions -->
+                  <td *ngIf="!lectureSeule" class="text-center">
+                    <button type="button" 
+                            class="btn btn-sm btn-danger"
+                            (click)="supprimerLigne(i)"
+                            [disabled]="chargement || items.length === 1"
+                            title="Supprimer cette ligne">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+                
+                <!-- Aucun article -->
+                <tr *ngIf="items.length === 0">
+                  <td [attr.colspan]="lectureSeule ? 6 : 7" class="text-center py-4 text-muted">
+                    <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                    <strong>Aucun article</strong>
+                    <p *ngIf="!lectureSeule" class="mt-2">
+                      <button type="button" 
+                              class="btn btn-sm btn-success"
+                              (click)="ajouterLigne()">
+                        <i class="fas fa-plus mr-1"></i>Ajouter un article
+                      </button>
+                    </p>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- Totaux -->
+        <div class="card-footer bg-light">
+          <div class="row">
+            <div class="col-md-8">
+              <!-- Remarques -->
+              <div class="form-group mb-0">
+                <label for="remarques" class="font-weight-bold">
+                  <i class="fas fa-comment text-secondary mr-1"></i>
+                  Remarques
+                </label>
+                
+                <textarea *ngIf="!lectureSeule"
+                          class="form-control"
+                          formControlName="remarques"
+                          id="remarques"
+                          rows="3"
+                          placeholder="Remarques ou conditions particulières..."
+                          [disabled]="chargement"></textarea>
+                
+                <div *ngIf="lectureSeule" class="form-control-plaintext">
+                  {{ devis.remarques || 'Aucune remarque' }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="col-md-4">
+              <!-- Récapitulatif -->
+              <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                  <tbody>
+                       <tr>
+                      <td class="font-weight-bold">Total REMISE:</td>
+                      <td class="text-right font-weight-bold">
+                        {{ remisetotal | number: '1.0-0' }} XAF
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="font-weight-bold">Total HT:</td>
+                      <td class="text-right font-weight-bold">
+                        {{ (totalDevis / (appliquerTVA ? (1 + tauxTVA/100) : 1)) | number: '1.0-0' }} XAF
+                      </td>
+                    </tr>
+                    <tr *ngIf="appliquerTVA">
+                      <td class="font-weight-bold">TVA ({{ tauxTVA }}%):</td>
+                      <td class="text-right font-weight-bold text-info">
+                        {{ (totalDevis - (totalDevis / (1 + tauxTVA/100))) | number: '1.0-0' }} XAF
+                      </td>
+                    </tr>
+                    <tr class="border-top border-dark">
+                      <td class="font-weight-bold h5 mb-0">
+                        Total {{ appliquerTVA ? 'TTC' : 'HT' }}:
+                      </td>
+                      <td class="text-right font-weight-bold text-success h4 mb-0">
+                        {{ totalDevis | number: '1.0-0' }} XAF
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BOUTONS D'ACTION -->
+      <div class="row mt-3" *ngIf="!lectureSeule">
+        <div class="col-12 text-center">
+          <button type="submit" 
+                  class="btn btn-primary btn-lg mr-2"
+                  [disabled]="chargement || devisForm.invalid">
+            <i class="fas fa-save mr-2"></i>
+            <span *ngIf="chargement">
+              <span class="spinner-border spinner-border-sm mr-2"></span>
+              Enregistrement...
+            </span>
+            <span *ngIf="!chargement">
+              {{ modeAffichage === 'edition' ? 'Mettre à jour' : 'Enregistrer' }}
+            </span>
+          </button>
+          
+          <button type="button" 
+                  class="btn btn-secondary btn-lg"
+                  (click)="annuler()"
+                  [disabled]="chargement">
+            <i class="fas fa-times mr-2"></i>Annuler
+          </button>
+        </div>
+      </div>
+
+      <!-- BOUTONS EN MODE DÉTAIL -->
+      <div class="row mt-3" *ngIf="lectureSeule && devisId">
+        <div class="col-12 text-center">
+          <button type="button" 
+                  class="btn btn-warning btn-lg mr-2"
+                  (click)="router.navigate(['/devis', devisId, 'edit'])"
+                  *ngIf="devis?.statut === 'EN_ATTENTE'">
+            <i class="fas fa-edit mr-2"></i>Modifier ce devis
+          </button>
+          
+          <button type="button" 
+                  class="btn btn-secondary btn-lg"
+                  (click)="annuler()">
+            <i class="fas fa-arrow-left mr-2"></i>Retour
+          </button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>

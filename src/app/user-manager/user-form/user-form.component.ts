@@ -1,12 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-import { error } from 'jquery';
 import { finalize } from 'rxjs';
-import { User } from '../../model/user';
+
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Roles } from '../../model/roles';
+import { Profil } from '../../bookshoop/model/profil';
 import { ActivatedRoute, Router } from '@angular/router';
-import { UserService } from '../../services/user.service';
-import { RoleService } from '../../services/role.service';
+import { UserService, CreateUserRequest } from '../../services/user.service';
+import { ProfilService } from '../../services/profil.service';
 import { CommonModule } from '@angular/common';
 import { NgxPaginationModule } from 'ngx-pagination';
 
@@ -25,21 +24,22 @@ export class UserFormComponent implements OnInit {
   isEditMode = false;
   loading = false;
   submitted = false;
-  roles: Roles[] = [];
-  
+  erreurSoumission: string | null = null;
+  profils: Profil[] = [];
+
   constructor(
     private formBuilder: FormBuilder,
     private route: ActivatedRoute,
     private router: Router,
     private userService: UserService,
-    private roleService: RoleService
+    private profilService: ProfilService
   ) {
     this.userForm = this.createUserForm();
   }
 
   ngOnInit(): void {
-    this.loadRoles();
-    
+    this.loadProfils();
+
     // Vérifier s'il s'agit d'un mode d'édition
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
@@ -51,13 +51,13 @@ export class UserFormComponent implements OnInit {
 
   createUserForm(): FormGroup {
     return this.formBuilder.group({
-      username: ['', [Validators.required, Validators.minLength(4)]],
+      username: ['', [Validators.minLength(4)]],
       email: ['', [Validators.required, Validators.email]],
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
       password: ['', this.isEditMode ? [] : [Validators.required, Validators.minLength(8)]],
       passwordConfirm: ['', this.isEditMode ? [] : [Validators.required]],
-      roleId: [null, Validators.required],
+      profilId: [null],
       isActive: [true]
     }, {
       validators: this.isEditMode ? [] : this.passwordMatchValidator
@@ -67,7 +67,7 @@ export class UserFormComponent implements OnInit {
   passwordMatchValidator(group: FormGroup): { [key: string]: boolean } | null {
     const password = group.get('password')?.value;
     const passwordConfirm = group.get('passwordConfirm')?.value;
-    
+
     if (password && passwordConfirm && password !== passwordConfirm) {
       return { 'passwordMismatch': true };
     }
@@ -78,86 +78,75 @@ export class UserFormComponent implements OnInit {
     this.loading = true;
     this.userService.getUserById(id)
       .pipe(finalize(() => this.loading = false))
-      .subscribe(
-        user => {
-          // Supprimer les champs de mot de passe en mode édition
-          const { password, ...userWithoutPassword } = user;
-          
+      .subscribe({
+        next: (user) => {
           this.userForm.patchValue({
-            ...userWithoutPassword,
-            roleId: user.roleId
+            username: user.userName,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastname,
+            profilId: user.profilid,
+            isActive: user.isActive
           });
         },
-        error => {
+        error: (error) => {
           console.error('Error loading user', error);
-          // Afficher une notification d'erreur
+          this.erreurSoumission = "Erreur lors du chargement de l'utilisateur.";
         }
-      );
+      });
   }
 
-  loadRoles(): void {
-    this.roleService.getAllRoles().subscribe(
-      roles => {
-        this.roles = roles;
-      },
-      error => {
-        console.error('Error loading roles', error);
-        // Afficher une notification d'erreur
-      }
-    );
+  loadProfils(): void {
+    this.profilService.getAllProfils().subscribe({
+      next: (profils) => this.profils = profils,
+      error: (error) => console.error('Error loading profils', error)
+    });
   }
 
   onSubmit(): void {
     this.submitted = true;
-    
-    // Arrêter ici si le formulaire est invalide
+    this.erreurSoumission = null;
+
     if (this.userForm.invalid) {
       return;
     }
 
-    // Préparer les données utilisateur
-    const userData: User = this.userForm.value;
-    
-    // Supprimer la confirmation du mot de passe
-    if ('passwordConfirm' in userData) {
-      delete (userData as any).passwordConfirm;
-    }
-    
-    // Si on est en mode édition et que le mot de passe est vide, on le supprime
-    if (this.isEditMode && !userData.password) {
-      delete userData.password;
-    }
+    const formValue = this.userForm.value;
+    const payload: CreateUserRequest = {
+      userName: formValue.username?.trim() || undefined,
+      firstName: formValue.firstName,
+      lastname: formValue.lastName,
+      password: formValue.password,
+      email: formValue.email,
+      profilid: formValue.profilId || undefined,
+      isActive: formValue.isActive
+    };
 
     this.loading = true;
-    
+
     if (this.isEditMode && this.userId) {
-      // Mettre à jour l'utilisateur existant
-      this.userService.updateUser(this.userId, userData)
+      if (!payload.password) {
+        delete (payload as any).password;
+      }
+      this.userService.updateUser(this.userId, payload)
         .pipe(finalize(() => this.loading = false))
-        .subscribe(
-          user => {
-            // Afficher une notification de succès
-            this.router.navigate(['/users']);
-          },
-          error => {
+        .subscribe({
+          next: () => this.router.navigate(['/users']),
+          error: (error) => {
             console.error('Error updating user', error);
-            // Afficher une notification d'erreur
+            this.erreurSoumission = error?.error?.messageEcheck || error?.error?.message || "Erreur lors de la mise à jour de l'utilisateur.";
           }
-        );
+        });
     } else {
-      // Créer un nouvel utilisateur
-      this.userService.createUser(userData)
+      this.userService.createUser(payload)
         .pipe(finalize(() => this.loading = false))
-        .subscribe(
-          user => {
-            // Afficher une notification de succès
-            this.router.navigate(['/users']);
-          },
-          error => {
+        .subscribe({
+          next: () => this.router.navigate(['/users']),
+          error: (error) => {
             console.error('Error creating user', error);
-            // Afficher une notification d'erreur
+            this.erreurSoumission = error?.error?.messageEcheck || error?.error?.message || "Erreur lors de la création de l'utilisateur.";
           }
-        );
+        });
     }
   }
 

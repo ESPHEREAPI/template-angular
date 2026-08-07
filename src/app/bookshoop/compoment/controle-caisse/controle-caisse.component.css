@@ -1,0 +1,13 @@
+.table-active {
+  background-color: #d0e9ff !important;
+}
+/* Style pour les inputs datetime-local */
+input[type="datetime-local"] {
+  cursor: pointer;
+}
+
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  font-size: 1.2em;
+  padding: 5px;
+}

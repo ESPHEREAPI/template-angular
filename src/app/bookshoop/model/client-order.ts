@@ -1,0 +1,9 @@
+export class ClientOrder {
+
+  id?: number;
+  name: string = '';
+  email?: string;
+  phoneNumber!: string;
+  address!: string;
+  usernane!: string;
+}

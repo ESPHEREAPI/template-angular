@@ -1,0 +1,104 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Gestion des Années</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Années</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Liste des Années</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-primary" (click)="openModal()">
+            <i class="fas fa-plus"></i> Nouvelle Année
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <p class="text-muted small">
+          Référence globale, partagée par toutes les compagnies. Une année est créée automatiquement lors de
+          l'ouverture du premier exercice ("Entreprise") — cet écran permet d'en préparer une à l'avance.
+        </p>
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Année</th>
+                <th>Code</th>
+                <th>Libellé</th>
+                <th style="width: 150px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let annee of annees">
+                <td>{{ annee.id }}</td>
+                <td>{{ annee.code }}</td>
+                <td>{{ annee.libelle }}</td>
+                <td>
+                  <button class="btn btn-sm btn-info mr-1" (click)="openModal(annee)">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteAnnee(annee.id)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="annees.length === 0">
+                <td colspan="4" class="text-center">Aucune année trouvée</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal -->
+<div class="modal fade" id="anneeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">{{ isEditMode ? 'Modifier' : 'Nouvelle' }} Année</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="id">Année *</label>
+            <input type="number" class="form-control" id="id"
+                   [(ngModel)]="selectedAnnee.id" name="id" required [disabled]="isEditMode">
+          </div>
+          <div class="form-group">
+            <label for="code">Code *</label>
+            <input type="text" class="form-control" id="code"
+                   [(ngModel)]="selectedAnnee.code" name="code" required>
+          </div>
+          <div class="form-group">
+            <label for="libelle">Libellé *</label>
+            <input type="text" class="form-control" id="libelle"
+                   [(ngModel)]="selectedAnnee.libelle" name="libelle" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="saveAnnee()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

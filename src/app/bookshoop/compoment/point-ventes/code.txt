@@ -1,0 +1,932 @@
+
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+import { AppRoutingModule } from '../../../app.routes';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { Subject, takeUntil } from 'rxjs';
+import { PrixArticles } from '../../model/prix-articles';
+import { Commande } from '../../model/commande';
+import { Depot } from '../../model/depot';
+import { Boutique } from '../../model/boutique';
+import { Ville } from '../../model/ville';
+import { PointVente } from '../../model/point-vente';
+import { PointVenteService } from '../../service/point-vente.service';
+import { forkJoin } from 'rxjs';
+import { CommonModule } from '@angular/common';
+declare var $: any;
+@Component({
+  selector: 'app-point-ventes',
+  standalone: true,
+  imports: [CommonModule,
+    ReactiveFormsModule,
+    FormsModule
+    ],
+  templateUrl: './point-ventes.component.html',
+  styleUrl: './point-ventes.component.css'
+})
+export class PointVentesComponent implements OnInit, OnDestroy {
+  private destroy$ = new Subject<void>();
+
+  // Formulaires
+  pointVenteForm!: FormGroup;
+  boutiqueForm!: FormGroup;
+  commandeForm!: FormGroup;
+
+  // Données
+  listePrixArticles: PrixArticles[] = [];
+  filteredPrixArticles: PrixArticles[] = [];
+  listeCommandes: Commande[] = [];
+  listeDepots: Depot[] = [];
+  listeBoutiques: Boutique[] = [];
+  listeVilles: Ville[] = [];
+
+  // État
+  currentPointVente: PointVente | null = null;
+  currentCommande: Commande = this.initCommande();
+  isEditing = false;
+  loading = false;
+
+  // Pagination et filtres
+  currentPage = 1;
+  itemsPerPage = 10;
+  totalItems = 0;
+  searchTerm = '';
+
+  // Messages
+  messages: { severity: string, summary: string, detail: string }[] = [];
+
+  constructor(
+    private fb: FormBuilder,
+    private pointVenteService: PointVenteService
+  ) {
+    this.initForms();
+  }
+
+  ngOnInit(): void {
+    this.loadInitialData();
+    this.subscribeToPointVenteChanges();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  
+
+  private initForms(): void {
+    this.pointVenteForm = this.fb.group({
+      depot: [null, Validators.required],
+      boutique: [null, Validators.required]
+    });
+
+    this.boutiqueForm = this.fb.group({
+      code: ['', Validators.required],
+      nom: ['', Validators.required],
+      heureDebut: ['', Validators.required],
+      heureFin: ['', Validators.required],
+      quartier: ['', Validators.required],
+      ville: [null, Validators.required]
+    });
+
+    this.commandeForm = this.fb.group({
+      quantite: [0, [Validators.required, Validators.min(1)]],
+      remise: [0, [Validators.min(0), Validators.max(100)]],
+      tva: [0, [Validators.min(0)]],
+      prixVenteNet: [0, [Validators.required, Validators.min(0)]]
+    });
+  }
+
+ private loadInitialData(): void {
+  this.loading = true;
+
+  const prixArticles$ = this.pointVenteService.getAllPrixArticles();
+  const depots$ = this.pointVenteService.getAllDepots();
+  const boutiques$ = this.pointVenteService.getAllBoutiques();
+  const villes$ = this.pointVenteService.getAllVilles();
+
+  forkJoin([prixArticles$, depots$, boutiques$, villes$]).subscribe({
+    next: ([prixArticles, depots, boutiques, villes]) => {
+      this.listePrixArticles = prixArticles || [];
+      this.filteredPrixArticles = [...this.listePrixArticles];
+      this.listeDepots = depots || [];
+      this.listeBoutiques = boutiques || [];
+      this.listeVilles = villes || [];
+      this.totalItems = this.listePrixArticles.length;
+    },
+    error: (error) => {
+      console.error('Erreur lors du chargement des données :', error);
+      this.showMessage('error', 'Erreur', 'Impossible de charger les données');
+    },
+    complete: () => {
+      this.loading = false;
+    }
+  });
+  
+}
+
+
+
+
+  private initCommande(): Commande {
+    return {
+      dateReception: new Date(),
+      numeroRepartition: '',
+      quantite: 0,
+      prixAchat: 0,
+      prixVente: 0,
+      tva: 0,
+      remise: 0
+    }
+  }
+
+   private subscribeToPointVenteChanges(): void {
+    this.pointVenteService.pointVente$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(pointVente => {
+        this.currentPointVente = pointVente;
+        this.isEditing = !!pointVente?.id;
+        if (pointVente) {
+          this.loadCommandes(pointVente.id!);
+        }
+      });
+    }
+  // Actions principales
+  onAjouter(): void {
+    if (this.pointVenteForm.valid) {
+      $('#commandeModal').modal('show');
+      this.currentCommande = this.initCommande();
+      this.listeCommandes = [];
+    } else {
+      this.showMessage('warn', 'Attention', 'Veuillez sélectionner un dépôt et une boutique');
+    }
+  }
+
+  onModifier(): void {
+    if (this.currentPointVente && this.commandeForm.valid) {
+      this.currentCommande = { ...this.commandeForm.value };
+      this.currentCommande.prixVente = this.calculatePrixTTC();
+
+      this.pointVenteService.updateCommande(this.currentCommande)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => {
+            this.showMessage('success', 'Succès', 'Commande mise à jour avec succès');
+            this.refreshData();
+          },
+          error: (error) => {
+            console.error('Erreur lors de la mise à jour:', error);
+            this.showMessage('error', 'Erreur', 'Impossible de mettre à jour la commande');
+          }
+        });
+    }
+  }
+
+  onRafraichir(): void {
+    this.reset();
+    this.loadInitialData();
+  }
+
+  onImprimer(): void {
+    const boutique = this.pointVenteForm.get('boutique')?.value;
+    if (boutique?.id) {
+      this.pointVenteService.printPointVenteByBoutique(boutique.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (blob) => {
+            this.downloadBlob(blob, 'point-vente.pdf');
+          },
+          error: (error) => {
+            console.error('Erreur lors de l\'impression:', error);
+            this.showMessage('error', 'Erreur', 'Impossible d\'imprimer le rapport');
+          }
+        });
+    }
+  }
+
+  // Gestion des commandes
+  addCommande(): void {
+    if (this.commandeForm.valid) {
+      const formValue = this.commandeForm.value;
+      const nouvelleCommande: Commande = {
+        ...formValue,
+        prixVenteTTC: this.calculatePrixTTC(),
+        produit: this.currentPointVente?.produit
+      };
+
+      this.listeCommandes.push(nouvelleCommande);
+      this.commandeForm.reset();
+      this.showMessage('success', 'Succès', 'Commande ajoutée à la liste');
+    }
+  }
+
+validerCommandes(): void {
+  if (this.listeCommandes.length === 0) return;
+
+  const requests$ = this.listeCommandes.map(cmd =>
+    this.pointVenteService.addCommande(cmd)
+  );
+
+  forkJoin(requests$).subscribe({
+    next: () => {
+      this.showMessage('success', 'Succès', 'Toutes les commandes ont été enregistrées');
+      $('#commandeModal').modal('hide');
+      this.refreshData();
+    },
+    error: (error) => {
+      console.error('Erreur lors de l\'enregistrement:', error);
+      this.showMessage('error', 'Erreur', 'Impossible d\'enregistrer les commandes');
+    }
+  });
+}
+
+  // Gestion des boutiques
+  ajouterBoutique(): void {
+    if (this.boutiqueForm.valid) {
+      const nouvelleBoutique: Boutique = this.boutiqueForm.value;
+
+      this.pointVenteService.createBoutique(nouvelleBoutique)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (boutique) => {
+            this.listeBoutiques.push(boutique);
+            this.boutiqueForm.reset();
+            $('#boutiqueModal').modal('hide');
+            this.showMessage('success', 'Succès', 'Boutique créée avec succès');
+          },
+          error: (error) => {
+            console.error('Erreur lors de la création:', error);
+            this.showMessage('error', 'Erreur', 'Impossible de créer la boutique');
+          }
+        });
+    }
+  }
+
+  // Gestion du tableau
+  onSearch(): void {
+    if (this.searchTerm.trim()) {
+      this.filteredPrixArticles = this.listePrixArticles.filter(item =>
+        item.pointVente.produit.reference.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        item.pointVente.produit.libelle.toLowerCase().includes(this.searchTerm.toLowerCase())
+      );
+    } else {
+      this.filteredPrixArticles = [...this.listePrixArticles];
+    }
+    this.totalItems = this.filteredPrixArticles.length;
+    this.currentPage = 1;
+  }
+
+  onPageChange(page: number): void {
+    this.currentPage = page;
+  }
+
+  getPaginatedItems(): PrixArticles[] {
+    const start = (this.currentPage - 1) * this.itemsPerPage;
+    const end = start + this.itemsPerPage;
+    return this.filteredPrixArticles.slice(start, end);
+  }
+
+  getTotalPages(): number {
+    return Math.ceil(this.totalItems / this.itemsPerPage);
+  }
+
+  showDetails(item: PrixArticles): void {
+    this.pointVenteService.setCurrentPointVente(item.pointVente);
+    this.currentCommande.quantite = 0;
+    this.currentCommande.remise = item.remise;
+    this.currentCommande.tva = item.tva;
+    this.currentCommande.prixVente = item.prixVenteNet;
+    this.commandeForm.patchValue(this.currentCommande);
+  }
+
+  // Utilitaires
+  private loadCommandes(pointVenteId: number): void {
+    this.pointVenteService.getCommandesByPointVente(pointVenteId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (commandes) => {
+          this.listeCommandes = commandes;
+        },
+        error: (error) => {
+          console.error('Erreur lors du chargement des commandes:', error);
+        }
+      });
+  }
+
+  public  calculatePrixTTC(): number {
+    const prixNet = this.commandeForm.get('prixVenteNet')?.value || 0;
+    const tva = this.commandeForm.get('tva')?.value || 0;
+    return this.pointVenteService.calculatePrixTTC(prixNet, tva);
+  }
+
+  private refreshData(): void {
+    this.loadInitialData();
+  }
+
+  private reset(): void {
+    this.currentPointVente = null;
+    this.currentCommande = this.initCommande();
+    this.isEditing = false;
+    this.pointVenteForm.reset();
+    this.commandeForm.reset();
+    this.searchTerm = '';
+    this.pointVenteService.setCurrentPointVente(null);
+  }
+
+  private showMessage(severity: string, summary: string, detail: string): void {
+    this.messages = [{ severity, summary, detail }];
+    setTimeout(() => {
+      this.messages = [];
+    }, 5000);
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  // Formatage
+  formatNumber(value: number): string {
+    return this.pointVenteService.formatNumber(value);
+  }
+
+  calculateEstimation(stockFinal: number, prixVenteNet: number): string {
+    const estimation = this.pointVenteService.calculateEstimationStock(stockFinal, prixVenteNet);
+    return this.formatNumber(estimation);
+  }
+
+  // Getters pour le template
+  get isFormValid(): boolean {
+    return this.pointVenteForm.valid;
+  }
+
+  get canModify(): boolean {
+    return this.isEditing && this.commandeForm.valid;
+  }
+
+  get paginationArray(): number[] {
+    const total = this.getTotalPages();
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+trackByFn(index: number, item: any): any {
+  return item.id || index;
+}
+
+getMinValue(a: number, b: number): number {
+  return Math.min(a, b);
+}
+}
+
+
+----------------------------------------------------------------------
+
+
+   
+
+
+        <!-- Content Wrapper -->
+
+            <!-- Content Header -->
+            <section class="content-header">
+                <div class="container-fluid">
+                    <div class="row mb-2">
+                        <div class="col-sm-6">
+                            <h1><i class="fas fa-store"></i> Gestion Point de Vente</h1>
+                        </div>
+                        <div class="col-sm-6">
+                            <ol class="breadcrumb float-sm-right">
+                                <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+                                <li class="breadcrumb-item active">Point de Vente</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Main content -->
+            <section class="content">
+                <div class="container-fluid">
+
+                    <!-- Messages d'alerte -->
+                    <div *ngIf="messages.length > 0" class="row">
+                        <div class="col-12">
+                            <div *ngFor="let msg of messages"
+                                [ngClass]="'alert alert-' + (msg.severity === 'success' ? 'success' : msg.severity === 'error' ? 'danger' : msg.severity === 'warn' ? 'warning' : 'info')"
+                                class="alert-dismissible">
+                                <button type="button" class="close" (click)="messages = []">
+                                    <span>&times;</span>
+                                </button>
+                                <h5><i
+                                        [ngClass]="msg.severity === 'success' ? 'fas fa-check' : msg.severity === 'error' ? 'fas fa-ban' : msg.severity === 'warn' ? 'fas fa-exclamation-triangle' : 'fas fa-info'"></i>
+                                    {{msg.summary}}</h5>
+                                {{msg.detail}}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Formulaire principal -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card card-primary card-custom">
+                                <div class="card-header">
+                                    <h3 class="card-title"><i class="fas fa-edit"></i> Configuration Point de Vente</h3>
+                                </div>
+
+                                <form [formGroup]="pointVenteForm">
+                                    <div class="card-body">
+                                        <!-- Boutons d'action -->
+                                        <div class="btn-group mb-3" role="group">
+                                            <button type="button" class="btn btn-success" (click)="onAjouter()"
+                                                [disabled]="!isFormValid">
+                                                <i class="fas fa-plus"></i> Ajouter
+                                            </button>
+                                            <button type="button" class="btn btn-warning" (click)="onModifier()"
+                                                [disabled]="!canModify">
+                                                <i class="fas fa-edit"></i> Modifier
+                                            </button>
+                                            <button type="button" class="btn btn-info" (click)="onRafraichir()">
+                                                <i class="fas fa-sync-alt"></i> Rafraîchir
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" (click)="onImprimer()"
+                                                [disabled]="!isFormValid">
+                                                <i class="fas fa-print"></i> Imprimer
+                                            </button>
+                                        </div>
+
+                                        <!-- Sélection Dépôt et Boutique -->
+                                        <div class="form-row">
+                                            <div class="col-md-6">
+                                                <div class="form-group">
+                                                    <label for="depot"><i class="fas fa-warehouse"></i> Zone de Stock
+                                                        *</label>
+                                                    <select class="form-control" id="depot" formControlName="depot"
+                                                        [disabled]="isEditing">
+                                                        <option value="">-- Choisir --</option>
+                                                        <option *ngFor="let depot of listeDepots" [value]="depot">
+                                                            {{depot.libelle}} - {{depot.boutique?.nom}}
+                                                        </option>
+                                                    </select>
+                                                    <div *ngIf="pointVenteForm.get('depot')?.invalid && pointVenteForm.get('depot')?.touched"
+                                                        class="text-danger small">
+                                                        Le dépôt est obligatoire
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-5">
+                                                <div class="form-group">
+                                                    <label for="boutique"><i class="fas fa-store"></i> Zone de Vente
+                                                        *</label>
+                                                    <select class="form-control" id="boutique"
+                                                        formControlName="boutique" [disabled]="isEditing">
+                                                        <option value="">-- Choisir --</option>
+                                                        <option *ngFor="let boutique of listeBoutiques"
+                                                            [value]="boutique">
+                                                            {{boutique.nom}}
+                                                        </option>
+                                                    </select>
+                                                    <div *ngIf="pointVenteForm.get('boutique')?.invalid && pointVenteForm.get('boutique')?.touched"
+                                                        class="text-danger small">
+                                                        La boutique est obligatoire
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-1">
+                                                <div class="form-group">
+                                                    <label>&nbsp;</label>
+                                                    <button type="button" class="btn btn-outline-primary btn-block"
+                                                        data-toggle="modal" data-target="#boutiqueModal"
+                                                        [disabled]="isEditing">
+                                                        <i class="fas fa-plus"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Détails produit (affiché seulement en mode édition) -->
+                                        <div *ngIf="currentPointVente" class="form-row">
+                                            <div class="col-md-12">
+                                                <div class="card card-info">
+                                                    <div class="card-header">
+                                                        <h3 class="card-title">Détails Article</h3>
+                                                    </div>
+                                                    <div class="card-body">
+                                                        <div class="row">
+                                                            <div class="col-md-6">
+                                                                <strong>Article:</strong>
+                                                                {{currentPointVente.produit.reference}} |
+                                                                {{currentPointVente.produit.libelle}}
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <strong>Stock Disponible:</strong>
+                                                                {{currentPointVente.stockFinalTheorie}}
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <strong>Stock Initial:</strong>
+                                                                {{currentPointVente.stockInitial}}
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Formulaire de commande -->
+                                                        <form [formGroup]="commandeForm" class="mt-3">
+                                                            <div class="form-row">
+                                                                <div class="col-md-3">
+                                                                    <div class="form-group">
+                                                                        <label for="quantite">Quantité</label>
+                                                                        <input type="number" class="form-control"
+                                                                            id="quantite" formControlName="quantite"
+                                                                            min="0"
+                                                                            [max]="currentPointVente.stockFinalTheorie">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <div class="form-group">
+                                                                        <label for="remise">Remise (%)</label>
+                                                                        <input type="number" class="form-control"
+                                                                            id="remise" formControlName="remise" min="0"
+                                                                            max="100" step="0.01">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <div class="form-group">
+                                                                        <label for="tva">TVA (%)</label>
+                                                                        <input type="number" class="form-control"
+                                                                            id="tva" formControlName="tva" min="0"
+                                                                            step="0.01">
+                                                                    </div>
+                                                                </div>
+                                                                <div class="col-md-3">
+                                                                    <div class="form-group">
+                                                                        <label for="prixVenteNet">Prix Vente Net</label>
+                                                                        <input type="number" class="form-control"
+                                                                            id="prixVenteNet"
+                                                                            formControlName="prixVenteNet" min="0"
+                                                                            step="0.01">
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="form-row">
+                                                                <div class="col-md-6">
+                                                                    <div class="alert alert-info">
+                                                                        <strong>Prix TTC:</strong>
+                                                                        {{formatNumber(calculatePrixTTC())}} FCFA
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tableau des points de vente -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card card-custom">
+                                <div class="card-header">
+                                    <h3 class="card-title"><i class="fas fa-table"></i> Liste des Points de Vente</h3>
+                                    <div class="card-tools">
+                                        <!-- Recherche -->
+                                        <div class="input-group input-group-sm" style="width: 300px;">
+                                            <input type="text" class="form-control" placeholder="Rechercher..."
+                                                [(ngModel)]="searchTerm" (keyup.enter)="onSearch()">
+                                            <div class="input-group-append">
+                                                <button type="button" class="btn btn-default" (click)="onSearch()">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="card-body table-responsive p-0">
+                                    <table class="table table-hover text-nowrap">
+                                        <thead class="thead-light">
+                                            <tr>
+                                                <th style="width: 100px;">Options</th>
+                                                <th>Référence</th>
+                                                <th>Libellé</th>
+                                                <th>Quantité</th>
+                                                <th>Qty Restant</th>
+                                                <th>Estimation Stock</th>
+                                                <th>Qty Livrée</th>
+                                                <th>Remise (%)</th>
+                                                <th>TVA (%)</th>
+                                                <th>Prix Net</th>
+                                                <th>Prix TTC</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr *ngFor="let item of getPaginatedItems(); trackBy: trackByFn">
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary"
+                                                        (click)="showDetails(item)" title="Modifier">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                </td>
+                                                <td>{{item.pointVente.produit.reference}}</td>
+                                                <td>{{item.pointVente.produit.libelle}}</td>
+                                                <td>
+                                                    <span class="badge badge-info">
+                                                        {{formatNumber(item.pointVente.entreeProduit +
+                                                        item.pointVente.stockInitial)}}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-success">
+                                                        {{formatNumber(item.pointVente.stockFinalTheorie)}}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-warning badge-estimation">
+                                                        {{calculateEstimation(item.pointVente.stockFinalTheorie,
+                                                        item.prixVenteNet)}} FCFA
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <span class="badge badge-secondary">
+                                                        {{formatNumber(item.pointVente.sortiProduit)}}
+                                                    </span>
+                                                </td>
+                                                <td>{{item.remise}}%</td>
+                                                <td>{{item.tva}}%</td>
+                                                <td>{{formatNumber(item.prixVenteNet)}} FCFA</td>
+                                                <td>{{formatNumber(item.prixVenteTTC)}} FCFA</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+
+                                    <!-- Message si aucun résultat -->
+                                    <div *ngIf="filteredPrixArticles.length === 0 && !loading" class="text-center p-4">
+                                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                                        <h5 class="text-muted">Aucun résultat trouvé</h5>
+                                        <p class="text-muted">Essayez de modifier vos critères de recherche</p>
+                                    </div>
+                                </div>
+
+                                <!-- Pagination -->
+                                <div class="card-footer" *ngIf="totalItems > itemsPerPage">
+                                    <div class="row">
+                                        <div class="col-sm-5">
+                                            <div class="dataTables_info">
+                                                Affichage de {{((currentPage - 1) * itemsPerPage) + 1}} à
+                                                {{getMinValue(currentPage * itemsPerPage, totalItems)}} sur
+                                                {{totalItems}} entrées
+                                            </div>
+                                        </div>
+                                        <div class="col-sm-7">
+                                            <nav aria-label="Pagination">
+                                                <ul class="pagination pagination-sm m-0 float-right">
+                                                    <li class="page-item" [class.disabled]="currentPage === 1">
+                                                        <a class="page-link"
+                                                            (click)="currentPage > 1 && onPageChange(currentPage - 1)"
+                                                            href="javascript:void(0)">
+                                                            <i class="fas fa-chevron-left"></i>
+                                                        </a>
+                                                    </li>
+                                                    <li *ngFor="let page of paginationArray" class="page-item"
+                                                        [class.active]="page === currentPage">
+                                                        <a class="page-link" (click)="onPageChange(page)"
+                                                            href="javascript:void(0)">{{page}}</a>
+                                                    </li>
+                                                    <li class="page-item"
+                                                        [class.disabled]="currentPage === getTotalPages()">
+                                                        <a class="page-link"
+                                                            (click)="currentPage < getTotalPages() && onPageChange(currentPage + 1)"
+                                                            href="javascript:void(0)">
+                                                            <i class="fas fa-chevron-right"></i>
+                                                        </a>
+                                                    </li>
+                                                </ul>
+                                            </nav>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+   
+   
+
+    <!-- Modal Commandes -->
+    <div class="modal fade" id="commandeModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-primary">
+                    <h4 class="modal-title text-white">
+                        <i class="fas fa-shopping-cart"></i> Gestion des Commandes
+                    </h4>
+                    <button type="button" class="close text-white" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <!-- Formulaire d'ajout de commande -->
+                    <div class="card card-info mb-3">
+                        <div class="card-header">
+                            <h3 class="card-title">Nouvelle Commande</h3>
+                        </div>
+                        <div class="card-body">
+                            <form [formGroup]="commandeForm">
+                                <div class="form-row">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="cmdQuantite">Quantité *</label>
+                                            <input type="number" class="form-control" id="cmdQuantite"
+                                                formControlName="quantite" min="1">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="cmdRemise">Remise (%)</label>
+                                            <input type="number" class="form-control" id="cmdRemise"
+                                                formControlName="remise" min="0" max="100" step="0.01">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="cmdTva">TVA (%)</label>
+                                            <input type="number" class="form-control" id="cmdTva" formControlName="tva"
+                                                min="0" step="0.01">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="cmdPrix">Prix Vente Net *</label>
+                                            <input type="number" class="form-control" id="cmdPrix"
+                                                formControlName="prixVenteNet" min="0" step="0.01">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <button type="button" class="btn btn-success" (click)="addCommande()"
+                                        [disabled]="commandeForm.invalid">
+                                        <i class="fas fa-plus"></i> Ajouter à la liste
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Liste des commandes -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Commandes en cours</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Article</th>
+                                        <th>Quantité</th>
+                                        <th>Remise</th>
+                                        <th>TVA</th>
+                                        <th>Prix Net</th>
+                                        <th>Prix TTC</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let cmd of filteredPrixArticles; let i = index">
+                                        <td>{{cmd.pointVente.produit.reference}} - {{cmd.pointVente.produit.libelle}}</td>
+                                        <td>{{cmd.pointVente.stockFinalTheorie}}</td>
+                                        <td>{{cmd.remise}}%</td>
+                                        <td>{{cmd.tva}}%</td>
+                                        <td>{{formatNumber(cmd.prixVenteNet)}} FCFA</td>
+                                        <td>{{formatNumber(cmd.prixVenteTTC|| 0)}} FCFA</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-danger" (click)="listeCommandes.splice(i, 1)">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <div *ngIf="listeCommandes.length === 0" class="text-center p-4">
+                                <i class="fas fa-shopping-cart fa-2x text-muted"></i>
+                                <p class="text-muted mt-2">Aucune commande ajoutée</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Fermer
+                    </button>
+                    <button type="button" class="btn btn-primary" (click)="validerCommandes()"
+                        [disabled]="listeCommandes.length === 0">
+                        <i class="fas fa-check"></i> Valider toutes les commandes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Boutique -->
+    <div class="modal fade" id="boutiqueModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header bg-info">
+                    <h4 class="modal-title text-white">
+                        <i class="fas fa-store"></i> Créer une Boutique
+                    </h4>
+                    <button type="button" class="close text-white" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-body">
+                    <form [formGroup]="boutiqueForm">
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="btqCode">Code *</label>
+                                    <input type="text" class="form-control" id="btqCode" formControlName="code">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="btqNom">Nom *</label>
+                                    <input type="text" class="form-control" id="btqNom" formControlName="nom">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="btqDebut">Heure Début</label>
+                                    <input type="time" class="form-control" id="btqDebut" formControlName="heureDebut">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="btqFin">Heure Fin</label>
+                                    <input type="time" class="form-control" id="btqFin" formControlName="heureFin">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="btqQuartier">Quartier</label>
+                                    <input type="text" class="form-control" id="btqQuartier" formControlName="quartier">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="btqVille">Ville</label>
+                                    <select class="form-control" id="btqVille" formControlName="ville">
+                                        <option value="">-- Choisir --</option>
+                                        <option *ngFor="let ville of listeVilles" [value]="ville">
+                                            {{ville.libelle}}
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Annuler
+                    </button>
+                    <button type="button" class="btn btn-info" (click)="ajouterBoutique()"
+                        [disabled]="boutiqueForm.invalid">
+                        <i class="fas fa-save"></i> Créer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+ <!-- Loading Overlay -->
+    <div class="loading-overlay" *ngIf="loading">
+        <div class="text-center text-white">
+            <div class="spinner-border" role="status">
+                <span class="sr-only">Chargement...</span>
+            </div>
+            <h4 class="mt-3">Chargement...</h4>
+        </div>
+    </div>
+

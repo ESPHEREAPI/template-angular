@@ -1,9 +1,11 @@
 import { Injectable } from '@angular/core';
-import { Users } from '../model/Users';
+
 import { Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../environments/environment.prod';
+import { environment } from '../../environments/environment';
+import { Users } from '../model/Users';
+
 
 
 @Injectable({
@@ -26,7 +28,7 @@ export class LoginService {
   constructor(private router: Router, private http: HttpClient) { }
 
   public login(username: string, password: string): Observable<Users> {
-    this.user = new Users();
+    //this.user = new User();
     this.user.email = username;
     this.user.password = password;
    return this.http.post<Users>(this.host + "/gateway-proxy/api/auth/login", this.user);

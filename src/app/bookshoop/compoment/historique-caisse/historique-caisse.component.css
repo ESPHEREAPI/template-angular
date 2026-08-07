@@ -1,0 +1,18 @@
+.bg-orange {
+  background-color: orange !important;
+  color: white;
+}
+
+.bg-yellow {
+  background-color: yellow !important;
+}
+
+.bg-green {
+  background-color: #81c784 !important; /* vert clair pour espèces */
+  color: black;
+}
+
+.bg-purple {
+  background-color: #ce93d8 !important; /* violet clair pour bon d'achat */
+  color: black;
+}

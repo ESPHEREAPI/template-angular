@@ -1,0 +1,20 @@
+# ============================================
+# DOCKERFILE.DEV - FRONTEND ANGULAR 18 (DEV)
+# Avec hot-reload pour le développement
+# ============================================
+
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copier les fichiers de dépendances
+COPY package*.json ./
+
+# Installer les dépendances
+RUN npm install --legacy-peer-deps
+
+# Exposer le port 4200
+EXPOSE 4200
+
+# Démarrer le serveur de dev
+CMD ["npm", "start", "--", "--host", "0.0.0.0", "--poll", "2000"]

@@ -1,0 +1,279 @@
+<!-- Main content -->
+
+  <!-- Content Header (Page header) -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Gestion des Inventaires</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+            <li class="breadcrumb-item active">Inventaires</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      <!-- Formulaire de recherche -->
+      <div class="card card-primary">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-search"></i>
+            Critères de recherche
+          </h3>
+        </div>
+        <form [formGroup]="inventaireForm" (ngSubmit)="chargerInventaire()">
+          <div class="card-body">
+            <div class="row">
+              <!-- Choix du type d'inventaire -->
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="choix">Type d'inventaire <span class="text-danger">*</span></label>
+                  <select id="choix" class="form-control" formControlName="choix" (change)="onChoixChange()">
+                    <option [value]="ChoixInventaire.BOUTIQUE">Par Boutique</option>
+                    <option [value]="ChoixInventaire.DEPOT">Par Dépôt</option>
+                    <option [value]="ChoixInventaire.DATE">Par Date</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Boutique (si choix BOUTIQUE) -->
+              <div class="col-md-3" *ngIf="isBoutique">
+                <div class="form-group">
+                  <label for="boutique">Boutique <span class="text-danger">*</span></label>
+                  <select id="boutique" class="form-control" formControlName="boutique">
+                    <option [value]="null">Sélectionner une boutique</option>
+                    <option *ngFor="let boutique of boutiques" [ngValue]="boutique">
+                      {{boutique.nom}}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Catégorie (si choix BOUTIQUE) -->
+              <div class="col-md-3" *ngIf="isBoutique">
+                <div class="form-group">
+                  <label for="categorie">Catégorie <span class="text-danger">*</span></label>
+                  <select id="categorie" class="form-control" formControlName="categorie">
+                    <option [value]="null">Sélectionner une catégorie</option>
+                    <option *ngFor="let categorie of categories" [ngValue]="categorie">
+                      {{categorie.libelle}}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Dépôt (si choix DEPOT) -->
+              <div class="col-md-3" *ngIf="isDepot==true">
+                <div class="form-group">
+                  <label for="depot">Dépôt <span class="text-danger">*</span></label>
+                  <select id="depot" class="form-control" formControlName="depot">
+                    <option [value]="null">Sélectionner un dépôt</option>
+                    <option *ngFor="let depot of depots" [ngValue]="depot">
+                      {{depot.libelle}}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Date (si choix DATE) -->
+              <div class="col-md-3" *ngIf="isDate">
+                <div class="form-group">
+                  <label for="dateInventaire">Date d'inventaire <span class="text-danger">*</span></label>
+                  <input type="date" id="dateInventaire" class="form-control" formControlName="dateInventaire">
+                </div>
+              </div>
+
+              <!-- Prix (pour l'édition) -->
+              <div class="col-md-3" *ngIf="isEditing">
+                <div class="form-group">
+                  <label for="prix">Prix d'achat <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <input type="number" id="prix" class="form-control" formControlName="prix" step="0.01" min="0">
+                    <div class="input-group-append">
+                      <span class="input-group-text">FCFA</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card-footer">
+            <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+              <i class="fas fa-search" *ngIf="!isLoading"></i>
+              <i class="fas fa-spinner fa-spin" *ngIf="isLoading"></i>
+              Charger l'inventaire
+            </button>
+            <button type="button" class="btn btn-info ml-2" (click)="refresh()">
+              <i class="fas fa-sync-alt"></i>
+              Actualiser
+            </button>
+            <button type="button" class="btn btn-success ml-2" (click)="updatePrixAchat()" *ngIf="isEditing">
+              <i class="fas fa-save"></i>
+              Mettre à jour
+            </button>
+            <button type="button" class="btn btn-secondary ml-2" (click)="resetForm()" *ngIf="isEditing">
+              <i class="fas fa-times"></i>
+              Annuler
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Résultats -->
+      <div class="card card-success" *ngIf="inventaires.length > 0">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-list"></i>
+            Résultats de l'inventaire
+          </h3>
+          <div class="card-tools">
+            <button class="btn btn-tool" (click)="print()">
+              <i class="fas fa-print"></i>
+              Imprimer
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <!-- Barre de recherche et contrôles -->
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <div class="input-group">
+                <input type="text" class="form-control" placeholder="Rechercher par référence ou libellé..."
+                       [(ngModel)]="searchText" (keyup)="onSearch()">
+                <div class="input-group-append">
+                  <button class="btn btn-outline-secondary" type="button" (click)="onSearch()">
+                    <i class="fas fa-search"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <select class="form-control" [value]="itemsPerPage"     (change)="onItemsPerPageChange($event)">
+                <option value="10">10 par page</option>
+                <option value="15">15 par page</option>
+                <option value="25">25 par page</option>
+                <option value="50">50 par page</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <div class="info-box bg-info">
+                <span class="info-box-icon"><i class="fas fa-calculator"></i></span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Total</span>
+                  <span class="info-box-number">{{montantTotal | currency:'XOF':'symbol':'1.0-0'}}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tableau des résultats -->
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover">
+              <thead class="thead-dark">
+                <tr>
+                  <th>#</th>
+                  <th>Référence</th>
+                  <th>Libellé</th>
+                  <th>Quantité</th>
+                  <th>Prix d'achat</th>
+                  <th>Total</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let inventaire of paginatedInventaires; let i = index; trackBy: trackByInventaire"
+                    [class.table-warning]="selectedInventaire?.id === inventaire.id">
+                  <td>{{ (currentPage - 1) * itemsPerPage + i + 1 }}</td>
+                  <td>
+                    <strong>{{ inventaire.produit.reference }}</strong>
+                  </td>
+                  <td>{{ inventaire.produit.libelle }}</td>
+                  <td>
+                    <span class="badge badge-primary">{{ inventaire.quantite }}</span>
+                  </td>
+                  <td>{{ inventaire.prix | currency:'XOF':'symbol':'1.0-0' }}</td>
+                  <td>
+                    <strong>{{ inventaire.total | currency:'XOF':'symbol':'1.0-0' }}</strong>
+                  </td>
+                  <td>
+                    <button class="btn btn-sm btn-warning" (click)="editInventaire(inventaire)"
+                            [disabled]="isEditing && selectedInventaire?.id !== inventaire.id">
+                      <i class="fas fa-edit"></i>
+                      Modifier
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="row mt-3" *ngIf="totalPages > 1">
+            <div class="col-md-6">
+              <div class="dataTables_info">
+                Affichage de {{ (currentPage - 1) * itemsPerPage + 1 }} à 
+                {{ Math.min(currentPage * itemsPerPage, totalItems) }} sur {{ totalItems }} résultats
+              </div>
+            </div>
+            <div class="col-md-6">
+              <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-end">
+                  <li class="page-item" [class.disabled]="currentPage === 1">
+                    <button class="page-link" (click)="onPageChange(1)" [disabled]="currentPage === 1">
+                      <i class="fas fa-angle-double-left"></i>
+                    </button>
+                  </li>
+                  <li class="page-item" [class.disabled]="currentPage === 1">
+                    <button class="page-link" (click)="onPageChange(currentPage - 1)" [disabled]="currentPage === 1">
+                      <i class="fas fa-angle-left"></i>
+                    </button>
+                  </li>
+                  <li class="page-item" *ngFor="let page of getPageNumbers()" [class.active]="page === currentPage">
+                    <button class="page-link" (click)="onPageChange(page)">{{ page }}</button>
+                  </li>
+                  <li class="page-item" [class.disabled]="currentPage === totalPages">
+                    <button class="page-link" (click)="onPageChange(currentPage + 1)" [disabled]="currentPage === totalPages">
+                      <i class="fas fa-angle-right"></i>
+                    </button>
+                  </li>
+                  <li class="page-item" [class.disabled]="currentPage === totalPages">
+                    <button class="page-link" (click)="onPageChange(totalPages)" [disabled]="currentPage === totalPages">
+                      <i class="fas fa-angle-double-right"></i>
+                    </button>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message d'état vide -->
+      <div class="card card-info" *ngIf="inventaires.length === 0 && !isLoading">
+        <div class="card-body text-center">
+          <i class="fas fa-info-circle fa-3x text-info mb-3"></i>
+          <h4>Aucun inventaire chargé</h4>
+          <p class="text-muted">Utilisez les critères de recherche ci-dessus pour charger un inventaire.</p>
+        </div>
+      </div>
+
+      <!-- Indicateur de chargement -->
+      <div class="card card-secondary" *ngIf="isLoading">
+        <div class="card-body text-center">
+          <i class="fas fa-spinner fa-spin fa-3x text-secondary mb-3"></i>
+          <h4>Chargement en cours...</h4>
+          <p class="text-muted">Veuillez patienter pendant le chargement de l'inventaire.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+

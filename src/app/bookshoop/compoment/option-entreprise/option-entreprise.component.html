@@ -1,0 +1,246 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Option Entreprise</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Option Entreprise</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div *ngIf="loading" class="text-muted">Chargement...</div>
+
+    <div class="card" *ngIf="!loading && parametres">
+      <div class="card-header p-0">
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="ongletActif === 'securite'" href="javascript:void(0)" (click)="ongletActif = 'securite'">
+              <i class="fas fa-lock"></i> Sécurité / Connexion
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="ongletActif === 'fiscalite'" href="javascript:void(0)" (click)="ongletActif = 'fiscalite'">
+              <i class="fas fa-percentage"></i> Fiscalité
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="ongletActif === 'ticket'" href="javascript:void(0)" (click)="ongletActif = 'ticket'">
+              <i class="fas fa-receipt"></i> Ticket de caisse
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="ongletActif === 'facture'" href="javascript:void(0)" (click)="ongletActif = 'facture'">
+              <i class="fas fa-file-invoice"></i> Facture A4
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="card-body">
+
+        <!-- Sécurité / Connexion -->
+        <form *ngIf="ongletActif === 'securite'">
+          <div class="alert alert-info">
+            Politique appliquée à tous les utilisateurs de votre compagnie (les comptes administrateurs
+            plateforme ne sont pas concernés).
+          </div>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label>Longueur minimale du mot de passe</label>
+                <input type="number" min="4" class="form-control" [(ngModel)]="parametres.pwdLongueurMin" name="pwdLongueurMin">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label>Expiration du mot de passe (jours)</label>
+                <input type="number" min="0" class="form-control" [(ngModel)]="parametres.pwdExpirationJours" name="pwdExpirationJours">
+                <small class="form-text text-muted">0 = pas d'expiration</small>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label>Durée de session (minutes)</label>
+                <input type="number" min="1" class="form-control" [(ngModel)]="parametres.dureeSessionMinutes" name="dureeSessionMinutes">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="custom-control custom-checkbox mt-2">
+                <input type="checkbox" class="custom-control-input" id="pwdMaj" [(ngModel)]="parametres.pwdMajusculeRequise" name="pwdMajusculeRequise">
+                <label class="custom-control-label" for="pwdMaj">Majuscule requise</label>
+              </div>
+              <div class="custom-control custom-checkbox mt-2">
+                <input type="checkbox" class="custom-control-input" id="pwdChiffre" [(ngModel)]="parametres.pwdChiffreRequis" name="pwdChiffreRequis">
+                <label class="custom-control-label" for="pwdChiffre">Chiffre requis</label>
+              </div>
+              <div class="custom-control custom-checkbox mt-2">
+                <input type="checkbox" class="custom-control-input" id="pwdSpecial" [(ngModel)]="parametres.pwdSpecialRequis" name="pwdSpecialRequis">
+                <label class="custom-control-label" for="pwdSpecial">Caractère spécial requis</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label>Tentatives max. avant verrouillage</label>
+                <input type="number" min="1" class="form-control" [(ngModel)]="parametres.tentativesMaxAvantVerrouillage" name="tentativesMaxAvantVerrouillage">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label>Durée de verrouillage (minutes)</label>
+                <input type="number" min="0" class="form-control" [(ngModel)]="parametres.dureeVerrouillageMinutes" name="dureeVerrouillageMinutes">
+              </div>
+            </div>
+          </div>
+
+          <hr>
+          <h5>Génération automatique du login</h5>
+          <p class="text-muted small">
+            Format utilisé pour proposer automatiquement un identifiant lorsqu'aucun n'est saisi à la création d'un
+            utilisateur. Fonctionne pour tous les types de commerce gérés par la plateforme.
+          </p>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Format du login</label>
+                <select class="form-control" [(ngModel)]="parametres.loginFormat" name="loginFormat">
+                  <option *ngFor="let format of formatsLogin" [ngValue]="format.value">{{ format.libelle }}</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label>Exemple</label>
+              <div class="form-control bg-light text-muted">{{ exempleFormatActif() }}</div>
+            </div>
+          </div>
+        </form>
+
+        <!-- Fiscalité -->
+        <form *ngIf="ongletActif === 'fiscalite'">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label>Régime fiscal</label>
+                <input type="text" class="form-control" [(ngModel)]="parametres.regimeFiscal" name="regimeFiscal" placeholder="Ex: Réel, Simplifié...">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="custom-control custom-checkbox mt-4 pt-2">
+                <input type="checkbox" class="custom-control-input" id="tvaApplicable" [(ngModel)]="parametres.tvaApplicable" name="tvaApplicable">
+                <label class="custom-control-label" for="tvaApplicable">TVA applicable</label>
+              </div>
+            </div>
+            <div class="col-md-4" *ngIf="parametres.tvaApplicable">
+              <div class="form-group">
+                <label>Taux de TVA par défaut (%)</label>
+                <input type="number" min="0" step="0.01" class="form-control" [(ngModel)]="parametres.tauxTvaDefaut" name="tauxTvaDefaut">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="custom-control custom-checkbox mt-2">
+                <input type="checkbox" class="custom-control-input" id="prixTTC" [(ngModel)]="parametres.prixTTC" name="prixTTC">
+                <label class="custom-control-label" for="prixTTC">Prix affichés TTC (TVA incluse)</label>
+              </div>
+              <small class="form-text text-muted">Décoché : les prix affichés/saisis s'entendent hors taxes.</small>
+            </div>
+          </div>
+        </form>
+
+        <!-- Ticket de caisse -->
+        <form *ngIf="ongletActif === 'ticket'">
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label>Largeur du ticket (mm)</label>
+                <select class="form-control" [(ngModel)]="parametres.ticketLargeurMm" name="ticketLargeurMm">
+                  <option [ngValue]="58">58 mm</option>
+                  <option [ngValue]="80">80 mm</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="custom-control custom-checkbox mt-4 pt-2">
+                <input type="checkbox" class="custom-control-input" id="ticketLogo" [(ngModel)]="parametres.ticketAfficherLogo" name="ticketAfficherLogo">
+                <label class="custom-control-label" for="ticketLogo">Afficher le logo</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="custom-control custom-checkbox mt-4 pt-2">
+                <input type="checkbox" class="custom-control-input" id="ticketMentionsFiscales" [(ngModel)]="parametres.ticketAfficherMentionsFiscales" name="ticketAfficherMentionsFiscales">
+                <label class="custom-control-label" for="ticketMentionsFiscales">Afficher NUI / RCCM</label>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>En-tête (message libre)</label>
+                <textarea class="form-control" rows="3" [(ngModel)]="parametres.ticketEnTete" name="ticketEnTete"></textarea>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Pied de page (message libre)</label>
+                <textarea class="form-control" rows="3" [(ngModel)]="parametres.ticketPiedDePage" name="ticketPiedDePage" placeholder="Ex: Merci de votre visite !"></textarea>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <!-- Facture A4 -->
+        <form *ngIf="ongletActif === 'facture'">
+          <div class="row">
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Devise</label>
+                <input type="text" class="form-control" [(ngModel)]="parametres.factureDevise" name="factureDevise" placeholder="XAF">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Préfixe de numérotation</label>
+                <input type="text" class="form-control" [(ngModel)]="parametres.facturePrefixeNumerotation" name="facturePrefixeNumerotation" placeholder="Ex: FA-2026-">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label>Délai de paiement par défaut (jours)</label>
+                <input type="number" min="0" class="form-control" [(ngModel)]="parametres.factureEcheanceJoursDefaut" name="factureEcheanceJoursDefaut">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="custom-control custom-checkbox mt-4 pt-2">
+                <input type="checkbox" class="custom-control-input" id="factureLogo" [(ngModel)]="parametres.factureAfficherLogo" name="factureAfficherLogo">
+                <label class="custom-control-label" for="factureLogo">Afficher le logo</label>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-12">
+              <div class="form-group">
+                <label>Mentions légales (pied de facture)</label>
+                <textarea class="form-control" rows="3" [(ngModel)]="parametres.factureMentionsLegales" name="factureMentionsLegales" placeholder="Ex: conditions de règlement, pénalités de retard..."></textarea>
+              </div>
+            </div>
+          </div>
+        </form>
+
+      </div>
+      <div class="card-footer text-right">
+        <button type="button" class="btn btn-primary" [disabled]="saving" (click)="save()">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

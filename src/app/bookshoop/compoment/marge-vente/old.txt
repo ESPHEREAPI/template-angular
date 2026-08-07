@@ -1,0 +1,888 @@
+<!-- marge-vente.component.html -->
+ <!--<div class="content-wrapper">-->
+  <!-- Content Header -->
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0">Gestion des Marges de Vente</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+            <li class="breadcrumb-item active">Marges de Vente</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      
+      <!-- Boutons d'action -->
+      <div class="card card-primary">
+        <div class="card-header">
+          <h3 class="card-title">Actions</h3>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6">
+              <button 
+                type="button" 
+                class="btn btn-success mr-2" 
+                [disabled]="!canGenerate || isLoading"
+                (click)="genererMarge()">
+                <i class="fas fa-cog"></i> Générer
+              </button>
+              
+              <button 
+                type="button" 
+                class="btn btn-primary mr-2" 
+                [disabled]="!canEdit || isLoading"
+                (click)="genererMarge()">
+                <i class="fas fa-edit"></i> Éditer
+              </button>
+              
+              <button 
+                type="button" 
+                class="btn btn-info mr-2" 
+                [disabled]="!canPrint"
+                (click)="imprimerRapport()">
+                <i class="fas fa-print"></i> Imprimer
+              </button>
+            </div>
+            <div class="col-md-6 text-right">
+              <button 
+                type="button" 
+                class="btn btn-secondary" 
+                (click)="rafraichir()">
+                <i class="fas fa-sync-alt"></i> Rafraîchir
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="card card-info">
+        <div class="card-header">
+          <h3 class="card-title">Filtres</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-minus"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Type de marge -->
+          <div class="form-group">
+            <label>Type de marge</label>
+            <div class="form-check">
+              <input 
+                class="form-check-input" 
+                type="radio" 
+                name="position" 
+                id="margeJour" 
+                [value]="1"
+                [(ngModel)]="position"
+                (change)="onPositionChange()">
+              <label class="form-check-label" for="margeJour">
+                Marge par jour
+              </label>
+            </div>
+            <div class="form-check">
+              <input 
+                class="form-check-input" 
+                type="radio" 
+                name="position" 
+                id="margeMois" 
+                [value]="2"
+                [(ngModel)]="position"
+                (change)="onPositionChange()">
+              <label class="form-check-label" for="margeMois">
+                Marge par mois
+              </label>
+            </div>
+          </div>
+
+          <!-- Formulaire de filtres -->
+          <form [formGroup]="margeVenteForm" class="row">
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="annee">Année *</label>
+                <select 
+                  id="annee"
+                  class="form-control select2"
+                  formControlName="annee"
+                  (change)="onAnneeChange()">
+                  <option value="">Sélectionner...</option>
+                  <option *ngFor="let annee of annees" [ngValue]="annee">
+                    {{annee.id}}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+           <!-- <div class="col-md-3">
+              <div class="form-group">
+                <label for="mois">Mois *</label>
+                <select 
+                  id="mois"
+                  class="form-control select2"
+                  formControlName="mois"
+                  (change)="onMoisChange()">
+                  <option value="">Sélectionner...</option>
+                  <option *ngFor="let mois of moisByAnnee" [ngValue]="mois">
+                    {{getMoisName(mois.typeMois)}} {{mois.annee.id}}
+                  </option>
+                </select>
+              </div>
+            </div>-->
+
+            <div class="col-md-3" *ngIf="isMargeJournalier">
+              <div class="form-group">
+                <label for="date">Date *</label>
+                <select 
+                  id="date"
+                  class="form-control select2"
+                  formControlName="date"
+                  (change)="onDateChange()">
+                  <option value="">Sélectionner...</option>
+                  <option *ngFor="let date of datesByMois" [ngValue]="date">
+                    {{date}}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <!--<div class="col-md-3">
+              <div class="form-group">
+                <label for="depot">Boutique *</label>
+                <select 
+                  id="depot"
+                  class="form-control select2"
+                  formControlName="depot">
+                  <option value="">Sélectionner...</option>
+                  <option *ngFor="let depot of depots" [ngValue]="depot">
+                    {{depot.boutique?.nom}}
+                  </option>
+                </select>
+              </div>
+            </div>-->
+             <div class="col-md-3" *ngIf="isMargeMensuel">
+              <div class="form-group">
+                <label for="debut">Date Debut *</label>
+                <select 
+                  id="debut"
+                  class="form-control select2"
+                  formControlName="debut"
+                 >
+                  <option value="">Sélectionner...</option>
+                  <option *ngFor="let date of datesByMois" [ngValue]="date">
+                    {{date}}
+                  </option>
+                </select>
+              </div>
+            </div>
+             <div class="col-md-3" *ngIf="isMargeMensuel">
+              <div class="form-group">
+                <label for="fin">Date fin*</label>
+                <select 
+                  id="fin"
+                  class="form-control select2"
+                  formControlName="fin"
+                  (change)="onDateChange()">
+                  <option value="">Sélectionner...</option>
+                  <option *ngFor="let date of datesByMois" [ngValue]="date">
+                    {{date}}
+                  </option>
+                </select>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Statistiques -->
+      <div class="row">
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-info">
+            <div class="inner">
+              <h3>{{formatNumber(stats.totalCaisse)}} F</h3>
+              <p>Total Vente Net</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-shopping-cart"></i>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-success">
+            <div class="inner">
+              <h3>{{formatNumber(stats.totalAchat)}} F</h3>
+              <p>Total Achat</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-dollar-sign"></i>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-warning">
+            <div class="inner">
+              <h3>{{formatNumber(stats.remise)}} F</h3>
+              <p>Total Remise</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-percent"></i>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-danger">
+            <div class="inner">
+              <h3>{{formatNumber(stats.totalMarge)}} F</h3>
+              <p>Total Marge</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-chart-line"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formulaire d'édition (si sélectionné) 
+      <div class="card card-warning" *ngIf="selectedMarge && !showEditModal">
+        <div class="card-header">
+          <h3 class="card-title">Édition Article</h3>
+        </div>
+        <div class="card-body">
+          <form [formGroup]="editForm" class="row">
+            <div class="col-md-2">
+              <div class="form-group">
+                <label>Prix d'achat</label>
+                <input 
+                  type="number" 
+                  class="form-control"
+                  formControlName="achat"
+                  min="0">
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label>Prix unitaire</label>
+                <input 
+                  type="number" 
+                  class="form-control"
+                  formControlName="prixVente"
+                  min="0">
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label>Article</label>
+                <p class="form-control-static text-danger">{{selectedMarge.libelle}}</p>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label>Prix vente net</label>
+                <p class="form-control-static text-danger">{{selectedMarge.montant}}</p>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label>Quantité</label>
+                <p class="form-control-static text-danger">{{selectedMarge.quantite}}</p>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <button 
+                type="button" 
+                class="btn btn-primary mt-4"
+                [disabled]="editForm.invalid"
+                (click)="validerEdition()">
+                Valider
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>-->
+
+      <!-- Tableau des résultats -->
+      <div class="card" *ngIf="margesVente.length > 0">
+        <div class="card-header">
+          <h3 class="card-title">
+            Marges de Vente
+            <span *ngIf="isMargeJournalier">(Journalier)</span>
+            <span *ngIf="isMargeMensuel">(Mensuel)</span>
+          </h3>
+          <div class="card-tools">
+            <span class="badge badge-info">Total: {{tableConfig.totalRecords}}</span>
+          </div>
+        </div>
+        <div class="card-body table-responsive p-0">
+          <table class="table table-hover text-nowrap">
+            <thead>
+              <tr>
+                <th *ngIf="isMargeJournalier" style="width: 80px;">Options</th>
+                <th>Article</th>
+                <th>Quantité</th>
+                <th *ngIf="isMargeJournalier">Prix Vente Net</th>
+                <th>Montant Vente Net</th>
+                <th *ngIf="isMargeJournalier">Prix Achat</th>
+                <th>Montant Achat</th>
+                <th>Marge</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let marge of margesVente; let i = index" [class]="getMargeClass(marge)">
+                <td *ngIf="isMargeJournalier">
+                  <button 
+                    type="button" 
+                    class="btn btn-sm btn-outline-primary"
+                    (click)="editerMarge(marge)"
+                    title="Modifier">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                </td>
+                <td>{{marge.libelle}}</td>
+                <td>{{marge.quantite}}</td>
+                <td *ngIf="isMargeJournalier">{{formatNumber(marge.prixVente)}}</td>
+                <td>{{formatNumber(marge.montant)}}</td>
+                <td *ngIf="isMargeJournalier">{{formatNumber(marge.achat)}}</td>
+                <td>{{formatNumber(marge.montanAchat)}}</td>
+                <td [class]="marge.marge < 0 ? 'text-danger' : 'text-success'">
+                  {{formatNumber(marge.marge)}}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Pagination -->
+        <div class="card-footer clearfix">
+          <ul class="pagination pagination-sm m-0 float-right">
+            <li class="page-item" [class.disabled]="tableConfig.currentPage === 1">
+              <a class="page-link" (click)="onPageChange(1)">&laquo;</a>
+            </li>
+            <li class="page-item" [class.disabled]="tableConfig.currentPage === 1">
+              <a class="page-link" (click)="onPageChange(tableConfig.currentPage - 1)">&lsaquo;</a>
+            </li>
+            
+            <li class="page-item" *ngFor="let page of [1,2,3,4,5]" 
+                [class.active]="page === tableConfig.currentPage">
+              <a class="page-link" (click)="onPageChange(page)">{{page}}</a>
+            </li>
+            
+            <li class="page-item">
+              <a class="page-link" (click)="onPageChange(tableConfig.currentPage + 1)">&rsaquo;</a>
+            </li>
+            <li class="page-item">
+              <a class="page-link" (click)="onPageChange(999)">&raquo;</a>
+            </li>
+          </ul>
+          
+          <div class="float-left">
+            <select class="form-control form-control-sm" style="width: auto; display: inline-block;"
+                    [(ngModel)]="tableConfig.pageSize" (change)="onPageSizeChange(tableConfig.pageSize)">
+              <option *ngFor="let size of tableConfig.pageSizeOptions" [value]="size">
+                {{size}} par page
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message si aucun résultat -->
+      <div class="card" *ngIf="margesVente.length === 0 && !isLoading">
+        <div class="card-body text-center">
+          <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
+          <h5 class="text-muted">Aucune donnée disponible</h5>
+          <p class="text-muted">Sélectionnez les filtres et cliquez sur "Générer" pour afficher les marges de vente.</p>
+        </div>
+      </div>
+
+      <!-- Loader -->
+      <div class="card" *ngIf="isLoading">
+        <div class="card-body text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Chargement...</span>
+          </div>
+          <p class="mt-3">Chargement des données...</p>
+        </div>
+      </div>
+    </div>
+  </section>
+<!--</div>-->
+
+<!-- Modal d'édition -->
+<div class="modal fade" id="editModal" tabindex="-1" role="dialog" 
+     [style.display]="showEditModal ? 'block' : 'none'"
+     [class.show]="showEditModal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Édition Article</h5>
+        <button type="button" class="close" (click)="annulerEdition()">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="editForm" *ngIf="selectedMarge">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Prix d'achat *</label>
+                <input 
+                  type="number" 
+                  class="form-control"
+                  formControlName="achat"
+                  min="0"
+                  step="0.01">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Prix unitaire *</label>
+                <input 
+                  type="number" 
+                  class="form-control"
+                  formControlName="prixVente"
+                  min="0"
+                  step="0.01">
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Article</label>
+                <p class="form-control-static text-info">{{selectedMarge.libelle}}</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Quantité</label>
+                <p class="form-control-static text-info">{{selectedMarge.quantite}}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Prix vente net</label>
+                <p class="form-control-static text-success">{{formatNumber(selectedMarge.montant)}} F</p>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Marge actuelle</label>
+                <p class="form-control-static" [class]="selectedMarge.marge < 0 ? 'text-danger' : 'text-success'">
+                  {{formatNumber(selectedMarge.marge)}} F
+                </p>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="annulerEdition()">
+          Annuler
+        </button>
+        <button 
+          type="button" 
+          class="btn btn-primary"
+          [disabled]="editForm.invalid"
+          (click)="validerEdition()">
+          <i class="fas fa-save"></i> Valider
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay pour modal -->
+<div class="modal-backdrop fade" [class.show]="showEditModal" *ngIf="showEditModal"></div>
+
+
+
+import { Component } from '@angular/core';
+import { MargeVente } from '../../model/marge-vente';
+import { Subject, takeUntil } from 'rxjs';
+import { MargeVenteFilter } from '../../model/marge-vente-filter';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MargeVenteServiceService } from '../../service/marge-vente-service.service';
+import { MargeVenteStats } from '../../model/marge-vente-stats';
+import { Annee } from '../../model/annee';
+import { Depot } from '../../model/depot';
+import { Mois } from '../../model/mois';
+import { CommonModule } from '@angular/common';
+import { UserService } from '../../service/user-service.service';
+
+
+@Component({
+  selector: 'app-marge-vente',
+  standalone: true,
+  imports: [CommonModule,
+    ReactiveFormsModule,
+    FormsModule
+  ],
+  templateUrl: './marge-vente.component.html',
+  styleUrl: './marge-vente.component.css'
+})
+export class MargeVenteComponent {
+
+  private destroy$ = new Subject<void>();
+
+  margeVenteForm!: FormGroup;
+  editForm!: FormGroup;
+
+  // Données
+  margesVente: MargeVente[] = [];
+  annees: Annee[] = [];
+  moisByAnnee: Mois[] = [];
+  datesByMois: Date[] = [];
+  depots: Depot[] = [];
+
+  // États
+  position = 1; // 1 = jour, 2 = mois
+  isLoading = false;
+  selectedMarge: MargeVente | null = null;
+  showEditModal = false;
+  usertupdate!: string;
+
+  // Statistiques
+  stats: MargeVenteStats = {
+    totalCaisse: 0,
+    totalAchat: 0,
+    remise: 0,
+    totalMarge: 0
+  };
+
+  // Configuration du tableau
+  tableConfig = {
+    currentPage: 1,
+    pageSize: 50,
+    totalRecords: 0,
+    pageSizeOptions: [5, 10, 20, 50, 100, 500, 1000]
+  };
+
+  constructor(
+    private fb: FormBuilder,
+    private margeVenteService: MargeVenteServiceService, private userService: UserService
+  ) {
+    this.initializeForms();
+  }
+
+  ngOnInit(): void {
+    this.loadInitialData();
+    this.subscribeToStats();
+    this.usertupdate = this.userService.getUserConnected().username;
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private initializeForms(): void {
+    this.margeVenteForm = this.fb.group({
+      annee: [null, Validators.required],
+      mois: [null, Validators.required],
+      date: [null],
+      debut: [null],
+      fin: [null],
+      depot: [null, Validators.required]
+    });
+
+    this.editForm = this.fb.group({
+      achat: [0, [Validators.required, Validators.min(0)]],
+      prixVente: [0, [Validators.required, Validators.min(0)]]
+    });
+  }
+
+  private loadInitialData(): void {
+    this.isLoading = true;
+
+    this.margeVenteService.getAnnees()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(annees => {
+        this.annees = annees;
+        this.isLoading = false;
+      });
+
+    this.margeVenteService.getDepots()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(depots => {
+        this.depots = depots;
+      });
+  }
+
+  private subscribeToStats(): void {
+    this.margeVenteService.stats$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(stats => {
+        this.stats = stats;
+      });
+  }
+
+  // Gestion des événements de formulaire
+  onAnneeChange(): void {
+    const annee = this.margeVenteForm.get('annee')?.value;
+    if (annee) {
+      this.margeVenteService.getDateByAnnee(annee.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(date => {
+          this.datesByMois = date;
+          //this.margeVenteForm.patchValue({ mois: null, date: null });
+        });
+    }
+  }
+
+  onMoisChange(): void {
+    const mois = this.margeVenteForm.get('mois')?.value;
+    if (mois && this.position === 1) {
+      /**this.margeVenteService.getDatesByMois(mois.id)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe(dates => {
+          this.datesByMois = dates;
+          this.margeVenteForm.patchValue({ date: null });
+        });**/
+    }
+  }
+
+  onPositionChange(): void {
+    this.margeVenteForm.patchValue({ date: null });
+    //this.datesByMois = [];
+    this.margesVente = [];
+    this.stats.remise=0;
+    this.stats.totalAchat=0;
+    this.stats.totalCaisse=0;
+    this.stats.totalMarge=0;
+
+  }
+
+  onDateChange(): void {
+    if (this.position === 1) {
+      console.log("position", this.position)
+      this.genererMarge();
+    }
+     if (this.position === 2) {
+      console.log("position", this.position)
+      this.genererMargeMensuel();
+    }
+    //this.operation();
+  }
+
+  // Actions principales
+  genererMarge(): void {
+    if (this.margeVenteForm.get('date')) {
+      this.margesVente=[];
+      this.isLoading = true;
+
+      const filter: MargeVenteFilter = {
+        annee: this.margeVenteForm.get('annee')?.value,
+        // mois: this.margeVenteForm.get('mois')?.value,
+        date: this.margeVenteForm.get('date')?.value,
+        depot: this.margeVenteForm.get('depot')?.value,
+        debut: new Date,
+        fin:new Date,
+        position: this.position
+      };
+
+      this.margeVenteService.getMargeJournaliere(filter.date ?? new Date, filter.annee?.id ?? 0)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (marges) => {
+            this.margesVente = marges;
+            this.operation(marges);
+            this.tableConfig.totalRecords = marges.length;
+            this.isLoading = false;
+          },
+          error: (error) => {
+            console.error('Erreur lors du chargement des marges:', error);
+            this.isLoading = false;
+          }
+        });
+    }
+  }
+
+   genererMargeMensuel(): void {
+    if (this.margeVenteForm.get('debut') && this.margeVenteForm.get('fin') )  {
+      this.isLoading = true;
+
+      const filter: MargeVenteFilter = {
+        annee: this.margeVenteForm.get('annee')?.value,
+        // mois: this.margeVenteForm.get('mois')?.value,
+        debut: this.margeVenteForm.get('debut')?.value,
+        fin: this.margeVenteForm.get('fin')?.value,
+        position: this.position
+      };
+
+      this.margeVenteService.getMargeMargeMensuel(filter.debut ?? new Date,filter.fin ?? new Date, filter.annee?.id ?? 0)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (marges) => {
+            this.margesVente = marges;
+            this.operation(marges);
+            this.tableConfig.totalRecords = marges.length;
+            this.isLoading = false;
+          },
+          error: (error) => {
+            console.error('Erreur lors du chargement des marges:', error);
+            this.isLoading = false;
+          }
+        });
+    }
+  }
+
+  rafraichir(): void {
+    this.margeVenteForm.reset();
+    this.margesVente = [];
+    this.selectedMarge = null;
+    this.position = 1;
+    this.stats = {
+      totalCaisse: 0,
+      totalAchat: 0,
+      remise: 0,
+      totalMarge: 0
+    };
+  }
+
+  editerMarge(marge: MargeVente): void {
+    this.selectedMarge = { ...marge };
+    this.editForm.patchValue({
+      achat: marge.achat,
+      prixVente: marge.prixVente
+    });
+    this.showEditModal = true;
+  }
+
+  validerEdition(): void {
+    if (this.editForm.valid && this.selectedMarge) {
+      const updatedMarge: MargeVente = {
+        ...this.selectedMarge,
+        achat: this.editForm.get('achat')?.value,
+        prixVente: this.editForm.get('prixVente')?.value,
+        usercreat: this.usertupdate,
+        datevente: this.margeVenteForm.get('date')?.value
+      };
+
+      this.margeVenteService.validerAchat(updatedMarge)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (result) => {
+            this.showEditModal = false;
+            this.genererMarge(); // Recharger les données
+          },
+          error: (error) => {
+            console.error('Erreur lors de la validation:', error);
+          }
+        });
+    }
+  }
+
+  annulerEdition(): void {
+    this.showEditModal = false;
+    this.selectedMarge = null;
+    this.editForm.reset();
+  }
+
+  imprimerRapport(): void {
+    if (this.margeVenteForm.get('annee')?.value && this.margeVenteForm.get('date')?.value) {
+      const filter: MargeVenteFilter = {
+        annee: this.margeVenteForm.get('annee')?.value,
+        // mois: this.margeVenteForm.get('mois')?.value,
+        date: this.margeVenteForm.get('date')?.value,
+        depot: this.margeVenteForm.get('depot')?.value,
+        debut: new Date,
+        fin: new Date,
+        position: this.position
+      };
+
+      this.margeVenteService.genererRapport(filter)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (blob) => {
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `rapport-marge-${new Date().toISOString().split('T')[0]}.pdf`;
+            link.click();
+            window.URL.revokeObjectURL(url);
+          },
+          error: (error) => {
+            console.error('Erreur lors de la génération du rapport:', error);
+          }
+        });
+    }
+  }
+
+  // Méthodes utilitaires
+  formatNumber(value: number): string {
+    return this.margeVenteService.formatNumber(value);
+  }
+
+  formatDate(date: Date): string {
+    return this.margeVenteService.formatDate(date);
+  }
+
+  getMoisName(typeMois: number): string {
+    return this.margeVenteService.getMoisName(typeMois);
+  }
+
+  get isMargeJournalier(): boolean {
+    return this.position === 1;
+  }
+
+  get isMargeMensuel(): boolean {
+    return this.position === 2;
+  }
+
+  get canGenerate(): boolean {
+    return this.margeVenteForm.valid && (this.position === 2 || this.margeVenteForm.get('date')?.value);
+  }
+
+  get canEdit(): boolean {
+    if (this.selectedMarge && (this.selectedMarge.p?.id || this.selectedMarge.cpns?.id)) return true;
+    return false;
+  }
+
+  get canPrint(): boolean {
+    return this.position === 2 && this.margesVente.length > 0;
+  }
+
+  // Méthodes pour la classe CSS conditionnelle
+  getMargeClass(marge: MargeVente): string {
+    return marge.montant < marge.montanAchat ? 'table-danger' : '';
+  }
+
+  // Pagination
+  onPageChange(page: number): void {
+    this.tableConfig.currentPage = page;
+  }
+
+  onPageSizeChange(size: number): void {
+    this.tableConfig.pageSize = size;
+    this.tableConfig.currentPage = 1;
+  }
+operation(marge:MargeVente[]):void{
+  
+  console.log("operation calcul taille "+this.margesVente.length)
+  this.stats.totalCaisse=0;
+  this.stats.totalAchat=0;
+  this.stats.totalMarge=0
+  this.margesVente.forEach((marge)=>{
+    console.log("marge",marge.libelle)
+   this.stats.totalCaisse=this.stats.totalCaisse+marge.montant;
+   this.stats.totalAchat=this.stats.totalAchat+marge.montanAchat;
+  });
+  this.stats.totalMarge= this.stats.totalCaisse-this.stats.totalAchat;
+}
+}
+

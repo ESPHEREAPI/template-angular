@@ -1,0 +1,122 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Mes Licences</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Mes Licences</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+
+    <!-- Licence active -->
+    <div class="card" *ngIf="mine?.active">
+      <div class="card-header bg-success">
+        <h3 class="card-title">Licence active</h3>
+      </div>
+      <div class="card-body">
+        <p>Expiration : {{ mine!.active!.dateExpiration | date:'dd/MM/yyyy' }}
+          <span *ngIf="joursRestants(mine!.active!) !== null"> ({{ joursRestants(mine!.active!) }} jours restants)</span>
+        </p>
+        <p>Max utilisateurs : {{ mine!.active!.maxUtilisateurs }} / Max boutiques : {{ mine!.active!.maxBoutiques }}</p>
+        <p>Modules : {{ mine!.active!.modules?.join(', ') || '-' }}</p>
+        <p *ngIf="mine!.active!.essai"><span class="badge badge-info">Licence d'essai</span></p>
+      </div>
+    </div>
+
+    <!-- Licence en attente d'activation -->
+    <div class="alert alert-warning" *ngIf="mine?.pending">
+      Une nouvelle licence a été générée pour votre compagnie et attend d'être activée. Collez la clé reçue ci-dessous.
+    </div>
+
+    <!-- Bienvenue / pas de licence active -->
+    <div class="card" *ngIf="!loading && !mine?.active">
+      <div class="card-header">
+        <h3 class="card-title">Bienvenue — activez votre licence</h3>
+      </div>
+      <div class="card-body">
+        <p>
+          Votre compagnie n'a pas encore de licence active. Si l'on vous a transmis une clé de licence, collez-la
+          ci-dessous pour l'activer.
+        </p>
+      </div>
+    </div>
+
+    <!-- Activation par cle -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Activer une licence</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label for="cle">Clé de licence</label>
+          <textarea class="form-control" id="cle" rows="4" [(ngModel)]="cleAActiver"
+                    placeholder="Collez ici la clé de licence reçue"></textarea>
+        </div>
+        <button type="button" class="btn btn-primary" [disabled]="activation" (click)="activer()">
+          <i class="fas fa-key"></i> Activer
+        </button>
+
+        <div class="mt-3" *ngIf="mine?.essaiDisponible">
+          <hr>
+          <p>Vous pouvez aussi démarrer un essai gratuit sans attendre de clé.</p>
+          <button type="button" class="btn btn-outline-success" [disabled]="demarrageEssai" (click)="demarrerEssai()">
+            <i class="fas fa-rocket"></i> Démarrer un essai gratuit
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historique -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Historique de mes licences</h3>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Statut</th>
+                <th>Début</th>
+                <th>Expiration</th>
+                <th>Max utilisateurs</th>
+                <th>Max boutiques</th>
+                <th>Essai</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let licence of historique">
+                <td>
+                  <span class="badge"
+                        [class.badge-success]="licence.statut === 'ACTIVE'"
+                        [class.badge-warning]="licence.statut === 'SUSPENDUE' || licence.statut === 'GENEREE'"
+                        [class.badge-danger]="licence.statut === 'REVOQUEE' || licence.statut === 'EXPIREE'">
+                    {{ licence.statut }}
+                  </span>
+                </td>
+                <td>{{ licence.dateDebut ? (licence.dateDebut | date:'dd/MM/yyyy') : '-' }}</td>
+                <td>{{ licence.dateExpiration | date:'dd/MM/yyyy' }}</td>
+                <td>{{ licence.maxUtilisateurs }}</td>
+                <td>{{ licence.maxBoutiques }}</td>
+                <td>{{ licence.essai ? 'Oui' : 'Non' }}</td>
+              </tr>
+              <tr *ngIf="historique.length === 0">
+                <td colspan="6" class="text-center">Aucune licence pour le moment</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

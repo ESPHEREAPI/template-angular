@@ -1,0 +1,325 @@
+<!-- En-tête -->
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">
+          <i class="fas fa-users text-primary mr-2"></i>
+          Gestion des Clients
+        </h1>
+      </div>
+      <div class="col-sm-6 text-right">
+        <button class="btn btn-primary btn-lg" (click)="creerClient()" [disabled]="chargement"
+          title="Ajouter un nouveau client">
+          <i class="fas fa-plus-circle mr-2"></i>Nouveau Client
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Contenu -->
+<div class="content">
+  <div class="container-fluid">
+
+    <!-- Statistiques -->
+    <div class="row mb-4">
+      <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="small-box bg-primary">
+          <div class="inner">
+            <h3>{{ statistiques.total }}</h3>
+            <p>Total Clients</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-users"></i>
+          </div>
+          <a href="#" class="small-box-footer">
+            Voir détails <i class="fas fa-arrow-circle-right"></i>
+          </a>
+        </div>
+      </div>
+
+      <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="small-box bg-success">
+          <div class="inner">
+            <h3>{{ statistiques.actifs }}</h3>
+            <p>Clients Actifs</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-check-circle"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="small-box bg-warning">
+          <div class="inner">
+            <h3>{{ statistiques.enAttente }}</h3>
+            <p>En Attente</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-clock"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="small-box bg-danger">
+          <div class="inner">
+            <h3>{{ statistiques.inactifs }}</h3>
+            <p>Inactifs</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-times-circle"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+        <div class="small-box bg-info">
+          <div class="inner">
+            <h3>{{ statistiques.fideles }}</h3>
+            <p>Clients Fidèles</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-star"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Carte Filtres et Recherche -->
+    <div class="card card-primary card-outline">
+      <div class="card-header cursor-pointer" data-card-widget="collapse" title="Cliquer pour plier/déplier">
+        <h3 class="card-title">
+          <i class="fas fa-filter mr-2"></i>Filtres et Recherche
+        </h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool">
+            <i class="fas fa-minus"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <form [formGroup]="filtres" class="form-inline flex-column flex-md-row">
+          <!-- Recherche -->
+          <div class="form-group mr-md-3 mb-2 w-100 w-md-auto flex-grow-1">
+            <i class="fas fa-search position-absolute ml-3 text-muted"></i>
+            <input type="text" class="form-control form-control-lg pl-5 w-100" formControlName="search"
+              placeholder="Rechercher par nom, email, téléphone, code..." />
+          </div>
+
+          <!-- Filtre Statut -->
+          <div class="form-group mr-md-3 mb-2">
+            <select class="form-control form-control-lg" formControlName="statut">
+              <option value="">Tous les statuts</option>
+              <option value="ACTIF">Actif</option>
+              <option value="INACTIF">Inactif</option>
+              <option value="EN_ATTENTE">En attente</option>
+            </select>
+          </div>
+
+          <!-- Filtre Fidélité -->
+          <div class="form-group mr-md-3 mb-2">
+            <div class="custom-control custom-checkbox">
+              <input type="checkbox" class="custom-control-input" id="fideliteCheck" formControlName="fidelite">
+              <label class="custom-control-label" for="fideliteCheck">
+                Clients fidèles uniquement
+              </label>
+            </div>
+          </div>
+
+          <!-- Boutons -->
+          <div class="form-group mb-2">
+            <button type="button" class="btn btn-info mr-2" (click)="reinitialiserFiltres()">
+              <i class="fas fa-redo mr-1"></i>Réinitialiser
+            </button>
+            <button type="button" class="btn btn-success" (click)="exporterCsv()"
+              [disabled]="clientsFiltres.length === 0">
+              <i class="fas fa-download mr-1"></i>Exporter CSV
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Tableau Clients -->
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-table mr-2"></i>Liste des Clients
+          <span class="badge badge-info ml-2">{{ clientsFiltres.length }} client(s)</span>
+        </h3>
+        <div class="card-tools">
+          <div class="input-group input-group-sm" style="width: 250px;">
+            <input type="text" 
+                   class="form-control float-right" 
+                   placeholder="Recherche rapide"
+                   [formControl]="rechercheRapideControl">
+            <div class="input-group-append">
+              <button type="button" class="btn btn-default">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Spinner de chargement -->
+      <div *ngIf="chargement" class="card-body text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="sr-only">Chargement...</span>
+        </div>
+        <p class="text-muted mt-3">Chargement en cours...</p>
+      </div>
+
+      <!-- Tableau -->
+      <div *ngIf="!chargement" class="table-responsive">
+        <table class="table table-hover table-striped">
+          <thead class="bg-light">
+            <tr>
+              <th style="width: 5%">#</th>
+              <th style="width: 15%">
+                <i class="fas fa-barcode text-info mr-1"></i>Code
+              </th>
+              <th style="width: 20%">
+                <i class="fas fa-user text-success mr-1"></i>Nom
+              </th>
+              <th style="width: 20%">
+                <i class="fas fa-envelope text-danger mr-1"></i>Email
+              </th>
+              <th style="width: 15%">
+                <i class="fas fa-phone text-warning mr-1"></i>Téléphone
+              </th>
+              <th style="width: 10%" class="text-center">
+                <i class="fas fa-toggle-on text-info mr-1"></i>Statut
+              </th>
+              <th style="width: 5%" class="text-center">
+                <i class="fas fa-star text-primary mr-1"></i>Fidèle
+              </th>
+              <th style="width: 15%" class="text-center">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let client of obtenirClientsPage(); let i = index"
+              class="align-middle transition-all hover-highlight">
+              <td>
+                <span class="badge badge-secondary">{{ (pageCourante - 1) * itemsParPage + i + 1 }}</span>
+              </td>
+              <td>
+                <code class="text-primary font-weight-bold">{{ client.code }}</code>
+              </td>
+              <td>
+                <strong class="text-dark">{{ client.nom }}</strong>
+                <br>
+                <small class="text-muted">{{ client.ville || 'Non spécifié' }}</small>
+              </td>
+              <td>
+                <a href="mailto:{{ client.email }}" class="text-info">
+                  <i class="fas fa-at mr-1"></i>{{ client.email }}
+                </a>
+              </td>
+              <td>
+                <a href="tel:{{ client.telephone }}" class="text-success">
+                  <i class="fas fa-phone mr-1"></i>{{ client.telephone }}
+                </a>
+              </td>
+              <td class="text-center">
+                <span [ngClass]="'badge ' + obtenirBadgeStatut(client.statut ?? 'ACTIF')">
+                  <i [class]="'fas ' + obtenirIconeStatut(client.statut ?? 'ACTIF') + ' mr-1'"></i>
+                  {{ client.statut }}
+                </span>
+              </td>
+              <td class="text-center">
+                <span *ngIf="client.fidelite" class="badge badge-success">
+                  <i class="fas fa-star"></i>
+                </span>
+                <span *ngIf="!client.fidelite" class="badge badge-light text-muted">
+                  <i class="fas fa-star"></i>
+                </span>
+              </td>
+              <td class="text-center">
+                <!-- Voir détails -->
+                <button class="btn btn-sm btn-info" (click)="voirDetails(client.id?? 0)" [disabled]="chargement"
+                  title="Voir les détails">
+                  <i class="fas fa-eye"></i>
+                </button>
+
+                <!-- Éditer -->
+                <button class="btn btn-sm btn-warning" (click)="editerClient(client.id ?? 0)" [disabled]="chargement"
+                  title="Modifier le client">
+                  <i class="fas fa-edit"></i>
+                </button>
+
+                <!-- Supprimer -->
+                <button class="btn btn-sm btn-danger" (click)="supprimerClient(client)" [disabled]="chargement"
+                  title="Supprimer le client">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+
+            <!-- Pas de résultats -->
+            <tr *ngIf="clientsFiltres.length === 0">
+              <td colspan="8" class="text-center py-5 text-muted">
+                <i class="fas fa-inbox fa-3x mb-3 d-block text-secondary"></i>
+                <strong>Aucun client trouvé</strong>
+                <p class="text-sm">Vérifiez vos critères de recherche ou créez un nouveau client</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="card-footer" *ngIf="clientsFiltres.length > 0">
+        <nav aria-label="Page navigation">
+          <ul class="pagination justify-content-center mb-0">
+            <!-- Première page -->
+            <li class="page-item" [class.disabled]="pageCourante === 1">
+              <a class="page-link cursor-pointer" (click)="pageCourante = 1; $event.preventDefault()">
+                <i class="fas fa-angle-double-left"></i>
+              </a>
+            </li>
+
+            <!-- Précédent -->
+            <li class="page-item" [class.disabled]="pageCourante === 1">
+              <a class="page-link cursor-pointer" (click)="pageCourante = pageCourante - 1; $event.preventDefault()">
+                <i class="fas fa-angle-left"></i>
+              </a>
+            </li>
+
+            <!-- Numéros de pages -->
+            <li class="page-item" *ngFor="let page of [].constructor(obtenirTotalPages()); let i = index"
+              [class.active]="pageCourante === i + 1">
+              <a class="page-link cursor-pointer" (click)="pageCourante = i + 1; $event.preventDefault()">
+                {{ i + 1 }}
+              </a>
+            </li>
+
+            <!-- Suivant -->
+            <li class="page-item" [class.disabled]="pageCourante === obtenirTotalPages()">
+              <a class="page-link cursor-pointer" (click)="pageCourante = pageCourante + 1; $event.preventDefault()">
+                <i class="fas fa-angle-right"></i>
+              </a>
+            </li>
+
+            <!-- Dernière page -->
+            <li class="page-item" [class.disabled]="pageCourante === obtenirTotalPages()">
+              <a class="page-link cursor-pointer" (click)="pageCourante = obtenirTotalPages(); $event.preventDefault()">
+                <i class="fas fa-angle-double-right"></i>
+              </a>
+            </li>
+          </ul>
+        </nav>
+        <div class="text-center mt-3 text-muted text-sm">
+          Affichage {{ (pageCourante - 1) * itemsParPage + 1 }} à 
+          {{ Math.min(pageCourante * itemsParPage, clientsFiltres.length) }}
+          de {{ clientsFiltres.length }} client(s)
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>

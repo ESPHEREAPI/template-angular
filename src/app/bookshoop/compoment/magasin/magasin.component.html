@@ -1,0 +1,152 @@
+<!-- src/app/components/magasin/magasin.component.html -->
+
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Gestion des Magasins</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+            <li class="breadcrumb-item active">Magasins</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="content">
+    <div class="container-fluid">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Liste des Magasins</h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-primary" (click)="openModal()">
+              <i class="fas fa-plus"></i> Nouveau Magasin
+            </button>
+          </div>
+        </div>
+        
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <div class="input-group">
+                <input type="text" class="form-control" placeholder="Rechercher..." 
+                       [(ngModel)]="searchTerm" (keyup.enter)="search()">
+                <div class="input-group-append">
+                  <button class="btn btn-primary" type="button" (click)="search()">
+                    <i class="fas fa-search"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Code</th>
+                  <th>Libellé</th>
+                  <th>Ville</th>
+                  <th>Boutique</th>
+                  <th style="width: 150px">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let magasin of magasins">
+                  <td>{{ magasin.id }}</td>
+                  <td>{{ magasin.code }}</td>
+                  <td>{{ magasin.libelle }}</td>
+                  <td>{{ magasin.villeid?.libelle }}</td>
+                  <td>{{ magasin.boutiqueId?.nom || '-' }}</td>
+                  <td>
+                    <button class="btn btn-sm btn-info mr-1" (click)="openModal(magasin)">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" (click)="deleteMagasin(magasin.id!)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                 
+                </tr>
+                <tr *ngIf="magasins.length === 0">
+                  <td colspan="6" class="text-center">Aucun magasin trouvé</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card-footer clearfix">
+          <ul class="pagination pagination-sm m-0 float-right">
+            <li class="page-item" [class.disabled]="currentPage === 0">
+              <a class="page-link" (click)="changePage(currentPage - 1)">«</a>
+            </li>
+            <li class="page-item" *ngFor="let page of getPagesArray()" 
+                [class.active]="page === currentPage">
+              <a class="page-link" (click)="changePage(page)">{{ page + 1 }}</a>
+            </li>
+            <li class="page-item" [class.disabled]="currentPage >= totalPages - 1">
+              <a class="page-link" (click)="changePage(currentPage + 1)">»</a>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+<!-- Modal -->
+<div class="modal fade" id="magasinModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">{{ isEditMode ? 'Modifier' : 'Nouveau' }} Magasin</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="code">Code *</label>
+            <input type="text" class="form-control" id="code" 
+                   [(ngModel)]="selectedMagasin.code" name="code" required>
+          </div>
+          <div class="form-group">
+            <label for="libelle">Libellé *</label>
+            <input type="text" class="form-control" id="libelle" 
+                   [(ngModel)]="selectedMagasin.libelle" name="libelle" required>
+          </div>
+          <div class="form-group">
+            <label for="ville">Ville</label>
+            <select class="form-control" id="ville" 
+                    [(ngModel)]="selectedMagasin.villeid" name="ville">
+              <option [value]="undefined">-- Sélectionner une ville --</option>
+              <option *ngFor="let ville of villes" [value]="ville.id">
+                {{ ville.libelle }}
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="boutique">Boutique</label>
+            <select class="form-control" id="boutique" 
+                    [(ngModel)]="selectedMagasin.boutiqueId" name="boutique">
+              <option [value]="undefined">-- Sélectionner une boutique --</option>
+              <option *ngFor="let boutique of boutiques" [value]="boutique.id">
+                {{ boutique.nom }}
+              </option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="saveMagasin()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,475 @@
+<!-- src/app/features/factures/pages/facture-detail/facture-detail.component.html -->
+
+
+  <!-- Content Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>
+            <i class="fas fa-file-invoice"></i>
+            Détails de la Facture
+          </h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i> Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/factures">Factures</a></li>
+            <li class="breadcrumb-item active">{{ facture?.numeroFacture || 'Détails' }}</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      
+      <!-- Loader -->
+      <div *ngIf="loading" class="text-center py-5">
+        <i class="fas fa-3x fa-sync-alt fa-spin text-primary"></i>
+        <p class="mt-3 text-muted">Chargement...</p>
+      </div>
+
+      <div *ngIf="!loading && facture">
+        
+        <!-- Boutons d'action -->
+        <div class="row mb-3">
+          <div class="col-md-12">
+            <div class="btn-group no-print">
+              <button type="button" class="btn btn-secondary" (click)="backToList()">
+                <i class="fas fa-arrow-left"></i> Retour
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-warning" 
+                (click)="editFacture()"
+                *ngIf="canEdit()"
+              >
+                <i class="fas fa-edit"></i> Modifier
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-success" 
+                (click)="validerFacture()"
+                *ngIf="canValider()"
+                [disabled]="validating"
+              >
+                <i class="fas fa-check"></i>
+                <span *ngIf="!validating">Valider</span>
+                <span *ngIf="validating"><i class="fas fa-spinner fa-spin"></i> Validation...</span>
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-danger" 
+                (click)="annulerFacture()"
+                *ngIf="canAnnuler()"
+                [disabled]="cancelling"
+              >
+                <i class="fas fa-times"></i>
+                <span *ngIf="!cancelling">Annuler</span>
+                <span *ngIf="cancelling"><i class="fas fa-spinner fa-spin"></i> Annulation...</span>
+              </button>
+            </div>
+            
+            <div class="btn-group float-right no-print">
+              <button type="button" class="btn btn-info" (click)="printFacture()">
+                <i class="fas fa-print"></i> Imprimer
+              </button>
+              <button type="button" class="btn btn-primary" (click)="exportPDF()">
+                <i class="fas fa-file-pdf"></i> PDF
+              </button>
+              <button 
+                type="button" 
+                class="btn btn-secondary" 
+                (click)="sendByEmail()"
+                *ngIf="facture.client?.email"
+              >
+                <i class="fas fa-envelope"></i> Email
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alerte si en retard -->
+        <div class="alert alert-danger" *ngIf="isEnRetard()">
+          <h5><i class="icon fas fa-exclamation-triangle"></i> Facture en Retard !</h5>
+          Cette facture est en retard de {{ facture.joursRetard }} jour(s).
+          <button 
+            class="btn btn-sm btn-warning ml-3" 
+            (click)="createVersement()"
+            *ngIf="canCreateVersement()"
+          >
+            <i class="fas fa-money-bill-wave"></i> Enregistrer un paiement
+          </button>
+        </div>
+
+        <div class="row">
+          <!-- Informations de la Facture -->
+          <div class="col-md-8">
+            
+            <!-- En-tête Facture -->
+            <div class="card card-primary">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-info-circle"></i> Informations Générales
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <strong><i class="fas fa-hashtag mr-1"></i> Numéro:</strong>
+                    <p class="text-muted">{{ facture.numeroFacture }}</p>
+                    
+                    <strong><i class="fas fa-calendar mr-1"></i> Date Facture:</strong>
+                    <p class="text-muted">{{ facture.dateFacture | date: 'dd/MM/yyyy' }}</p>
+                    
+                    <strong><i class="fas fa-calendar-alt mr-1"></i> Date Échéance:</strong>
+                    <p class="text-muted">
+                      {{ facture.dateEcheance | date: 'dd/MM/yyyy' }}
+                      <span *ngIf="facture.joursRetard && facture.joursRetard > 0" class="badge badge-danger ml-2">
+                        {{ facture.joursRetard }}j de retard
+                      </span>
+                    </p>
+                    
+                    <strong><i class="fas fa-clock mr-1"></i> Délai Paiement:</strong>
+                    <p class="text-muted">{{ facture.delaiPaiementJours || 'N/A' }} jours</p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <strong><i class="fas fa-tag mr-1"></i> Statut:</strong>
+                    <p>
+                      <span [ngClass]="getStatutClass()">
+                        {{ getStatutLibelle() }}
+                      </span>
+                    </p>
+                    
+                    <strong><i class="fas fa-user mr-1"></i> Créé par:</strong>
+                    <p class="text-muted">{{ facture.usernameCreate || 'N/A' }}</p>
+                    
+                    <strong><i class="fas fa-calendar-plus mr-1"></i> Date Création:</strong>
+                    <p class="text-muted">{{ facture.dateCreation | date: 'dd/MM/yyyy HH:mm' }}</p>
+                    
+                    <strong *ngIf="facture.dateValidation"><i class="fas fa-check mr-1"></i> Date Validation:</strong>
+                    <p class="text-muted" *ngIf="facture.dateValidation">
+                      {{ facture.dateValidation | date: 'dd/MM/yyyy HH:mm' }}
+                    </p>
+                  </div>
+                </div>
+                
+                <hr>
+                
+                <!-- Conditions de paiement -->
+                <div *ngIf="facture.conditionsPaiement">
+                  <strong><i class="fas fa-file-contract mr-1"></i> Conditions de Paiement:</strong>
+                  <p class="text-muted">{{ facture.conditionsPaiement }}</p>
+                </div>
+                
+                <!-- Remarques -->
+                <div *ngIf="facture.remarques">
+                  <strong><i class="fas fa-comment mr-1"></i> Remarques:</strong>
+                  <p class="text-muted">{{ facture.remarques }}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Informations Client -->
+            <div class="card card-success">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-user-tie"></i> Informations Client
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <strong><i class="fas fa-user mr-1"></i> Nom:</strong>
+                    <p class="text-muted">{{ facture.client.nom }}</p>
+                    
+                    <strong><i class="fas fa-barcode mr-1"></i> Code Client:</strong>
+                    <p class="text-muted">{{ facture.client.code }}</p>
+                    
+                    <strong><i class="fas fa-phone mr-1"></i> Téléphone:</strong>
+                    <p class="text-muted">{{ facture.client.telephone || 'N/A' }}</p>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <strong><i class="fas fa-envelope mr-1"></i> Email:</strong>
+                    <p class="text-muted">{{ facture.client.email || 'N/A' }}</p>
+                    
+                    <strong><i class="fas fa-map-marker-alt mr-1"></i> Adresse:</strong>
+                    <p class="text-muted">{{ facture.client.adresse || 'N/A' }}</p>
+                    
+                    <strong><i class="fas fa-city mr-1"></i> Ville:</strong>
+                    <p class="text-muted">{{ facture.client.ville || 'N/A' }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Articles de la Facture -->
+            <div class="card card-info">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-list"></i> Articles ({{ facture.items.length || 0 }})
+                </h3>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-striped">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>Article</th>
+                        <th class="text-center">Qté</th>
+                        <th class="text-right">Prix Unit. HT</th>
+                        <th class="text-center">TVA (%)</th>
+                        <th class="text-center">Remise (%)</th>
+                        <th class="text-right">Montant HT</th>
+                        <th class="text-right">Montant TTC</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let item of facture.items; let i = index">
+                        <td>{{ i + 1 }}</td>
+                        <td>
+                          <strong>{{ item.produit.libelle }}</strong><br>
+                          <small class="text-muted">{{ item.produit.reference }}</small>
+                          <div *ngIf="item.description" class="small text-muted">
+                            {{ item.description }}
+                          </div>
+                        </td>
+                        <td class="text-center">{{ item.quantite }}</td>
+                        <td class="text-right">{{ formatMontant(item.prixUnitaireHT) }}</td>
+                        <td class="text-center">{{ item.tauxTVA }}%</td>
+                        <td class="text-center">
+                          <span *ngIf="item.tauxRemise && item.tauxRemise > 0">
+                            {{ item.tauxRemise }}%
+                          </span>
+                          <span *ngIf="!item.tauxRemise || item.tauxRemise === 0">-</span>
+                        </td>
+                        <td class="text-right">{{ formatMontant(item.montantHT) }}</td>
+                        <td class="text-right"><strong>{{ formatMontant(item.montantTTC) }}</strong></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Historique des Versements -->
+            <div class="card card-warning" *ngIf="versements && versements.length > 0">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-money-bill-wave"></i> Historique des Paiements ({{ versements.length }})
+                </h3>
+                <div class="card-tools">
+                  <button 
+                    class="btn btn-success btn-sm" 
+                    (click)="createVersement()"
+                    *ngIf="canCreateVersement()"
+                  >
+                    <i class="fas fa-plus"></i> Nouveau Paiement
+                  </button>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <div class="table-responsive">
+                  <table class="table table-hover">
+                    <thead>
+                      <tr>
+                        <th>N° Versement</th>
+                        <th>Date</th>
+                        <th>Mode</th>
+                        <th class="text-right">Montant</th>
+                        <th>Statut</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let versement of versements">
+                        <td><strong>{{ versement.numeroVersement }}</strong></td>
+                        <td>{{ versement.dateVersement | date: 'dd/MM/yyyy' }}</td>
+                        <td>
+                          <span class="badge badge-info">
+                            {{ versement.modePaiement }}
+                          </span>
+                        </td>
+                        <td class="text-right">
+                          <strong class="text-success">{{ formatMontant(versement.montant) }}</strong>
+                        </td>
+                        <td>
+                          <span class="badge" [ngClass]="'badge-' + versement.statut.toLowerCase()">
+                            {{ versement.statut }}
+                          </span>
+                        </td>
+                        <td>
+                          <a [href]="'/versements/' + versement.id" class="btn btn-sm btn-info">
+                            <i class="fas fa-eye"></i>
+                          </a>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Message si aucun versement -->
+            <div class="card card-warning" *ngIf="!versements || versements.length === 0">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-money-bill-wave"></i> Paiements
+                </h3>
+              </div>
+              <div class="card-body text-center py-5">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Aucun paiement enregistré pour cette facture</p>
+                <button 
+                  class="btn btn-success" 
+                  (click)="createVersement()"
+                  *ngIf="canCreateVersement()"
+                >
+                  <i class="fas fa-plus"></i> Enregistrer un Paiement
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sidebar - Totaux et Statut -->
+          <div class="col-md-4">
+            
+            <!-- Totaux -->
+            <div class="card card-primary">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-calculator"></i> Totaux
+                </h3>
+              </div>
+              <div class="card-body p-0">
+                <table class="table">
+                  <tbody>
+                    <tr>
+                      <td><strong>Total HT:</strong></td>
+                      <td class="text-right">
+                        <strong>{{ formatMontant(facture.totalHt) }}</strong>
+                      </td>
+                    </tr>
+                    <tr *ngIf="facture.montantRemiseGlobale && facture.montantRemiseGlobale > 0">
+                      <td><strong>Remise Globale:</strong></td>
+                      <td class="text-right text-danger">
+                        <strong>-{{ formatMontant(facture.montantRemiseGlobale) }}</strong>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Total TVA:</strong></td>
+                      <td class="text-right">
+                        <strong>{{ formatMontant(facture.totalTva) }}</strong>
+                      </td>
+                    </tr>
+                    <tr class="bg-light">
+                      <td><strong>Total TTC:</strong></td>
+                      <td class="text-right">
+                        <h4 class="mb-0">
+                          <strong class="text-primary">{{ formatMontant(facture.totalTtc) }}</strong>
+                        </h4>
+                      </td>
+                    </tr>
+                    <tr class="bg-success">
+                      <td><strong>Montant Payé:</strong></td>
+                      <td class="text-right">
+                        <h5 class="mb-0">
+                          <strong class="text-white">{{ formatMontant(facture.montantPaye) }}</strong>
+                        </h5>
+                      </td>
+                    </tr>
+                    <tr class="bg-danger">
+                      <td><strong>Reste à Payer:</strong></td>
+                      <td class="text-right">
+                        <h5 class="mb-0">
+                          <strong class="text-white">{{ formatMontant(facture.montantRestant) }}</strong>
+                        </h5>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Progression du Paiement -->
+            <div class="card card-success">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-chart-line"></i> Progression du Paiement
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="progress" style="height: 30px;">
+                  <div 
+                    class="progress-bar" 
+                    [ngClass]="'bg-' + getProgressBarColor()"
+                    role="progressbar" 
+                    [style.width.%]="getPourcentagePaye()"
+                  >
+                    <strong>{{ getPourcentagePaye() | number:'1.0-0' }}%</strong>
+                  </div>
+                </div>
+                
+                <div class="mt-3 text-center">
+                  <h4>
+                    <span [ngClass]="getStatutClass()">
+                      {{ getStatutLibelle() }}
+                    </span>
+                  </h4>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions Rapides -->
+            <div class="card card-warning no-print">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-bolt"></i> Actions Rapides
+                </h3>
+              </div>
+              <div class="card-body">
+                <button 
+                  class="btn btn-success btn-block" 
+                  (click)="createVersement()"
+                  *ngIf="canCreateVersement()"
+                >
+                  <i class="fas fa-money-bill-wave"></i> Nouveau Paiement
+                </button>
+                
+                <button 
+                  class="btn btn-info btn-block" 
+                  (click)="printFacture()"
+                >
+                  <i class="fas fa-print"></i> Imprimer
+                </button>
+                
+                <button 
+                  class="btn btn-primary btn-block" 
+                  (click)="exportPDF()"
+                >
+                  <i class="fas fa-file-pdf"></i> Télécharger PDF
+                </button>
+                
+                <button 
+                  class="btn btn-secondary btn-block" 
+                  (click)="sendByEmail()"
+                  *ngIf="facture.client?.email"
+                >
+                  <i class="fas fa-envelope"></i> Envoyer par Email
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+        
+      </div>
+      
+    </div>
+  </section>

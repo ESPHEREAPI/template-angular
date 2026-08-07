@@ -1,0 +1,59 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Modes de Paiement</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Mode Paiement</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Modes de paiement acceptés</h3>
+      </div>
+      <div class="card-body">
+        <p class="text-muted">Liste fixe définie par le système (non modifiable par compagnie).</p>
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Libellé</th>
+                <th>Référence obligatoire</th>
+                <th>Paiement immédiat</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let mode of modes">
+                <td>{{ mode.code }}</td>
+                <td>{{ mode.libelle }}</td>
+                <td>
+                  <span class="badge" [class.badge-warning]="mode.referenceObligatoire" [class.badge-secondary]="!mode.referenceObligatoire">
+                    {{ mode.referenceObligatoire ? 'Oui' : 'Non' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [class.badge-success]="mode.paiementImmediat" [class.badge-secondary]="!mode.paiementImmediat">
+                    {{ mode.paiementImmediat ? 'Oui' : 'Non' }}
+                  </span>
+                </td>
+              </tr>
+              <tr *ngIf="modes.length === 0">
+                <td colspan="4" class="text-center">Aucun mode de paiement trouvé</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

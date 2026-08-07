@@ -1,0 +1,282 @@
+<!-- Content Wrapper -->
+<div class="content-wrapper">
+  <!-- Content Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>Gestion des Commandes</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+            <li class="breadcrumb-item active">Commande</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      
+      <!-- Toast Messages -->
+      <p-toast></p-toast>
+      
+      <!-- Action Buttons -->
+      <div class="row mb-3">
+        <div class="col-12">
+          <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div class="mb-2 mb-md-0">
+              <button 
+                *ngIf="!checkBtn()" 
+                type="button"
+                class="btn btn-secondary mr-2"
+                (click)="listOrder()">
+                <i class="fas fa-angle-double-left mr-1"></i>
+                Retour à la liste
+              </button>
+              
+              <button 
+                *ngIf="checkBtn()" 
+                type="button"
+                class="btn btn-success mr-2"
+                (click)="newOrder()">
+                <i class="fas fa-plus mr-1"></i>
+                Nouvelle Commande
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Order Card -->
+      <div class="card card-primary card-outline">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-shopping-cart mr-2"></i>
+            Détails de la Commande
+          </h3>
+        </div>
+        
+        <div class="card-body">
+          <form #f="ngForm" (ngSubmit)="confirOrder(f.value)">
+            
+            <!-- Order Info Row -->
+            <div class="row mb-4">
+              <div class="col-md-6 col-lg-3 mb-3">
+                <div class="info-box bg-info">
+                  <span class="info-box-icon"><i class="fas fa-hashtag"></i></span>
+                  <div class="info-box-content">
+                    <span class="info-box-text">Numéro Commande</span>
+                    <span class="info-box-number">{{ order.id || 'Nouveau' }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-6 col-lg-3 mb-3">
+                <div class="info-box bg-success">
+                  <span class="info-box-icon"><i class="fas fa-calendar"></i></span>
+                  <div class="info-box-content">
+                    <span class="info-box-text">Date</span>
+                    <span class="info-box-number text-sm">
+                      {{ order.date | date:"dd/MM/yyyy HH:mm" }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-6 col-lg-3 mb-3">
+                <div class="info-box bg-warning">
+                  <span class="info-box-icon"><i class="fcfa-icon"></i></span>
+                  <div class="info-box-content">
+                    <span class="info-box-text">Montant Total</span>
+                    <span class="info-box-number">{{ order.totalAmount | currency:'XOF':'symbol':'1.0-0' }}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-6 col-lg-3 mb-3">
+                <div class="info-box" [ngClass]="usernameValide ? 'bg-success' : 'bg-danger'">
+                  <span class="info-box-icon">
+                    <i class="fas" [ngClass]="usernameValide ? 'fa-check' : 'fa-times'"></i>
+                  </span>
+                  <div class="info-box-content">
+                    <span class="info-box-text">Statut Utilisateur</span>
+                    <span class="info-box-number text-sm">
+                      {{ usernameValide ? 'Validé' : 'Non validé' }}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Username Validation Section -->
+            <div class="card card-outline" [ngClass]="usernameValide ? 'card-success' : 'card-warning'">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-user mr-2"></i>
+                  Validation Utilisateur
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="row align-items-center">
+                  <div class="col-md-4 mb-2">
+                    <label class="form-label fw-bold">
+                      Nom d'utilisateur <span class="text-danger">*</span>
+                    </label>
+                  </div>
+                  <div class="col-md-5 mb-2">
+                    <div class="input-group">
+                      <input 
+                        class="form-control" 
+                        [ngClass]="{'is-valid': usernameValide, 'is-invalid': !usernameValide && username}"
+                        name="username" 
+                        [(ngModel)]="username" 
+                        required
+                        (blur)="verifierUsername()" 
+                        placeholder="Entrez votre nom d'utilisateur"
+                        [readonly]="usernameValide">
+                      <div class="input-group-append" *ngIf="isLoading">
+                        <span class="input-group-text">
+                          <i class="fas fa-spinner fa-spin"></i>
+                        </span>
+                      </div>
+                      <div class="input-group-append" *ngIf="usernameValide">
+                        <span class="input-group-text bg-success">
+                          <i class="fas fa-check text-white"></i>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-3 mb-2">
+                    <button 
+                      *ngIf="!usernameValide && username" 
+                      type="button"
+                      class="btn btn-primary btn-sm w-100"
+                      (click)="verifierUsername()"
+                      [disabled]="isLoading">
+                      <i class="fas fa-check mr-1"></i>
+                      Valider
+                    </button>
+                    <span *ngIf="usernameValide" class="badge badge-success w-100 py-2">
+                      <i class="fas fa-check mr-1"></i>
+                      Utilisateur validé
+                    </span>
+                  </div>
+                </div>
+                <div class="row" *ngIf="!usernameValide && username">
+                  <div class="col-12">
+                    <small class="text-danger">
+                      <i class="fas fa-exclamation-triangle mr-1"></i>
+                      Utilisateur non reconnu ou non renseigné
+                    </small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Client Information -->
+            <div class="card card-outline card-secondary mt-3">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-address-card mr-2"></i>
+                  Informations Client
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Nom du client <span class="text-danger">*</span></label>
+                    <input 
+                      class="form-control" 
+                      name="client" 
+                      type="text" 
+                      ngModel
+                      
+                      placeholder="Nom complet du client">
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                    <input 
+                      class="form-control" 
+                      name="email" 
+                      type="email" 
+                      ngModel
+                      
+                      placeholder="exemple@email.com">
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Téléphone <span class="text-danger">*</span></label>
+                    <input 
+                      class="form-control" 
+                      name="tel" 
+                      type="tel" 
+                      ngModel
+                      
+                      placeholder="+33 6 XX XX XX XX">
+                  </div>
+                  
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Adresse</label>
+                    <input 
+                      class="form-control" 
+                      name="address" 
+                      type="text" 
+                      ngModel
+                      placeholder="Adresse complète">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="card-footer">
+              <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <button 
+                  *ngIf="!checkBtn()" 
+                  type="button"
+                  class="btn btn-secondary mb-2 mb-md-0"
+                  (click)="returnPageOrder()">
+                  <i class="fas fa-arrow-left mr-1"></i>
+                  Retour au panier
+                </button>
+                
+                <div class="text-right">
+                  <button 
+                    *ngIf="!checkBtn()" 
+                    type="submit"
+                    class="btn btn-success btn-lg"
+                    [disabled]="!usernameValide || isSubmitting">
+                 <i class="fas mr-1" [ngClass]="isSubmitting ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                    {{ isSubmitting ? 'Confirmation en cours...' : 'Confirmer la commande' }}
+                  </button>
+                  
+                  <div *ngIf="checkBtn()" class="alert alert-success mb-0">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    Commande confirmée avec succès !
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </form>
+        </div>
+      </div>
+
+      <!-- BlockUI for processing -->
+      <p-blockUI [blocked]="blockedDocument">
+        <div class="d-flex flex-column align-items-center">
+          <div class="spinner-border text-primary mb-3" role="status">
+            <span class="sr-only">Traitement en cours...</span>
+          </div>
+          <p class="text-muted">Traitement de votre commande...</p>
+        </div>
+      </p-blockUI>
+
+    </div>
+  </section>
+</div>

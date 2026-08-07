@@ -1,0 +1,133 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Gestion des Codes-Barres</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Code Bare</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Associations Code-barres / Article</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-primary" (click)="openModal()">
+            <i class="fas fa-plus"></i> Nouvelle Association
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Code-barres</th>
+                <th>Article</th>
+                <th>Référence</th>
+                <th style="width: 150px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let barcode of barcodes">
+                <td>{{ barcode.id }}</td>
+                <td>
+                  <span *ngIf="editingId !== barcode.id">{{ barcode.codeBard }}</span>
+                  <input *ngIf="editingId === barcode.id" type="text" class="form-control form-control-sm"
+                         [(ngModel)]="editingCode" name="editingCode">
+                </td>
+                <td>{{ barcode.prixArticles?.pointVente?.produit?.libelle || '-' }}</td>
+                <td>{{ barcode.prixArticles?.pointVente?.produit?.reference || '-' }}</td>
+                <td>
+                  <ng-container *ngIf="editingId !== barcode.id">
+                    <button class="btn btn-sm btn-info mr-1" (click)="startEdit(barcode)">
+                      <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" (click)="deleteBarcode(barcode.id!)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </ng-container>
+                  <ng-container *ngIf="editingId === barcode.id">
+                    <button class="btn btn-sm btn-success mr-1" (click)="saveEdit(barcode.id!)">
+                      <i class="fas fa-check"></i>
+                    </button>
+                    <button class="btn btn-sm btn-secondary" (click)="cancelEdit()">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </ng-container>
+                </td>
+              </tr>
+              <tr *ngIf="barcodes.length === 0">
+                <td colspan="5" class="text-center">Aucune association trouvée</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card-footer clearfix">
+        <ul class="pagination pagination-sm m-0 float-right">
+          <li class="page-item" [class.disabled]="currentPage === 0">
+            <a class="page-link" (click)="changePage(currentPage - 1)">«</a>
+          </li>
+          <li class="page-item" *ngFor="let page of getPagesArray()"
+              [class.active]="page === currentPage">
+            <a class="page-link" (click)="changePage(page)">{{ page + 1 }}</a>
+          </li>
+          <li class="page-item" [class.disabled]="currentPage >= totalPages - 1">
+            <a class="page-link" (click)="changePage(currentPage + 1)">»</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal -->
+<div class="modal fade" id="barcodeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Nouvelle Association Code-barres</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="codeBard">Code-barres *</label>
+            <input type="text" class="form-control" id="codeBard"
+                   [(ngModel)]="newBarcode.codeBard" name="codeBard" required>
+          </div>
+          <div class="form-group">
+            <label for="produitId">ID Article *</label>
+            <input type="number" class="form-control" id="produitId"
+                   [(ngModel)]="newBarcode.produitId" name="produitId" required>
+            <small class="form-text text-muted">Identifiant de l'article (visible dans l'écran Produits)</small>
+          </div>
+          <div class="form-group">
+            <label for="boutiqueId">ID Boutique *</label>
+            <input type="number" class="form-control" id="boutiqueId"
+                   [(ngModel)]="newBarcode.boutiqueId" name="boutiqueId" required>
+            <small class="form-text text-muted">Identifiant de la boutique où ce prix est actif</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="saveBarcode()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

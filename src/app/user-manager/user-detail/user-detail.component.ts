@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { User } from '../../model/user';
-import { Roles } from '../../model/roles';
+
+import { Role } from '../../bookshoop/model/role';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UserService } from '../../services/user.service';
 import { RoleService } from '../../services/role.service';
@@ -8,6 +8,7 @@ import { finalize } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NgxPaginationModule } from 'ngx-pagination';
+import { User } from '../../bookshoop/model/user';
 
 @Component({
   selector: 'app-user-detail',
@@ -22,7 +23,7 @@ export class UserDetailComponent implements OnInit{
   user: User | null = null;
   userId: number | null = null;
   loading = false;
-  role: Roles | null = null;
+  role: Role | null = null;
   error: string | null = null;
 
   constructor(
@@ -49,7 +50,7 @@ export class UserDetailComponent implements OnInit{
       .subscribe({
         next: (user) => {
           this.user = user;
-          this.loadUserRole(user.roleId);
+          this.loadUserRole(user.roleid);
         },
         error: (error) => {
           console.error('Error loading user', error);
@@ -61,7 +62,7 @@ export class UserDetailComponent implements OnInit{
   loadUserRole(roleId: number): void {
     this.roleService.getRoleById(roleId).subscribe({
       next: (role) => {
-        this.role = role;
+        this.role = role ?? null;
       },
       error: (error) => {
         console.error('Error loading role', error);

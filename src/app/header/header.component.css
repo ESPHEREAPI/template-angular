@@ -1,0 +1,92 @@
+/* Widget alerte licence (COMPANY_ADMIN) */
+.licence-widget {
+  font-weight: 600;
+}
+
+.licence-warning {
+  color: #dc3545 !important;
+  animation: licence-blink 1.2s infinite;
+}
+
+@keyframes licence-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+
+/* Styles pour le point de vente centré */
+.point-vente-container {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.point-vente-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 8px 20px;
+  border-radius: 25px;
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
+.point-vente-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.point-vente-card .pi-shopping-cart {
+  font-size: 24px;
+  color: #ffffff;
+}
+
+.point-vente-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.point-vente-label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.point-vente-nom {
+  font-size: 15px;
+  color: #ffffff;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .point-vente-container {
+    position: relative;
+    left: 0;
+    transform: none;
+    margin: 0 10px;
+  }
+  
+  .point-vente-card {
+    padding: 6px 15px;
+  }
+  
+  .point-vente-card .pi-shopping-cart {
+    font-size: 20px;
+  }
+  
+  .point-vente-label {
+    font-size: 10px;
+  }
+  
+  .point-vente-nom {
+    font-size: 13px;
+  }
+}

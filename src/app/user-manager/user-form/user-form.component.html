@@ -37,20 +37,20 @@
                     <div class="col-md-6">
                       <div class="form-group">
                         <label for="username">Username</label>
-                        <input 
-                          type="text" 
-                          class="form-control" 
-                          id="username" 
-                          formControlName="username" 
-                          placeholder="Enter username"
+                        <input
+                          type="text"
+                          class="form-control"
+                          id="username"
+                          formControlName="username"
+                          placeholder="Laisser vide pour générer automatiquement"
                           [ngClass]="{ 'is-invalid': submitted && f['username'].errors }">
+                        <small class="form-text text-muted">Laissez vide pour générer automatiquement selon le format défini dans Option Entreprise.</small>
                         <div *ngIf="submitted && f['username'].errors" class="invalid-feedback">
-                          <div *ngIf="f['username'].errors['required']">Username is required</div>
                           <div *ngIf="f['username'].errors['minlength']">Username must be at least 4 characters long</div>
                         </div>
                       </div>
                     </div>
-                    
+
                     <!-- Email -->
                     <div class="col-md-6">
                       <div class="form-group">
@@ -147,41 +147,42 @@
                   </div>
                   
                   <div class="row">
-                    <!-- Role Selection -->
+                    <!-- Profil Selection : determine les droits d'acces reels -->
                     <div class="col-md-6">
                       <div class="form-group">
-                        <label for="roleId">Role</label>
-                        <select 
-                          class="form-control" 
-                          id="roleId" 
-                          formControlName="roleId"
-                          [ngClass]="{ 'is-invalid': submitted && f['roleId'].errors }">
-                          <option value="" disabled>Select a role</option>
-                          <option *ngFor="let role of roles" [value]="role.id">{{ role.name }}</option>
+                        <label for="profilId">Profil (droits d'accès)</label>
+                        <select
+                          class="form-control"
+                          id="profilId"
+                          formControlName="profilId">
+                          <option [value]="null">Aucun profil</option>
+                          <option *ngFor="let profil of profils" [value]="profil.id">{{ profil.code }}</option>
                         </select>
-                        <div *ngIf="submitted && f['roleId'].errors" class="invalid-feedback">
-                          <div *ngIf="f['roleId'].errors['required']">Please select a role</div>
-                        </div>
+                        <small class="form-text text-muted">Détermine les menus et actions accessibles à l'utilisateur.</small>
                       </div>
                     </div>
-                    
+                  </div>
+
+                  <div class="row">
                     <!-- Active Status -->
                     <div class="col-md-6">
                       <div class="form-group">
-                        <div class="custom-control custom-switch mt-4">
-                          <input 
-                            type="checkbox" 
-                            class="custom-control-input" 
-                            id="isActive" 
+                        <div class="custom-control custom-switch mt-2">
+                          <input
+                            type="checkbox"
+                            class="custom-control-input"
+                            id="isActive"
                             formControlName="isActive">
-                          <label class="custom-control-label" for="isActive">Active Account</label>
+                          <label class="custom-control-label" for="isActive">Compte actif</label>
                         </div>
                       </div>
                     </div>
                   </div>
+
+                  <div *ngIf="erreurSoumission" class="alert alert-danger">{{ erreurSoumission }}</div>
                 </div>
                 <!-- /.card-body -->
-  
+
                 <div class="card-footer">
                   <button 
                     type="submit" 

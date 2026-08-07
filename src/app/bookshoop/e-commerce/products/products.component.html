@@ -1,0 +1,394 @@
+<p-toast></p-toast>
+<!-- Content Header (Page header) -->
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>{{ titre || 'Catalogue Produits' }}</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Produits</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Main content -->
+<section class="content">
+
+  <div class="container-fluid">
+
+    <!-- Search and Filters Card -->
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-search"></i>
+          Recherche et Filtres
+        </h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <form #f="ngForm" (ngSubmit)="searchProduct(f.value)" class="row">
+          <div class="col-md-8">
+            <div class="input-group">
+              <input type="text" class="form-control form-control-lg" name="rechercheHeader" ngModel
+                placeholder="Rechercher un produit par nom, référence..." autocomplete="off">
+              <div class="input-group-append">
+                <button class="btn btn-primary btn-lg" type="submit">
+                  <i class="fas fa-search"></i> Rechercher
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <button type="button" class="btn btn-success btn-lg btn-block" (click)="viewCart()"
+              [disabled]="cartItemsCount === 0">
+              <i class="fas fa-shopping-cart"></i>
+              Panier ({{ cartItemsCount }})
+              <span class="badge badge-light ml-1" *ngIf="cartTotal > 0">
+                {{ cartTotal | number:'1.0-0' }} FCFA
+              </span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Main Layout Row with Categories and Products -->
+    <div class="row">
+
+      <!-- Categories Sidebar (Left) 
+      <div class="col-md-3">
+        <div class="card card-secondary card-outline sticky-top">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-list"></i>
+              Catégories
+            </h3>
+          </div>
+          <div class="card-body p-0">
+            <ul class="list-group list-group-flush" *ngIf="categories">
+              <li (click)="listesProduitsByCategorie(cat)" class="list-group-item list-group-item-action clickable"
+                *ngFor="let cat of categories" [ngClass]="currentCategories==cat?'active':''">
+                <i class="fas fa-tag mr-2"></i>
+                {{cat.libelle}}
+              </li>
+            </ul>-->
+
+            <!-- Option pour voir tous les produits
+            <ul class="list-group list-group-flush">
+
+            </ul>
+          </div>
+        </div>
+      </div> -->
+
+      <!-- Products Section (Right) -->
+      <div class="col-md-9">
+
+        <!-- Loading State -->
+        <div *ngIf="isLoading" class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-body text-center">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="sr-only">Chargement...</span>
+                </div>
+                <p class="mt-2">Chargement des produits...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Error State -->
+        <div *ngIf="errorMessage && !isLoading" class="row">
+          <div class="col-12">
+            <div class="alert alert-danger alert-dismissible">
+              <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+              <h5><i class="icon fas fa-ban"></i> Erreur!</h5>
+              {{ errorMessage }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div *ngIf="pruduct | async as listeProduct; else loadingTemplate" class="row">
+          <div class="col-12" *ngIf="listeProduct.length === 0">
+            <div class="card">
+              <div class="card-body text-center">
+                <i class="fas fa-box-open fa-4x text-muted mb-3"></i>
+                <h4>Aucun produit trouvé</h4>
+                <p class="text-muted">Essayez de modifier vos critères de recherche.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-4 col-md-6 col-sm-12 mb-3" *ngFor="let p of listeProduct; trackBy: trackByProductId">
+            <div class="card card-primary card-outline h-100">
+
+              <!-- Product Header -->
+              <div class="card-header">
+                <h3 class="card-title">
+                  <strong>{{ p.reference }}</strong>
+                </h3>
+                <div class="card-tools">
+                  <span class="badge badge-info">{{ p.quantite }} en stock</span>
+                  <!-- NOUVEAU: Badge si produit dans le panier -->
+                  <span class="badge badge-success ml-1" *ngIf="isProductInCart(p.id)">
+                    <i class="fas fa-check"></i> Dans le panier ({{ getProductQuantityInCart(p.id) }})
+                  </span>
+                </div>
+              </div>
+
+              <!-- Product Image -->
+              <div class="card-body text-center p-2">
+                <div class="position-relative mb-3">
+                  <img [src]="getProductImageUrl(p.id)" [alt]="p.libelle" class="img-fluid rounded product-image"
+                    style="max-height: 200px; object-fit: cover;" loading="lazy">
+
+                  <!-- Admin Photo Edit Controls -->
+                  <div *ngIf="isAdmin()" class="position-absolute" style="top: 5px; right: 5px;">
+                    <div class="btn-group" role="group">
+                      <button class="btn btn-sm btn-warning" (click)="onEditPhoto(p)"
+                        *ngIf="!editPhoto || currentProduct?.id !== p.id" title="Modifier la photo">
+                        <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-sm btn-secondary" (click)="onCloseEditPhoto()"
+                        *ngIf="editPhoto && currentProduct?.id === p.id" title="Annuler">
+                        <i class="fas fa-times"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- NOUVEAU: Indicateur visuel si dans le panier -->
+                  <div *ngIf="isProductInCart(p.id)" class="position-absolute" style="top: 5px; left: 5px;">
+                    <span class="badge badge-success">
+                      <i class="fas fa-shopping-cart"></i>
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Photo Upload Form for Admin -->
+                <div *ngIf="editPhoto && currentProduct?.id === p.id" class="mb-3">
+                  <div class="card card-secondary">
+                    <div class="card-body">
+                      <div class="form-group">
+                        <label>Nouvelle photo</label>
+                        <input type="file" class="form-control-file" (change)="onSelectedFile($event)" accept="image/*">
+                      </div>
+                      <button class="btn btn-success btn-sm" (click)="upload()" [disabled]="!files || isUploading">
+                        <i class="fas fa-upload"></i>
+                        {{ isUploading ? 'Téléchargement...' : 'Télécharger' }}
+                      </button>
+                      <div *ngIf="progress > 0" class="progress mt-2">
+                        <div class="progress-bar" [style.width.%]="progress">
+                          {{ progress }}%
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Product Info -->
+                <h5 class="card-title">{{ p.libelle }}</h5>
+                <p class="card-text">
+                  <span class="h4 text-success">
+                    {{ p.prixUnitaire | number:'1.0-0' }} FCFA
+                  </span>
+                </p>
+
+                <!-- NOUVEAU: Information sur le produit dans le panier -->
+                <div *ngIf="isProductInCart(p.id)" class="alert alert-info alert-sm mb-2">
+                  <i class="fas fa-info-circle"></i>
+                  <strong>{{ getProductQuantityInCart(p.id) }}</strong> déjà dans le panier
+                </div>
+              </div>
+
+              <!-- Add to Cart Form -->
+              <div class="card-footer">
+                <form #productForm="ngForm" class="d-flex flex-column">
+
+                  <!-- NOUVEAU: Section pour produit déjà dans le panier -->
+                  <div *ngIf="isProductInCart(p.id)" class="mb-3">
+                    <div class="card card-light">
+                      <div class="card-header">
+                        <h6 class="card-title mb-0">
+                          <i class="fas fa-shopping-cart text-success"></i>
+                          Produit dans le panier
+                        </h6>
+                      </div>
+                      <div class="card-body">
+                        <p class="mb-2">
+                          <strong>Quantité actuelle:</strong> {{ getProductQuantityInCart(p.id) }}
+                        </p>
+                        <div class="btn-group btn-group-sm w-100">
+                          <button type="button" class="btn btn-outline-danger" (click)="removeProductFromCart(p)"
+                            title="Retirer du panier">
+                            <i class="fas fa-trash"></i> Retirer
+                          </button>
+                          <button type="button" class="btn btn-outline-primary" (click)="viewCart()"
+                            title="Voir le panier">
+                            <i class="fas fa-eye"></i> Voir panier
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="form-group mb-2">
+                    <label class="form-label">
+                      {{ isProductInCart(p.id) ? 'Quantité à ajouter:' : 'Quantité:' }}
+                    </label>
+                    <div class="input-group">
+                      <div class="input-group-prepend">
+                        <button type="button" class="btn btn-outline-secondary" (click)="decreaseQuantity(p)"
+                          [disabled]="p.quantite_caddy <= 1">
+                          <i class="fas fa-minus"></i>
+                        </button>
+                      </div>
+                      <input type="number" class="form-control text-center" [(ngModel)]="p.quantite_caddy"
+                        name="quantite_{{p.id}}" [min]="1" [max]="p.quantite - getProductQuantityInCart(p.id)"
+                        (change)="validateQuantity(p)">
+                      <div class="input-group-append">
+                        <button type="button" class="btn btn-outline-secondary" (click)="increaseQuantity(p)"
+                          [disabled]="p.quantite_caddy >= (p.quantite - getProductQuantityInCart(p.id))">
+                          <i class="fas fa-plus"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- NOUVEAU: Information sur la quantité disponible -->
+                    <small class="form-text text-muted" *ngIf="isProductInCart(p.id)">
+                      Quantité disponible: {{ p.quantite - getProductQuantityInCart(p.id) }}
+                    </small>
+                  </div>
+                 <!-- Debug info - À supprimer après test -->
+<div class="small text-muted mb-1" style="font-size: 10px;">
+  DEBUG: Stock={{p.quantite}} | Dans panier={{getProductQuantityInCart(p.id)}} | À ajouter={{p.quantite_caddy}}
+</div>
+
+<button 
+  type="button" 
+  class="btn btn-block" 
+  [ngClass]="{
+    'btn-primary': !isProductInCart(p.id) && getProductQuantityInCart(p.id) < p.quantite,
+    'btn-warning': isProductInCart(p.id) && getProductQuantityInCart(p.id) < p.quantite,
+    'btn-secondary': getProductQuantityInCart(p.id) >= p.quantite
+  }" 
+  (click)="onAddProductToCaddy(p)"
+  [disabled]="isButtonDisabled(p)">
+  
+  <i class="fas" [ngClass]="{
+    'fa-cart-plus': !isProductInCart(p.id) && getProductQuantityInCart(p.id) < p.quantite,
+    'fa-plus': isProductInCart(p.id) && getProductQuantityInCart(p.id) < p.quantite,
+    'fa-ban': getProductQuantityInCart(p.id) >= p.quantite
+  }"></i>
+  
+  {{ getButtonText(p) }}
+</button>
+
+
+
+                  <!-- Stock Warning -->
+                  <div *ngIf="p.quantite <= 5 && p.quantite > 0" class="alert alert-warning alert-sm mt-2 mb-0">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Stock faible ({{ p.quantite }} restant)
+                  </div>
+
+                  <!-- Out of Stock -->
+                  <div *ngIf="p.quantite <= 0" class="alert alert-danger alert-sm mt-2 mb-0">
+                    <i class="fas fa-times-circle"></i>
+                    Produit indisponible
+                  </div>
+
+                  <!-- NOUVEAU: Avertissement quantité maximale atteinte -->
+                  <div *ngIf="isProductInCart(p.id) && getProductQuantityInCart(p.id) >= p.quantite"
+                    class="alert alert-warning alert-sm mt-2 mb-0">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Quantité maximale atteinte
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- End col-md-9 -->
+
+    </div> <!-- End main row -->
+
+    <!-- Quick Order Summary (Floating Cart) - AMÉLIORÉ -->
+    <div class="floating-cart" *ngIf="cartItemsCount > 0" [class.show]="showFloatingCart">
+      <div class="card card-success">
+        <div class="card-header">
+          <h6 class="card-title mb-0">
+            <i class="fas fa-shopping-cart"></i>
+            Panier rapide
+          </h6>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" (click)="toggleFloatingCart()">
+              <i class="fas" [ngClass]="showFloatingCart ? 'fa-minus' : 'fa-plus'"></i>
+            </button>
+          </div>
+        </div>
+        <div class="card-body" *ngIf="showFloatingCart">
+          <div class="row">
+            <div class="col-6">
+              <p class="mb-1">
+                <small class="text-muted">Articles:</small><br>
+                <strong>{{ cartItemsCount }}</strong>
+              </p>
+            </div>
+            <div class="col-6">
+              <p class="mb-1">
+                <small class="text-muted">Total:</small><br>
+                <strong>{{ cartTotal | number:'1.0-0' }} FCFA</strong>
+              </p>
+            </div>
+          </div>
+
+          <div class="btn-group btn-group-sm w-100 mt-2">
+            <button class="btn btn-outline-primary" (click)="viewCart()">
+              <i class="fas fa-eye"></i> Voir
+            </button>
+
+            <button class="btn btn-success" (click)="quickCheckout()">
+              <i class="fas fa-check"></i> Commander
+            </button>
+          </div>
+
+          <!-- NOUVEAU: Mini-liste des produits dans le panier -->
+          <div class="mt-3" *ngIf="cartItemsCount <= 3">
+            <small class="text-muted">Produits dans le panier:</small>
+            <!-- Cette partie nécessiterait une méthode getCartItems() dans le service -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</section>
+
+<!-- Loading Template -->
+<ng-template #loadingTemplate>
+  <div class="row" *ngIf="!errorMessage">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body text-center">
+          <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Chargement...</span>
+          </div>
+          <p class="mt-2">Chargement des produits en cours...</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>

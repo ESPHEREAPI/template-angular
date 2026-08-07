@@ -1,0 +1,116 @@
+<div class="platform-dashboard">
+
+  <div class="row">
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-info">
+        <div class="inner">
+          <h3>{{ totalCompagnies }}</h3>
+          <p>Compagnies au total</p>
+        </div>
+        <div class="icon"><i class="fas fa-building"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-success">
+        <div class="inner">
+          <h3>{{ compagniesActives }}</h3>
+          <p>Compagnies actives</p>
+        </div>
+        <div class="icon"><i class="fas fa-check-circle"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-warning">
+        <div class="inner">
+          <h3>{{ licencesAExpirerBientot.length }}</h3>
+          <p>Licences expirant sous 30 jours</p>
+        </div>
+        <div class="icon"><i class="fas fa-key"></i></div>
+      </div>
+    </div>
+    <div class="col-lg-3 col-6">
+      <div class="small-box bg-secondary">
+        <div class="inner">
+          <h3>{{ totalUtilisateurs }}</h3>
+          <p>Utilisateurs (toutes compagnies)</p>
+        </div>
+        <div class="icon"><i class="fas fa-users"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-chart-bar mr-2"></i>Ventes agregees par compagnie</h3>
+      <div class="card-tools d-flex align-items-center">
+        <label class="mr-2 mb-0 small">Du</label>
+        <input type="date" class="form-control form-control-sm mr-2" style="width: 150px" [(ngModel)]="debut" (change)="chargerVentes()">
+        <label class="mr-2 mb-0 small">au</label>
+        <input type="date" class="form-control form-control-sm mr-2" style="width: 150px" [(ngModel)]="fin" (change)="chargerVentes()">
+      </div>
+    </div>
+    <div class="card-body">
+      <p class="text-muted small">
+        Chiffres agreges uniquement (total et nombre de transactions par compagnie) - le detail des ventes
+        d'une compagnie precise n'est pas accessible a un compte administrateur systeme.
+      </p>
+      <div *ngIf="ventes.length === 0" class="text-muted">Aucune vente sur cette periode.</div>
+      <div *ngFor="let vente of ventes" class="mb-3">
+        <div class="d-flex justify-content-between">
+          <span>{{ vente.compagnieNom }}</span>
+          <span>{{ vente.totalVentes | number:'1.0-0' }} FCFA ({{ vente.nombreTransactions }} transaction(s))</span>
+        </div>
+        <div class="progress" style="height: 10px;">
+          <div class="progress-bar bg-info" [style.width.%]="largeurBarre(vente)"></div>
+        </div>
+      </div>
+      <div *ngIf="ventes.length > 0" class="text-right font-weight-bold mt-2">
+        Total periode : {{ totalVentesPeriode | number:'1.0-0' }} FCFA
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title"><i class="fas fa-building mr-2"></i>Compagnies</h3>
+    </div>
+    <div class="card-body table-responsive p-0">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Nom</th>
+            <th>Type de commerce</th>
+            <th>Statut</th>
+            <th>Utilisateurs</th>
+            <th>Licence</th>
+            <th>Expiration licence</th>
+            <th>Cree le</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let compagnie of compagnies">
+            <td>{{ compagnie.nom }}</td>
+            <td>{{ compagnie.typeCommerce || '-' }}</td>
+            <td>
+              <span class="badge" [ngClass]="compagnie.actif ? 'badge-success' : 'badge-secondary'">
+                {{ compagnie.actif ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+            <td>{{ compagnie.nombreUtilisateurs }}</td>
+            <td>
+              <span class="badge" [ngClass]="statutLicenceClasse(compagnie.statutLicence)">
+                {{ compagnie.statutLicence }}
+              </span>
+            </td>
+            <td>{{ compagnie.dateExpirationLicence ? (compagnie.dateExpirationLicence | date:'dd/MM/yyyy') : '-' }}</td>
+            <td>{{ compagnie.dateCreation ? (compagnie.dateCreation | date:'dd/MM/yyyy') : '-' }}</td>
+          </tr>
+          <tr *ngIf="!chargement && compagnies.length === 0">
+            <td colspan="7" class="text-center text-muted">Aucune compagnie.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

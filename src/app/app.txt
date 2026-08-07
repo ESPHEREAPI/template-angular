@@ -1,0 +1,314 @@
+
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+//import { AdminLayoutComponentComponent } from './admin-layout.component/admin-layout.component.component';
+import { DashboardComponent } from './dashboard/dashboard.component';
+import { LoginComponent } from './module-users/login/login.component';
+import { UsersComponent } from './module-users/users/users.component';
+import { AuthGuard } from './auth/auth.guard';
+import { RoleGuard } from './auth/role-guard';
+import { UserListComponent } from './user-manager/user-list/user-list.component';
+import { UserFormComponent } from './user-manager/user-form/user-form.component';
+import { UserDetailComponent } from './user-manager/user-detail/user-detail.component';
+import { GeneralSettingsComponent } from './module-users/general-settings/general-settings.component';
+import { SecuritySettingsComponent } from './module-users/security-settings/security-settings.component';
+import { UserRoleComponent } from './user-manager/user-role/user-role.component';
+
+import { UserManagementComponent } from './user-manager/user-management/user-management.component';
+import { CommandComponent } from './bookshoop/compoment/command/command.component';
+import { ArticlesComponent } from './bookshoop/compoment/articles/articles.component';
+import { VenteComponent } from './bookshoop/compoment/vente/vente.component';
+import { TransactionComponent } from './bookshoop/compoment/transaction/transaction.component';
+import { HistoriqueCaisseComponent } from './bookshoop/compoment/historique-caisse/historique-caisse.component';
+import { MargeVenteComponent } from './bookshoop/compoment/marge-vente/marge-vente.component';
+import { InventaireComponent } from './bookshoop/compoment/inventaire/inventaire.component';
+import { CorrectionStockComponent } from './bookshoop/compoment/correction-stock/correction-stock.component';
+import { ControleCaisseComponent } from './bookshoop/compoment/controle-caisse/controle-caisse.component';
+import { VentesArticlesComponent } from './bookshoop/compoment/ventes-articles/ventes-articles.component';
+import { PointVentesComponent } from './bookshoop/compoment/point-ventes/point-ventes.component';
+import { AdminLayoutComponentComponent } from './admin-layout.component/admin-layout.component';
+import { StaticStockComponent } from './bookshoop/compoment/static-stock/static-stock.component';
+import { ClientFormComponent } from './bookshoop/compoment/client-form/client-form.component';
+import { ClientListComponent } from './bookshoop/compoment/client-form/client-list/client-list.component';
+import { FactureFormComponent } from './bookshoop/compoment/facture-form/facture-form.component';
+import { ProductsComponent } from './bookshoop/e-commerce/products/products.component';
+import { CaddiesComponent } from './bookshoop/e-commerce/caddies/caddies.component';
+
+export const routes: Routes = [
+
+
+
+  {
+
+    path: '',
+    canActivate: [AuthGuard, RoleGuard],
+    component: AdminLayoutComponentComponent,
+    children: [
+
+      { path: 'dashboard', component: DashboardComponent },
+
+      // { path: 'users', component: UsersComponent },
+      {
+        path: 'users',
+        component: UserManagementComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'role',
+        component: UserRoleComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'create',
+        component: UserFormComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**  data: {
+           permissions: ['WRITE'],
+           permissionCheckMethod: 'any'
+         }*/
+      },
+
+      {
+        path: 'historique-caisse',
+        component: HistoriqueCaisseComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**   data: {
+            permissions: ['UPDATE'],
+            permissionCheckMethod: 'any'
+          }*/
+      },
+
+
+      {
+        path: 'vente-article',
+        component: VentesArticlesComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**   data: {
+            permissions: ['UPDATE'],
+            permissionCheckMethod: 'any'
+          }*/
+      },
+      {
+        path: 'controle-caisse',
+        component: ControleCaisseComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**   data: {
+            permissions: ['UPDATE'],
+            permissionCheckMethod: 'any'
+          }*/
+      },
+      {
+        path: 'detail/:id',
+        component: UserDetailComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**  data: {
+            permissions: ['READ'],
+            permissionCheckMethod: 'any'
+          }*/
+      },
+      {
+        path: 'general',
+        component: GeneralSettingsComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**  data: {
+           permissions: ['READ'],
+           permissionCheckMethod: 'any'
+         }*/
+      },
+      {
+        path: 'security',
+        component: SecuritySettingsComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**   data: {
+            permissions: ['READ'],
+            permissionCheckMethod: 'any'
+          }*/
+      },
+      {
+        path: 'product',
+        component: ArticlesComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /** data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'product-list',
+        component: ArticlesComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'transt-stock',
+        component: TransactionComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'point-vent',
+        component: PointVentesComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'verouillage',
+        component: CommandComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'commande',
+        component: CommandComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'point_vente',
+        component: CommandComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'destockage',
+        component: CommandComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'inventaire-stock',
+        component: InventaireComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'update-stock',
+        component: CorrectionStockComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'code-bare',
+        component: VenteComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**  data: {
+           permissions: ['READ'],
+           permissionCheckMethod: 'any'
+         }*/
+      },
+      {
+        path: 'staticStock',
+        component: StaticStockComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /** data: {
+           permissions: ['READ'],
+           permissionCheckMethod: 'any'
+         }*/
+      },
+      {
+        path: 'mise a jour stock',
+        component: CommandComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'marge-caisse',
+        component: MargeVenteComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'client',
+        component: ClientFormComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'list-client',
+        component: ClientListComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+      {
+        path: 'facture',
+        component: FactureFormComponent,
+        canActivate: [AuthGuard, RoleGuard],
+        /**data: {
+          permissions: ['READ'],
+          permissionCheckMethod: 'any'
+        }*/
+      },
+
+      //{ path: 'settings/general', component: GeneralSettingsComponent },
+      // { path: 'settings/security', component: SecuritySettingsComponent },
+    ]
+  },
+  { path: 'login', component: LoginComponent },
+  {
+    path: 'e-com',
+    component: ProductsComponent
+
+  },
+   {
+    path: 'caddy',
+    component: CaddiesComponent
+
+  },
+
+
+];
+
+
+
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule]
+})
+export class AppRoutingModule { }

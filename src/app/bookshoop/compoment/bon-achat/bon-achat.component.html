@@ -1,0 +1,143 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Bons d'Achat</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Bon D Achat</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Liste des Bons d'Achat</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-primary" (click)="openModal()">
+            <i class="fas fa-plus"></i> Nouveau Bon d'Achat
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Client</th>
+                <th>Montant total</th>
+                <th>Utilisé</th>
+                <th>Solde</th>
+                <th>Expiration</th>
+                <th>Actif</th>
+                <th style="width: 150px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let bon of bonsAchat">
+                <td>{{ bon.codeBon }}</td>
+                <td>{{ bon.clientBonAchat?.nom }}</td>
+                <td>{{ bon.montantTotal }}</td>
+                <td>{{ bon.montantUtilise ?? 0 }}</td>
+                <td>{{ getSolde(bon) }}</td>
+                <td>{{ bon.dateExpiration ? (bon.dateExpiration | date:'dd/MM/yyyy') : '-' }}</td>
+                <td>
+                  <span class="badge" [class.badge-success]="bon.actif" [class.badge-secondary]="!bon.actif">
+                    {{ bon.actif ? 'Oui' : 'Non' }}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-info mr-1" (click)="openModal(bon)">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteBonAchat(bon.id!)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="bonsAchat.length === 0">
+                <td colspan="8" class="text-center">Aucun bon d'achat trouvé</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal -->
+<div class="modal fade" id="bonAchatModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">{{ isEditMode ? 'Modifier' : 'Nouveau' }} Bon d'Achat</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="codeBon">Code *</label>
+            <input type="text" class="form-control" id="codeBon"
+                   [(ngModel)]="selectedBonAchat.codeBon" name="codeBon" required>
+          </div>
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label for="montantTotal">Montant total *</label>
+              <input type="number" class="form-control" id="montantTotal"
+                     [(ngModel)]="selectedBonAchat.montantTotal" name="montantTotal" required>
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="montantUtilise">Montant utilisé</label>
+              <input type="number" class="form-control" id="montantUtilise"
+                     [(ngModel)]="selectedBonAchat.montantUtilise" name="montantUtilise">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="dateExpiration">Date d'expiration</label>
+            <input type="date" class="form-control" id="dateExpiration"
+                   [(ngModel)]="selectedBonAchat.dateExpiration" name="dateExpiration">
+          </div>
+          <div class="form-group form-check">
+            <input type="checkbox" class="form-check-input" id="actif"
+                   [(ngModel)]="selectedBonAchat.actif" name="actif">
+            <label class="form-check-label" for="actif">Actif</label>
+          </div>
+          <hr>
+          <h6>Client</h6>
+          <div class="form-group">
+            <label for="clientNom">Nom *</label>
+            <input type="text" class="form-control" id="clientNom"
+                   [(ngModel)]="selectedBonAchat.clientBonAchat.nom" name="clientNom" required>
+          </div>
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label for="clientTelephone">Téléphone</label>
+              <input type="text" class="form-control" id="clientTelephone"
+                     [(ngModel)]="selectedBonAchat.clientBonAchat.telephone" name="clientTelephone">
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="clientEmail">Email</label>
+              <input type="email" class="form-control" id="clientEmail"
+                     [(ngModel)]="selectedBonAchat.clientBonAchat.email" name="clientEmail">
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="saveBonAchat()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

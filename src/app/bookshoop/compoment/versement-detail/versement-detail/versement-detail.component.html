@@ -1,0 +1,439 @@
+<!-- src/app/features/versements/pages/versement-detail/versement-detail.component.html -->
+
+  <!-- Content Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>
+            <i class="fas fa-money-bill-wave"></i>
+            Détail du Versement
+          </h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i> Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/versements">Versements</a></li>
+            <li class="breadcrumb-item active">Détail</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      
+      <!-- Loader -->
+      <div *ngIf="loading" class="text-center py-5">
+        <i class="fas fa-3x fa-sync-alt fa-spin text-primary"></i>
+        <p class="mt-3 text-muted">Chargement des données...</p>
+      </div>
+
+      <!-- Contenu -->
+      <div *ngIf="!loading && versement">
+        
+        <!-- Actions -->
+        <div class="row mb-3">
+          <div class="col-md-12">
+            <div class="btn-group float-right">
+              <button type="button" class="btn btn-secondary" (click)="backToList()">
+                <i class="fas fa-arrow-left"></i> Retour à la liste
+              </button>
+              
+              <button 
+                type="button" 
+                class="btn btn-success" 
+                (click)="validerVersement()"
+                *ngIf="canValider()"
+                [disabled]="validating"
+              >
+                <i class="fas" [ngClass]="validating ? 'fa-spinner fa-spin' : 'fa-check'"></i>
+                {{ validating ? 'Validation...' : 'Valider' }}
+              </button>
+              
+              <button 
+                type="button" 
+                class="btn btn-danger" 
+                (click)="annulerVersement()"
+                *ngIf="canAnnuler()"
+                [disabled]="cancelling"
+              >
+                <i class="fas" [ngClass]="cancelling ? 'fa-spinner fa-spin' : 'fa-times'"></i>
+                {{ cancelling ? 'Annulation...' : 'Annuler' }}
+              </button>
+              
+              <button 
+                type="button" 
+                class="btn btn-info" 
+                (click)="telechargerRecu()"
+                [disabled]="downloadingRecu"
+              >
+                <i class="fas" [ngClass]="downloadingRecu ? 'fa-spinner fa-spin' : 'fa-download'"></i>
+                {{ downloadingRecu ? 'Téléchargement...' : 'Télécharger Reçu' }}
+              </button>
+              
+              <button type="button" class="btn btn-secondary" (click)="printRecu()">
+                <i class="fas fa-print"></i> Imprimer
+              </button>
+            </div>
+            <div class="clearfix"></div>
+          </div>
+        </div>
+
+        <div class="row">
+          <!-- Informations du Versement -->
+          <div class="col-md-8">
+            
+            <!-- En-tête du versement -->
+            <div class="card card-success">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-info-circle"></i> Informations du Versement
+                </h3>
+                <div class="card-tools">
+                  <span [ngClass]="getStatutClass()">
+                    {{ getStatutLibelle() }}
+                  </span>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <dl class="row">
+                      <dt class="col-sm-5">N° Versement:</dt>
+                      <dd class="col-sm-7">
+                        <strong>{{ versement.numeroVersement }}</strong>
+                      </dd>
+                      
+                      <dt class="col-sm-5">Date Versement:</dt>
+                      <dd class="col-sm-7">
+                        {{ versement.dateVersement | date: 'dd/MM/yyyy HH:mm' }}
+                      </dd>
+                      
+                      <dt class="col-sm-5">Date Enregistrement:</dt>
+                      <dd class="col-sm-7">
+                        {{ versement.dateEnregistrement | date: 'dd/MM/yyyy HH:mm' }}
+                      </dd>
+                      
+                      <dt class="col-sm-5" *ngIf="versement.dateValidation">Date Validation:</dt>
+                      <dd class="col-sm-7" *ngIf="versement.dateValidation">
+                        {{ versement.dateValidation | date: 'dd/MM/yyyy HH:mm' }}
+                      </dd>
+                    </dl>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <dl class="row">
+                      <dt class="col-sm-5">Montant:</dt>
+                      <dd class="col-sm-7">
+                        <h4 class="text-success mb-0">
+                          <strong>{{ formatMontant(versement.montant) }}</strong>
+                        </h4>
+                      </dd>
+                      
+                      <dt class="col-sm-5">Mode Paiement:</dt>
+                      <dd class="col-sm-7">
+                        <i [ngClass]="getModePaiementIcon()" class="mr-2"></i>
+                        <strong>{{ getModePaiementLibelle() }}</strong>
+                      </dd>
+                      
+                      <dt class="col-sm-5" *ngIf="versement.referencePaiement">Référence:</dt>
+                      <dd class="col-sm-7" *ngIf="versement.referencePaiement">
+                        <span class="badge badge-info">{{ versement.referencePaiement }}</span>
+                      </dd>
+                      
+                      <dt class="col-sm-5">Statut:</dt>
+                      <dd class="col-sm-7">
+                        <span [ngClass]="getStatutClass()">
+                          {{ getStatutLibelle() }}
+                        </span>
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+                
+                <!-- Informations bancaires si présentes -->
+                <div class="row" *ngIf="versement.banque || versement.numeroCompte">
+                  <div class="col-md-12">
+                    <hr>
+                    <h5><i class="fas fa-university"></i> Informations Bancaires</h5>
+                    <dl class="row">
+                      <dt class="col-sm-2" *ngIf="versement.banque">Banque:</dt>
+                      <dd class="col-sm-4" *ngIf="versement.banque">{{ versement.banque }}</dd>
+                      
+                      <dt class="col-sm-2" *ngIf="versement.numeroCompte">N° Compte:</dt>
+                      <dd class="col-sm-4" *ngIf="versement.numeroCompte">{{ versement.numeroCompte }}</dd>
+                    </dl>
+                  </div>
+                </div>
+                
+                <!-- Remarques -->
+                <div class="row" *ngIf="versement.remarques">
+                  <div class="col-md-12">
+                    <hr>
+                    <h5><i class="fas fa-comment"></i> Remarques</h5>
+                    <p class="text-muted">{{ versement.remarques }}</p>
+                  </div>
+                </div>
+                
+                <!-- Motif d'annulation -->
+                <div class="row" *ngIf="versement.motifAnnulation">
+                  <div class="col-md-12">
+                    <hr>
+                    <div class="alert alert-danger">
+                      <h5><i class="icon fas fa-ban"></i> Motif d'Annulation</h5>
+                      {{ versement.motifAnnulation }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Informations Facture Associée -->
+            <div class="card card-primary" *ngIf="versement.facture">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-file-invoice"></i> Facture Associée
+                </h3>
+                <div class="card-tools">
+                  <button type="button" class="btn btn-tool btn-sm" (click)="viewFacture()">
+                    <i class="fas fa-external-link-alt"></i> Voir la facture
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="row">
+                  <div class="col-md-6">
+                    <dl class="row">
+                      <dt class="col-sm-5">N° Facture:</dt>
+                      <dd class="col-sm-7">
+                        <strong>{{ versement.facture.numeroFacture }}</strong>
+                      </dd>
+                      
+                      <dt class="col-sm-5">Montant Total:</dt>
+                      <dd class="col-sm-7">
+                        {{ formatMontant(versement.facture.montantTTC) }}
+                      </dd>
+                    </dl>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <dl class="row">
+                      <dt class="col-sm-5">Solde Restant:</dt>
+                      <dd class="col-sm-7 text-danger">
+                        <strong>{{ formatMontant(versement.facture.montantRestant) }}</strong>
+                      </dd>
+                    </dl>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Informations Client -->
+            <div class="card card-info" *ngIf="versement.client">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-user"></i> Informations Client
+                </h3>
+              </div>
+              <div class="card-body">
+                <dl class="row">
+                  <dt class="col-sm-3">Code Client:</dt>
+                  <dd class="col-sm-9">{{ versement.client.code }}</dd>
+                  
+                  <dt class="col-sm-3">Nom:</dt>
+                  <dd class="col-sm-9"><strong>{{ versement.client.nom }}</strong></dd>
+                </dl>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sidebar - Informations Complémentaires -->
+          <div class="col-md-4">
+            
+            <!-- Timeline du versement -->
+            <div class="card card-success">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-history"></i> Historique
+                </h3>
+              </div>
+              <div class="card-body">
+                <div class="timeline">
+                  <!-- Enregistrement -->
+                  <div class="time-label">
+                    <span class="bg-info">
+                      {{ versement.dateEnregistrement | date: 'dd/MM/yyyy' }}
+                    </span>
+                  </div>
+                  <div>
+                    <i class="fas fa-plus bg-info"></i>
+                    <div class="timeline-item">
+                      <span class="time">
+                        <i class="fas fa-clock"></i> 
+                        {{ versement.dateEnregistrement | date: 'HH:mm' }}
+                      </span>
+                      <h3 class="timeline-header">
+                        <strong>Versement Enregistré</strong>
+                      </h3>
+                      <div class="timeline-body">
+                        Par: {{ versement.usernameCreate || 'Système' }}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Validation -->
+                  <div *ngIf="versement.dateValidation">
+                    <i class="fas fa-check bg-success"></i>
+                    <div class="timeline-item">
+                      <span class="time">
+                        <i class="fas fa-clock"></i> 
+                        {{ versement.dateValidation | date: 'dd/MM/yyyy HH:mm' }}
+                      </span>
+                      <h3 class="timeline-header">
+                        <strong>Versement Validé</strong>
+                      </h3>
+                      <div class="timeline-body">
+                        Par: {{ versement.usernameValidation || 'Système' }}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- Annulation -->
+                  <div *ngIf="versement.dateAnnulation">
+                    <i class="fas fa-times bg-danger"></i>
+                    <div class="timeline-item">
+                      <span class="time">
+                        <i class="fas fa-clock"></i> 
+                        {{ versement.dateAnnulation | date: 'dd/MM/yyyy HH:mm' }}
+                      </span>
+                      <h3 class="timeline-header">
+                        <strong>Versement Annulé</strong>
+                      </h3>
+                      <div class="timeline-body">
+                        Par: {{ versement.usernameAnnulation || 'Système' }}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <i class="fas fa-clock bg-gray"></i>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Résumé rapide -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-chart-pie"></i> Résumé
+                </h3>
+              </div>
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item">
+                    <b>Montant</b>
+                    <span class="float-right text-success">
+                      <strong>{{ formatMontant(versement.montant) }}</strong>
+                    </span>
+                  </li>
+                  <li class="list-group-item">
+                    <b>Mode</b>
+                    <span class="float-right">
+                      {{ getModePaiementLibelle() }}
+                    </span>
+                  </li>
+                  <li class="list-group-item">
+                    <b>Statut</b>
+                    <span class="float-right">
+                      <span [ngClass]="getStatutClass()">
+                        {{ getStatutLibelle() }}
+                      </span>
+                    </span>
+                  </li>
+                  <li class="list-group-item" *ngIf="versement.referencePaiement">
+                    <b>Référence</b>
+                    <span class="float-right">
+                      {{ versement.referencePaiement }}
+                    </span>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Actions rapides -->
+            <div class="card card-warning">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-bolt"></i> Actions Rapides
+                </h3>
+              </div>
+              <div class="card-body">
+                <button 
+                  type="button" 
+                  class="btn btn-success btn-block mb-2" 
+                  (click)="validerVersement()"
+                  *ngIf="canValider()"
+                  [disabled]="validating"
+                >
+                  <i class="fas fa-check"></i> Valider le Versement
+                </button>
+                
+                <button 
+                  type="button" 
+                  class="btn btn-info btn-block mb-2" 
+                  (click)="telechargerRecu()"
+                  [disabled]="downloadingRecu"
+                >
+                  <i class="fas fa-download"></i> Télécharger Reçu
+                </button>
+                
+                <button 
+                  type="button" 
+                  class="btn btn-secondary btn-block mb-2" 
+                  (click)="printRecu()"
+                >
+                  <i class="fas fa-print"></i> Imprimer Reçu
+                </button>
+                
+                <button 
+                  type="button" 
+                  class="btn btn-primary btn-block mb-2" 
+                  (click)="viewFacture()"
+                  *ngIf="versement.facture"
+                >
+                  <i class="fas fa-file-invoice"></i> Voir la Facture
+                </button>
+                
+                <hr>
+                
+                <button 
+                  type="button" 
+                  class="btn btn-danger btn-block" 
+                  (click)="annulerVersement()"
+                  *ngIf="canAnnuler()"
+                  [disabled]="cancelling"
+                >
+                  <i class="fas fa-times"></i> Annuler le Versement
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Message si versement non trouvé -->
+      <div *ngIf="!loading && !versement" class="text-center py-5">
+        <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+        <h4>Versement non trouvé</h4>
+        <p class="text-muted">Le versement demandé n'existe pas ou a été supprimé.</p>
+        <button type="button" class="btn btn-primary" (click)="backToList()">
+          <i class="fas fa-arrow-left"></i> Retour à la liste
+        </button>
+      </div>
+      
+    </div>
+  </section>

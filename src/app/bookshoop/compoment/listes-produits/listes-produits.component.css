@@ -1,0 +1,158 @@
+/* article-select.component.scss */
+.article-select-container {
+  position: relative;
+  width: 100%;
+  
+  .input-group {
+    &.focus {
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      border-radius: 0.25rem;
+    }
+  }
+  
+  .loading-indicator {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+    color: #6c757d;
+    z-index: 1001;
+    
+    i {
+      margin-right: 5px;
+    }
+  }
+  
+  .custom-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: none;
+    padding: 0;
+    border-radius: 0.25rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
+    z-index: 1000;
+    
+    .search-info {
+      padding: 8px 12px;
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #dee2e6;
+      font-size: 0.875rem;
+      color: #6c757d;
+    }
+    
+    .virtual-scroll-container {
+      position: relative;
+      overflow-y: auto;
+      
+      .virtual-items {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+      }
+    }
+    
+    .article-item {
+      padding: 8px 12px;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f1f1;
+      transition: background-color 0.15s ease-in-out;
+      
+      &:hover {
+        background-color: #f8f9fa;
+      }
+      
+      &.selected {
+        background-color: #007bff;
+        color: white;
+        
+        .article-details {
+          color: rgba(255, 255, 255, 0.8);
+        }
+      }
+      
+      &:last-child {
+        border-bottom: none;
+      }
+      
+      .article-info {
+        .article-name {
+          font-weight: 500;
+          margin-bottom: 2px;
+        }
+        
+        .article-details {
+          font-size: 0.875rem;
+          color: #6c757d;
+          
+          .article-code {
+            background-color: #e9ecef;
+            padding: 2px 6px;
+            border-radius: 3px;
+            margin-right: 8px;
+            font-family: monospace;
+          }
+          
+          .article-category {
+            font-style: italic;
+          }
+        }
+      }
+    }
+    
+    .no-results {
+      padding: 20px;
+      text-align: center;
+      color: #6c757d;
+      
+      i {
+        font-size: 1.5rem;
+        margin-bottom: 8px;
+        display: block;
+      }
+    }
+  }
+  
+  /** Animation pour l'icône de dropdown*/
+  .fa-chevron-down {
+    transition: transform 0.3s ease;
+    
+    &.rotate-180 {
+      transform: rotate(180deg);
+    }
+  }
+  
+  /** Responsive*/
+  @media (max-width: 768px) {
+    .custom-dropdown {
+      .virtual-scroll-container {
+        max-height: 250px;
+      }
+    }
+  }
+}
+
+/** Styles globaux pour AdminLTE*/
+.article-select-container {
+  .form-control:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+  
+  .btn-outline-secondary {
+    border-color: #ced4da;
+    
+    &:hover {
+      background-color: #6c757d;
+      border-color: #6c757d;
+    }
+  }
+}

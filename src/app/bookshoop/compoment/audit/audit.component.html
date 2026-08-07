@@ -1,0 +1,94 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Audit</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Audit</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+
+    <div class="card" *ngIf="isSuperAdmin">
+      <div class="card-header">
+        <h3 class="card-title">Delegation d'acces a l'audit</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-inline mb-3">
+          <input type="text" class="form-control mr-2" placeholder="Identifiant"
+                 [(ngModel)]="newGranteeUsername" name="newGranteeUsername">
+          <button type="button" class="btn btn-primary" (click)="grantAccess()">
+            <i class="fas fa-user-plus"></i> Accorder l'acces
+          </button>
+        </div>
+        <table class="table table-bordered table-striped">
+          <thead>
+            <tr>
+              <th>Beneficiaire</th>
+              <th>Accorde par</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let grant of grants">
+              <td>{{ grant.granteeUsername }}</td>
+              <td>{{ grant.grantedByUsername }}</td>
+              <td>{{ grant.grantedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td>
+                <button type="button" class="btn btn-sm btn-danger" (click)="revokeAccess(grant)">Revoquer</button>
+              </td>
+            </tr>
+            <tr *ngIf="grants.length === 0">
+              <td colspan="4" class="text-center">Aucune delegation active</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Journal des actions</h3>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Acteur</th>
+                <th>Role</th>
+                <th>Action</th>
+                <th>Cible</th>
+                <th>Details</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let log of logs">
+                <td>{{ log.timestamp | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>{{ log.actorUsername }}</td>
+                <td>{{ log.actorRole }}</td>
+                <td>{{ log.action }}</td>
+                <td>{{ log.targetType }} {{ log.targetId }}</td>
+                <td>{{ log.details }}</td>
+              </tr>
+              <tr *ngIf="!loading && logs.length === 0">
+                <td colspan="6" class="text-center">Aucune action journalisee</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>

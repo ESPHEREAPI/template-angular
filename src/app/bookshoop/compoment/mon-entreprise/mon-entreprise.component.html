@@ -1,0 +1,131 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Mon Entreprise</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Mon Entreprise</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card" *ngIf="compagnie">
+      <div class="card-header">
+        <h3 class="card-title">Informations de l'entreprise</h3>
+      </div>
+      <div class="card-body">
+        <div class="alert alert-info">
+          Ces informations (mentions légales, coordonnées) apparaissent sur vos tickets et factures. Complétez-les
+          pour corriger d'éventuelles erreurs de saisie faites lors de la création de votre compte.
+        </div>
+        <form>
+          <h5>Identité</h5>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="nom">Raison sociale *</label>
+                <input type="text" class="form-control" id="nom" [(ngModel)]="compagnie.nom" name="nom" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="directeur">Directeur / Signataire</label>
+                <input type="text" class="form-control" id="directeur" [(ngModel)]="compagnie.directeur" name="directeur">
+              </div>
+            </div>
+          </div>
+
+          <hr>
+          <h5>Coordonnées</h5>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="tel">Téléphone</label>
+                <input type="text" class="form-control" id="tel" [(ngModel)]="compagnie.tel" name="tel">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" class="form-control" id="email" [(ngModel)]="compagnie.email" name="email">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="siteWeb">Site web</label>
+                <input type="text" class="form-control" id="siteWeb" [(ngModel)]="compagnie.siteWeb" name="siteWeb">
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="adresse">Adresse</label>
+                <input type="text" class="form-control" id="adresse" [(ngModel)]="compagnie.adresse" name="adresse">
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label for="bp">BP</label>
+                <input type="text" class="form-control" id="bp" [(ngModel)]="compagnie.bp" name="bp">
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label for="quartier">Quartier</label>
+                <input type="text" class="form-control" id="quartier" [(ngModel)]="compagnie.quartier" name="quartier">
+              </div>
+            </div>
+            <div class="col-md-2">
+              <div class="form-group">
+                <label for="ville">Ville</label>
+                <input type="text" class="form-control" id="ville" [(ngModel)]="compagnie.ville" name="ville">
+              </div>
+            </div>
+          </div>
+
+          <hr>
+          <h5>Mentions légales (factures)</h5>
+          <div class="row">
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="capital">Capital social</label>
+                <input type="text" class="form-control" id="capital" [(ngModel)]="compagnie.capital" name="capital">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="numeroContribuable">N° Contribuable</label>
+                <input type="text" class="form-control" id="numeroContribuable" [(ngModel)]="compagnie.numeroContribuable" name="numeroContribuable">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="nui">NUI</label>
+                <input type="text" class="form-control" id="nui" [(ngModel)]="compagnie.nui" name="nui">
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="rccm">RCCM</label>
+                <input type="text" class="form-control" id="rccm" [(ngModel)]="compagnie.rccm" name="rccm">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="card-footer text-right">
+        <button type="button" class="btn btn-primary" [disabled]="saving" (click)="save()">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

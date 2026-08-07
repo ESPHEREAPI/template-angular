@@ -3,10 +3,11 @@ import { UserService } from '../../services/user.service';
 import { AuthService } from '../../auth/auth.service';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
-import { User } from '../../model/user';
+
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { NgxPaginationModule } from 'ngx-pagination';
+import { User } from '../../bookshoop/model/user';
 
 @Component({
   selector: 'app-user-list',

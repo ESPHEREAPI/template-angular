@@ -1,0 +1,603 @@
+<!-- user-management.component.html -->
+
+
+<app-content-header [pageTitle]="pageTitle" [breadcrumbItems]="breadcrumbItems"></app-content-header>
+<!-- Main content -->
+<section class="content">
+  <div class="container-fluid">
+
+    <!-- Alerts -->
+    <div class="row" *ngIf="loading">
+      <div class="col-12">
+        <div class="alert alert-info">
+          <i class="fas fa-spinner fa-spin"></i> Chargement en cours...
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs Card -->
+    <div class="card card-primary card-tabs">
+      <div class="card-header p-0 pt-1">
+        <ul class="nav nav-tabs" id="custom-tabs">
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="activeTab === 'userData'" (click)="onTabChange('userData')"
+              data-toggle="pill">
+              <i class="fas fa-user"></i> Données Utilisateur
+            </a>
+          </li>
+          <li class="nav-item" *ngIf="selectedUser">
+            <a class="nav-link" [class.active]="activeTab === 'userModule'" (click)="onTabChange('userModule')"
+              data-toggle="pill">
+              <i class="fas fa-puzzle-piece"></i> Modules Utilisateur
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div class="card-body">
+        <div class="tab-content">
+
+          <!-- Tab Données Utilisateur -->
+          <div class="tab-pane fade" [class.show]="activeTab === 'userData'" [class.active]="activeTab === 'userData'">
+
+            <!-- Boutons d'action -->
+            <div class="row mb-3">
+              <div class="col-12">
+                <button type="button" class="btn btn-success mr-2" [disabled]="selectedUser !== null"
+                  (click)="openCreateModal()">
+                  <i class="fas fa-plus"></i> Ajouter
+                </button>
+                <button type="button" class="btn btn-primary mr-2" [disabled]="selectedUser === null"
+                  (click)="updateUser(selectedUser!)">
+                  <i class="fas fa-edit"></i> Modifier
+                </button>
+                <button type="button" class="btn btn-info" (click)="refresh()">
+                  <i class="fas fa-sync-alt"></i> Rafraîchir
+                </button>
+              </div>
+            </div>
+
+            <!-- Formulaire utilisateur (en lecture seule) -->
+            <form [formGroup]="userForm" *ngIf="selectedUser">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Login *</label>
+                    <input type="text" class="form-control" formControlName="userName" readonly>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Nom *</label>
+                    <input type="text" class="form-control" formControlName="nom">
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Prénom</label>
+                    <input type="text" class="form-control" formControlName="prenom">
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" class="form-control" formControlName="email">
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Téléphone</label>
+                    <div class="input-group">
+                      <select class="form-control" formControlName="codepays" style="max-width: 100px;">
+                        <option *ngFor="let indicatif of indicatifs" [ngValue]="indicatif.indicatif">
+                          {{indicatif.indicatif}}
+                        </option>
+                      </select>
+                      <input type="text" class="form-control" formControlName="telephone">
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Rôle *</label>
+                    <select class="form-control" formControlName="roleid">
+                      <option *ngFor="let role of roles" [ngValue]="role.id">
+                        {{role.name}}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Profil *</label>
+                    <select class="form-control" formControlName="profilid">
+                      <option *ngFor="let profil of profils" [ngValue]="profil.id">
+                        {{profil.code}}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <div class="form-check mt-4">
+                      <input type="checkbox" class="form-check-input" formControlName="compteActif">
+                      <label class="form-check-label">Compte Actif</label>
+                    </div>
+                    <div class="form-check">
+                      <input type="checkbox" class="form-check-input" formControlName="autorisationDeletes">
+                      <label class="form-check-label">Autorisation Suppression</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+                 <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Point de Vente</label>
+                <select class="form-control" formControlName="boutiqueid">
+                  <option [ngValue]="null">Sélectionner un Point de Vente </option>
+                  <option *ngFor="let boutique of boutiques" [ngValue]="boutique">
+                    {{boutique.nom}}
+                  </option>
+                </select>
+
+              </div>
+            </div>
+
+          </div>
+            </form>
+          </div>
+
+          <!-- Tab Modules Utilisateur -->
+          <div class="tab-pane fade" [class.show]="activeTab === 'userModule'"
+            [class.active]="activeTab === 'userModule'" *ngIf="selectedUser">
+
+            <!-- En-tête avec informations utilisateur -->
+            <div class="alert alert-info">
+              <strong>Login:</strong> {{selectedUser.userName}} |
+              <strong>Nom:</strong> {{selectedUser.firstName}} |
+              <strong>Prénom:</strong> {{selectedUser.lastname}}
+            </div>
+
+            <!-- Gestion des modules -->
+
+
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">Attribution des Modules</h3>
+                <div class="card-tools">
+                  <button type="button" class="btn btn-success btn-sm" (click)="saveUserModules()">
+                    <i class="fas fa-save"></i> Sauvegarder
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <p-picklist [source]="availableModules" [target]="selectedModules" [dragdrop]="true" [responsive]="true"
+                  [sourceStyle]="{ height: '15rem', width: '5rem' }" [targetStyle]="{ height: '15rem', width: '5rem' }"
+                  filterBy="code,description" [filterMatchMode]="'contains'" [showSourceFilter]="true"
+                  [showTargetFilter]="true" sourceFilterPlaceholder="Rechercher des modules"
+                  targetFilterPlaceholder="Rechercher des modules sélectionnés" breakpoint="992px" scrollHeight="22rem"
+                  sourceHeader="Modules Disponibles" targetHeader="Modules Sélectionnés" class="picklist-adminlte">
+
+                  <!-- IMPORTANT: Utilisez pTemplate="item" -->
+                  <ng-template pTemplate="item" let-module>
+                    <div class="module-item d-flex flex-column p-2">
+                      <div class="module-code fw-bold text-primary mb-1">{{ module.code }}</div>
+                      <div class="module-description text-muted small">{{ module.description }}</div>
+                    </div>
+                  </ng-template>
+                </p-picklist>
+              </div>
+              <!-- Gestion des menus -->
+              <div class="card mt-3">
+                <div class="card-header" [class.show]="activeTab === 'userData'"
+                  [class.active]="activeTab === 'userModule'" *ngIf="selectedUser">
+                  <h3 class="card-title">Attribution des Menus</h3>
+                  <div class="card-tools">
+                    <select class="form-control d-inline-block w-auto mr-2" [(ngModel)]="selectedModuleForMenus"
+                      (change)="onModuleSelectionChange()" [class.show]="activeTab === 'userModule'"
+                      [class.active]="activeTab === 'userModule'" *ngIf="selectedUser">
+                      <option [ngValue]="null">Sélectionner un module</option>
+                      <option *ngFor="let module of userModules" [ngValue]="module">
+                        {{module.code}} | {{module.description}}
+                      </option>
+                    </select>
+                    <button type="button" class="btn btn-success btn-sm" (click)="saveUserMenus()"
+                      [disabled]="!selectedModuleForMenus">
+                      <i class="fas fa-save"></i> Sauvegarder
+                    </button>
+                  </div>
+                </div>
+                <div class="card-body" *ngIf="selectedModuleForMenus">
+                  <p-picklist [source]="availableMenus" [target]="selectedMenus" [dragdrop]="true" [responsive]="true"
+                    [sourceStyle]="{ height: '15rem', width: '5rem' }"
+                    [targetStyle]="{ height: '15rem', width: '5rem' }" filterBy="code,description"
+                    [filterMatchMode]="'contains'" [showSourceFilter]="true" [showTargetFilter]="true"
+                    sourceFilterPlaceholder="Rechercher des modules"
+                    targetFilterPlaceholder="Rechercher des modules sélectionnés" breakpoint="992px"
+                    scrollHeight="22rem" sourceHeader="Modules Disponibles" targetHeader="Modules Sélectionnés"
+                    class="picklist-adminlte">
+
+                    <!-- IMPORTANT: Utilisez pTemplate="item" -->
+                    <ng-template pTemplate="item" let-module>
+                      <div class="module-item d-flex flex-column p-2">
+                        <div class="module-code fw-bold text-primary mb-1">{{ module.code }}</div>
+                        <div class="module-description text-muted small">{{ module.description }}</div>
+                      </div>
+                    </ng-template>
+                  </p-picklist>
+                  <div class="text-center" *ngIf="!selectedModuleForMenus">
+                    <p class="text-muted">Veuillez sélectionner un module pour gérer les menus</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Tableau des utilisateurs -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Liste des Utilisateurs</h3>
+        <div class="card-tools">
+          <form [formGroup]="searchForm" class="form-inline">
+            <div class="input-group input-group-sm">
+              <input type="text" class="form-control" placeholder="Rechercher..." formControlName="globalFilter"
+                (keyup.enter)="onSearch()">
+              <div class="input-group-append">
+                <button class="btn btn-default" type="button" (click)="onSearch()">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="card-body table-responsive p-0">
+        <table class="table table-hover text-nowrap">
+          <thead>
+            <tr>
+              <th style="width: 120px;">Options</th>
+              <th>Login</th>
+              <th>Nom</th>
+              <th>Prénom</th>
+              <th>Role</th>
+              <th>Email</th>
+
+              <th>Tel</th>
+              <th style="width: 80px;">Actif</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let user of filteredUsers | slice:(currentPage-1)*pageSize:currentPage*pageSize; trackBy: trackByFn"
+              [class.table-active]="selectedUser?.userName === user.userName">
+              <td>
+                <button type="button" class="btn btn-info btn-sm mr-1" (click)="openEditModal(user)" title="Modifier">
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button type="button" class="btn btn-danger btn-sm" (click)="confirmDelete(user)" title="Supprimer">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+              <td>{{user.userName}}</td>
+              <td>{{user.firstName}}</td>
+              <td>{{user.lastname}}</td>
+              <td>{{user.role?.name}}</td>
+              <td>{{user.email}}</td>
+              <td>{{user.indicatifPays}} {{user.tel}}</td>
+              <td>
+                <span class="badge" [class.badge-success]="user.isActive" [class.badge-danger]="!user.isActive">
+                  {{user.isActive ? 'Actif' : 'Inactif'}}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="filteredUsers.length === 0">
+              <td colspan="5" class="text-center text-muted">Aucun utilisateur trouvé</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="card-footer" *ngIf="totalRecords > pageSize">
+        <nav aria-label="Page navigation">
+          <ngb-pagination [(page)]="currentPage" [pageSize]="pageSize" [collectionSize]="totalRecords" [maxSize]="10"
+            [rotate]="true" [boundaryLinks]="true">
+          </ngb-pagination>
+        </nav>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- Modal Ajout/Modification Utilisateur -->
+<div class="modal fade" [class.show]="showUserModal" [style.display]="showUserModal ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">{{isEditMode ? 'Modifier' : 'Ajouter'}} un utilisateur</h4>
+        <button type="button" class="close" (click)="closeModal()">
+          <span>&times;</span>
+        </button>
+      </div>
+
+      <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Login *</label>
+                <input type="text" class="form-control" formControlName="userName"
+                  [class.is-invalid]="userForm.get('userName')?.invalid && userForm.get('userName')?.touched"
+                  [readonly]="isEditMode">
+                <div class="invalid-feedback"
+                  *ngIf="userForm.get('userName')?.invalid && userForm.get('userName')?.touched">
+                  Le login est obligatoire
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Nom *</label>
+                <input type="text" class="form-control" formControlName="nom"
+                  [class.is-invalid]="userForm.get('nom')?.invalid && userForm.get('nom')?.touched">
+                <div class="invalid-feedback" *ngIf="userForm.get('nom')?.invalid && userForm.get('nom')?.touched">
+                  Le nom est obligatoire
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Prénom</label>
+                <input type="text" class="form-control" formControlName="prenom">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" class="form-control" formControlName="email"
+                  [class.is-invalid]="userForm.get('email')?.invalid && userForm.get('email')?.touched">
+                <div class="invalid-feedback" *ngIf="userForm.get('email')?.invalid && userForm.get('email')?.touched">
+                  Format d'email invalide
+                </div>
+                <div class="invalid-feedback" *ngIf="userForm.get('email')?.invalid && userForm.get('email')?.touched">
+                  Le login est obligatoire
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Téléphone</label>
+                <div class="input-group">
+                  <select class="form-control" formControlName="codepays" style="max-width: 100px;">
+
+                    <option *ngFor="let indicatif of indicatifs" [ngValue]="indicatif.indicatif">
+                      {{indicatif.indicatif}}
+                    </option>
+                  </select>
+
+                  <input type="text" class="form-control" formControlName="telephone">
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Rôle *</label>
+                <select class="form-control" formControlName="roleid"
+                  [class.is-invalid]="userForm.get('roleid')?.invalid && userForm.get('roleid')?.touched">
+                  <option [ngValue]="null">Sélectionner un rôle</option>
+                  <option *ngFor="let role of roles" [ngValue]="role.id">
+                    {{role.name}}
+                  </option>
+                </select>
+                <div class="invalid-feedback"
+                  *ngIf="userForm.get('roleid')?.invalid && userForm.get('roleid')?.touched">
+                  Le rôle est obligatoire
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Profil *</label>
+                <select class="form-control" formControlName="profilid"
+                  [class.is-invalid]="userForm.get('profilid')?.invalid && userForm.get('profilid')?.touched">
+                  <option [ngValue]="null">Sélectionner un profil</option>
+                  <option *ngFor="let profil of profils" [ngValue]="profil.id">
+                    {{profil.code}}
+                  </option>
+                </select>
+                <div class="invalid-feedback"
+                  *ngIf="userForm.get('profilid')?.invalid && userForm.get('profilid')?.touched">
+                  Le profil est obligatoire
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <div class="form-check mt-4">
+                  <input type="checkbox" class="form-check-input" formControlName="compteActif">
+                  <label class="form-check-label">Compte Actif</label>
+                </div>
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" formControlName="autorisationDeletes">
+                  <label class="form-check-label">Autorisation Suppression</label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label>Point de Vente</label>
+                <select class="form-control" formControlName="boutiqueid">
+                  <option [ngValue]="null">Sélectionner un Point de Vente </option>
+                  <option *ngFor="let boutique of boutiques" [ngValue]="boutique">
+                    {{boutique.nom}}
+                  </option>
+                </select>
+
+              </div>
+            </div>
+
+          </div>
+          <!-- Section mot de passe pour nouveau utilisateur -->
+          <div *ngIf="!isEditMode">
+            <hr>
+            <h5>Mot de passe</h5>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Mot de passe *</label>
+                  <input type="password" class="form-control" formControlName="passwordNew"
+                    [class.is-invalid]="userForm.get('passwordNew')?.invalid && userForm.get('passwordNew')?.touched">
+                  <div class="invalid-feedback"
+                    *ngIf="userForm.get('passwordNew')?.invalid && userForm.get('passwordNew')?.touched">
+                    Le mot de passe est obligatoire (min. 6 caractères)
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label>Confirmer le mot de passe *</label>
+                  <input type="password" class="form-control" formControlName="confirmPasswordNew"
+                    [class.is-invalid]="userForm.get('confirmPasswordNew')?.invalid && userForm.get('confirmPasswordNew')?.touched">
+                  <div class="invalid-feedback"
+                    *ngIf="userForm.get('confirmPasswordNew')?.invalid && userForm.get('confirmPassword')?.touched">
+                    Les mots de passe ne correspondent pas
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary"
+            [disabled]="!isEditMode ? userForm.invalid : passwordForm.invalid">
+            <i class="fas fa-save"></i> {{isEditMode ? 'Modifier' : 'Ajouter'}}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Choix changement mot de passe -->
+<div class="modal fade" [class.show]="showPasswordChangeDialog"
+  [style.display]="showPasswordChangeDialog ? 'block' : 'none'" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Modification du mot de passe</h4>
+      </div>
+      <div class="modal-body">
+        <p>Voulez-vous changer le mot de passe ?</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="updateUserWithoutPassword()">Non</button>
+        <button type="button" class="btn btn-primary" (click)="onPasswordChangeChoice(true)">Oui</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Changement mot de passe -->
+<div class="modal fade" [class.show]="showPasswordModal" [style.display]="showPasswordModal ? 'block' : 'none'"
+  tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Nouveau mot de passe</h4>
+        <button type="button" class="close" (click)="closeModal()">
+          <span>&times;</span>
+        </button>
+      </div>
+
+      <form [formGroup]="passwordForm" (ngSubmit)="updateWithChangePassWord()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Nouveau mot de passe *</label>
+            <input type="password" class="form-control" formControlName="password"
+              [class.is-invalid]="passwordForm.get('password')?.invalid && passwordForm.get('password')?.touched">
+            <div class="invalid-feedback"
+              *ngIf="passwordForm.get('password')?.invalid && passwordForm.get('password')?.touched">
+              Le mot de passe est obligatoire (min. 6 caractères)
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Confirmer le mot de passe *</label>
+            <input type="password" class="form-control" formControlName="confirmPassword"
+              [class.is-invalid]="passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched">
+            <div class="invalid-feedback"
+              *ngIf="passwordForm.get('confirmPassword')?.invalid && passwordForm.get('confirmPassword')?.touched">
+              Les mots de passe ne correspondent pas
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary" [disabled]="passwordForm.invalid">
+            <i class="fas fa-save"></i> Modifier
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Confirmation suppression -->
+<div class="modal fade" [class.show]="showDeleteModal" [style.display]="showDeleteModal ? 'block' : 'none'"
+  tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Confirmation de suppression</h4>
+      </div>
+      <div class="modal-body">
+        <p>Êtes-vous sûr de vouloir supprimer cet utilisateur ?</p>
+        <p *ngIf="selectedUser"><strong>{{selectedUser.firstName}} {{selectedUser.lastname}}
+            ({{selectedUser.userName}})</strong></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+        <button type="button" class="btn btn-danger" (click)="deleteUser()">
+          <i class="fas fa-trash"></i> Supprimer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Overlay pour les modales -->
+<div class="modal-backdrop fade show"
+  *ngIf="showUserModal || showPasswordModal || showDeleteModal || showPasswordChangeDialog" (click)="closeModal()">
+</div>

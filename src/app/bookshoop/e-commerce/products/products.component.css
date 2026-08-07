@@ -1,0 +1,76 @@
+.heigthed{
+    height: 300px;
+}
+.clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clickable:hover {
+  background-color: #f8f9fa;
+}
+
+.sticky-top {
+  top: 20px; /* Ajustez selon votre navbar */
+}
+
+@media (max-width: 768px) {
+  .sticky-top {
+    position: relative !important;
+  }
+}
+
+#toast-container > div {
+  z-index: 99999 !important;
+}
+
+
+.floating-cart {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  max-width: 300px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  transition: transform 0.3s ease;
+}
+
+.floating-cart:not(.show) .card-body {
+  display: none;
+}
+
+.clickable {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.clickable:hover {
+  background-color: rgba(0,123,255,0.1);
+}
+
+.product-image {
+  transition: transform 0.2s ease;
+}
+
+.product-image:hover {
+  transform: scale(1.05);
+}
+
+.alert-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.badge {
+  font-size: 0.75em;
+}
+
+@media (max-width: 768px) {
+  .floating-cart {
+    position: relative;
+    bottom: auto;
+    right: auto;
+    max-width: 100%;
+    margin-top: 20px;
+  }
+}

@@ -1,1 +1,421 @@
-/* You can add global styles to this file, and also import other style files */
+/* ============================================================================
+   STYLES PERSONNALISÉS POUR NGX-TOASTR
+   Compatible avec AdminLTE v3
+   ============================================================================ */
+
+/* Import des styles de base de ngx-toastr 
+@import '~ngx-toastr/toastr/toastr.css';*/
+
+/* ============================================================================
+   CONTENEUR DES NOTIFICATIONS
+   ============================================================================ */
+
+#toast-container {
+  z-index: 9999;
+  pointer-events: none;
+}
+
+#toast-container > div {
+  pointer-events: auto;
+  margin-bottom: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 0.25rem;
+  overflow: hidden;
+  opacity: 0;
+  animation: slideInRight 0.3s forwards;
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+#toast-container > div.toast-closing {
+  animation: slideOutRight 0.3s forwards;
+}
+
+/* ============================================================================
+   STRUCTURE DES TOASTS
+   ============================================================================ */
+
+.custom-toast {
+  width: 350px;
+  padding: 15px 20px 15px 50px;
+  position: relative;
+  background-color: #fff;
+  border-left: 4px solid;
+}
+
+/* Titre */
+.toast-title {
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 5px;
+  color: #212529;
+}
+
+/* Message */
+.toast-message {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #495057;
+  word-wrap: break-word;
+}
+
+/* ============================================================================
+   ICÔNES
+   ============================================================================ */
+
+.custom-toast::before {
+  position: absolute;
+  top: 50%;
+  left: 15px;
+  transform: translateY(-50%);
+  font-family: 'Font Awesome 5 Free';
+  font-weight: 900;
+  font-size: 24px;
+}
+
+/* ============================================================================
+   TYPES DE NOTIFICATIONS
+   ============================================================================ */
+
+/* SUCCESS - Vert */
+.toast-success {
+  border-left-color: #28a745;
+  background-color: #d4edda;
+}
+
+.toast-success .toast-title {
+  color: #155724;
+}
+
+.toast-success .toast-message {
+  color: #155724;
+}
+
+.toast-success::before {
+  content: '\f058'; /* fa-check-circle */
+  color: #28a745;
+}
+
+/* INFO - Bleu */
+.toast-info {
+  border-left-color: #17a2b8;
+  background-color: #d1ecf1;
+}
+
+.toast-info .toast-title {
+  color: #0c5460;
+}
+
+.toast-info .toast-message {
+  color: #0c5460;
+}
+
+.toast-info::before {
+  content: '\f05a'; /* fa-info-circle */
+  color: #17a2b8;
+}
+
+/* WARNING - Orange/Jaune */
+.toast-warning {
+  border-left-color: #ffc107;
+  background-color: #fff3cd;
+}
+
+.toast-warning .toast-title {
+  color: #856404;
+}
+
+.toast-warning .toast-message {
+  color: #856404;
+}
+
+.toast-warning::before {
+  content: '\f071'; /* fa-exclamation-triangle */
+  color: #ffc107;
+}
+
+/* ERROR - Rouge */
+.toast-error {
+  border-left-color: #dc3545;
+  background-color: #f8d7da;
+}
+
+.toast-error .toast-title {
+  color: #721c24;
+}
+
+.toast-error .toast-message {
+  color: #721c24;
+}
+
+.toast-error::before {
+  content: '\f06a'; /* fa-exclamation-circle */
+  color: #dc3545;
+}
+
+/* ============================================================================
+   BOUTON DE FERMETURE
+   ============================================================================ */
+
+.toast-close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  font-weight: 700;
+  color: inherit;
+  opacity: 0.5;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  transition: opacity 0.2s;
+}
+
+.toast-close-button:hover {
+  opacity: 1;
+}
+
+.toast-close-button:focus {
+  outline: none;
+  opacity: 1;
+}
+
+/* ============================================================================
+   BARRE DE PROGRESSION
+   ============================================================================ */
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  background-color: rgba(0, 0, 0, 0.2);
+  opacity: 0.6;
+}
+
+/* Couleurs de progression par type */
+.toast-success .toast-progress {
+  background-color: #28a745;
+}
+
+.toast-info .toast-progress {
+  background-color: #17a2b8;
+}
+
+.toast-warning .toast-progress {
+  background-color: #ffc107;
+}
+
+.toast-error .toast-progress {
+  background-color: #dc3545;
+}
+
+/* ============================================================================
+   INTERACTIONS
+   ============================================================================ */
+
+/* Hover */
+.custom-toast:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+/* Click */
+.custom-toast:active {
+  transform: scale(0.98);
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .custom-toast {
+    width: 90vw;
+    max-width: 350px;
+  }
+
+  #toast-container.toast-top-right {
+    top: 10px;
+    right: 10px;
+  }
+
+  #toast-container.toast-top-left {
+    top: 10px;
+    left: 10px;
+  }
+
+  #toast-container.toast-bottom-right {
+    bottom: 10px;
+    right: 10px;
+  }
+
+  #toast-container.toast-bottom-left {
+    bottom: 10px;
+    left: 10px;
+  }
+}
+
+/* ============================================================================
+   ACCESSIBILITÉ
+   ============================================================================ */
+
+/* Focus visible pour l'accessibilité */
+.toast-close-button:focus {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Amélioration du contraste */
+.toast-message a {
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+/* ============================================================================
+   COMPATIBILITÉ ADMINLTE
+   ============================================================================ */
+
+/* S'assurer que les toasts apparaissent au-dessus de tous les éléments AdminLTE */
+#toast-container {
+  z-index: 10000 !important;
+}
+
+/* Compatible avec la sidebar AdminLTE */
+.sidebar-collapse #toast-container.toast-top-right {
+  right: 20px;
+}
+
+.sidebar-open #toast-container.toast-top-right {
+  right: 20px;
+}
+
+/* ============================================================================
+   VARIANTES PERSONNALISÉES
+   ============================================================================ */
+
+/* Toast personnalisé pour les actions longues */
+.toast-loading {
+  border-left-color: #6c757d;
+  background-color: #e9ecef;
+}
+
+.toast-loading::before {
+  content: '\f110'; /* fa-spinner */
+  color: #6c757d;
+  animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+  0% {
+    transform: translateY(-50%) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-50%) rotate(360deg);
+  }
+}
+
+/* Toast sans icône */
+.toast-no-icon {
+  padding-left: 20px;
+}
+
+.toast-no-icon::before {
+  display: none;
+}
+
+/* ============================================================================
+   PRINT
+   ============================================================================ */
+
+@media print {
+  #toast-container {
+    display: none !important;
+  }
+}
+/* ============================================================================
+   POSITIONNEMENT DU CONTENEUR
+   ============================================================================ */
+
+#toast-container {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+/* Positions verticales et horizontales */
+#toast-container.toast-top-left {
+  top: 12px;
+  left: 12px;
+}
+
+#toast-container.toast-top-right {
+  top: 12px;
+  right: 12px;
+}
+
+#toast-container.toast-top-center {
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#toast-container.toast-top-full-width {
+  top: 0;
+  left: 0;
+  width: 100%;
+}
+
+#toast-container.toast-bottom-left {
+  bottom: 12px;
+  left: 12px;
+}
+
+#toast-container.toast-bottom-right {
+  bottom: 12px;
+  right: 12px;
+}
+
+#toast-container.toast-bottom-center {
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#toast-container.toast-bottom-full-width {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+}
+
+#toast-container.toast-center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}

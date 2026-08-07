@@ -1,0 +1,48 @@
+# ============================================
+# .DOCKERIGNORE - FRONTEND ANGULAR
+# Fichiers à exclure du build Docker
+# ============================================
+
+# Dépendances
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build
+dist/
+.angular/
+.nx/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Tests
+coverage/
+.nyc_output/
+e2e/results/
+
+# Environnement
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Divers
+*.md
+README.md
+LICENSE
+.editorconfig
+.prettierrc

@@ -1,0 +1,126 @@
+<!-- not-found.component.html -->
+<div class="not-found-container">
+  <div class="not-found-content">
+    <!-- Animation d'erreur -->
+    <div class="error-animation">
+      <div class="error-number">
+        <span class="four">4</span>
+        <span class="zero">0</span>
+        <span class="four">4</span>
+      </div>
+      <div class="error-illustration">
+        <div class="magnifying-glass">
+          <div class="glass"></div>
+          <div class="handle"></div>
+        </div>
+        <div class="question-mark">?</div>
+      </div>
+    </div>
+
+    <!-- Message principal -->
+    <div class="error-message">
+      <h1 class="main-title">Oups ! Page introuvable</h1>
+      <p class="main-description">
+        La page que vous recherchez semble avoir pris des vacances ! 
+        Elle n'existe peut-être plus ou l'URL a été modifiée.
+      </p>
+      
+      <!-- URL problématique -->
+      <div class="error-details" *ngIf="currentUrl">
+        <div class="url-info">
+          <i class="fas fa-link"></i>
+          <span>URL demandée: <code>{{ currentUrl }}</code></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions possibles -->
+    <div class="action-buttons">
+      <button 
+        class="btn btn-primary" 
+        (click)="goHome(); stopCountdown()">
+        <i class="fas fa-home"></i>
+        Retour à l'accueil
+      </button>
+      
+      <button 
+        class="btn btn-secondary" 
+        (click)="goBack(); stopCountdown()">
+        <i class="fas fa-arrow-left"></i>
+        Page précédente
+      </button>
+      
+      <button 
+        class="btn btn-outline" 
+        (click)="reportIssue()">
+        <i class="fas fa-bug"></i>
+        Signaler le problème
+      </button>
+    </div>
+
+    <!-- Suggestions de navigation -->
+    <div class="suggestions">
+      <h3>Peut-être cherchiez-vous :</h3>
+      <div class="suggestion-links">
+        <a routerLink="/dashboard" class="suggestion-link">
+          <i class="fas fa-tachometer-alt"></i>
+          <span>Tableau de bord</span>
+        </a>
+        <a routerLink="/product" class="suggestion-link">
+          <i class="fas fa-box"></i>
+          <span>Produits</span>
+        </a>
+        <a routerLink="/users" class="suggestion-link">
+          <i class="fas fa-users"></i>
+          <span>Utilisateurs</span>
+        </a>
+        <a routerLink="/e-com" class="suggestion-link">
+          <i class="fas fa-shopping-cart"></i>
+          <span>E-commerce</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Compteur de redirection -->
+    <div class="auto-redirect" *ngIf="countdownInterval">
+      <div class="countdown-info">
+        <i class="fas fa-clock"></i>
+        <span>Redirection automatique dans {{ countdown }} secondes</span>
+        <button 
+          class="btn-cancel" 
+          (click)="stopCountdown()"
+          title="Annuler la redirection automatique">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      <div class="progress-bar">
+        <div 
+          class="progress-fill" 
+          [style.width.%]="(10 - countdown) * 10">
+        </div>
+      </div>
+    </div>
+
+    <!-- Informations d'aide -->
+    <div class="help-section">
+      <details class="help-details">
+        <summary>
+          <i class="fas fa-question-circle"></i>
+          Besoin d'aide ?
+        </summary>
+        <div class="help-content">
+          <p><strong>Que s'est-il passé ?</strong></p>
+          <p>Cette erreur 404 signifie que la page demandée n'a pas été trouvée sur notre serveur.</p>
+          
+          <p><strong>Que pouvez-vous faire ?</strong></p>
+          <ul>
+            <li>Vérifier l'orthographe de l'URL dans votre barre d'adresse</li>
+            <li>Utiliser le menu de navigation principal</li>
+            <li>Retourner à la page d'accueil</li>
+            <li>Contacter notre support si le problème persiste</li>
+          </ul>
+        </div>
+      </details>
+    </div>
+  </div>
+</div>

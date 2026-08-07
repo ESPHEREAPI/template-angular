@@ -1,0 +1,396 @@
+/* ============================================================================
+   STYLES GÉNÉRAUX
+   ============================================================================ */
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+/* Overlay de chargement */
+.overlay-wrapper {
+  position: relative;
+}
+
+.overlay-wrapper-active .overlay {
+  display: flex !important;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(255, 255, 255, 0.8);
+  z-index: 1000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.overlay i {
+  color: #007bff;
+}
+
+/* ============================================================================
+   ANIMATIONS
+   ============================================================================ */
+
+/* Spin animation pour le refresh */
+.fa-spin {
+  animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Animation fade-in pour les lignes du tableau */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.table tbody tr {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Transition smooth pour les hover */
+.table tbody tr {
+  transition: all 0.2s ease-in-out;
+}
+
+.table tbody tr:hover {
+  transform: scale(1.01);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================================================
+   STATISTIQUES - SMALL BOX
+   ============================================================================ */
+
+.small-box {
+  position: relative;
+  display: block;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  border-radius: 0.25rem;
+  transition: all 0.3s ease-in-out;
+}
+
+.small-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.small-box > .inner {
+  padding: 15px;
+  color: #fff;
+}
+
+.small-box h3 {
+  font-size: 2.2rem;
+  font-weight: 700;
+  margin: 0 0 10px 0;
+  padding: 0;
+  color: #fff;
+}
+
+.small-box p {
+  font-size: 1rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.small-box .icon {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  font-size: 3.5rem;
+  color: rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease-in-out;
+}
+
+.small-box:hover .icon {
+  font-size: 4rem;
+  color: rgba(0, 0, 0, 0.2);
+}
+
+/* ============================================================================
+   BADGES ET STATUTS
+   ============================================================================ */
+
+.badge {
+  font-size: 0.875rem;
+  padding: 0.5em 0.75em;
+  border-radius: 0.25rem;
+  font-weight: 600;
+}
+
+.badge i {
+  margin-right: 0.25rem;
+}
+
+/* ============================================================================
+   TABLEAU
+   ============================================================================ */
+
+.table {
+  margin-bottom: 0;
+}
+
+.table thead th {
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+}
+
+.table tbody td {
+  vertical-align: middle;
+  padding: 1rem 0.75rem;
+}
+
+/* Lignes de tableau colorées */
+.table-success {
+  background-color: rgba(40, 167, 69, 0.1) !important;
+}
+
+.table-danger {
+  background-color: rgba(220, 53, 69, 0.1) !important;
+}
+
+.table-secondary {
+  background-color: rgba(108, 117, 125, 0.1) !important;
+}
+
+/* ============================================================================
+   BOUTONS
+   ============================================================================ */
+
+.btn {
+  transition: all 0.2s ease-in-out;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-group .btn {
+  margin-right: 2px;
+}
+
+.btn-group .btn:last-child {
+  margin-right: 0;
+}
+
+/* Boutons désactivés */
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   PAGINATION
+   ============================================================================ */
+
+.pagination {
+  margin: 0;
+}
+
+.page-link {
+  transition: all 0.2s ease-in-out;
+  border-radius: 0.25rem;
+  margin: 0 2px;
+}
+
+.page-link:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.page-item.active .page-link {
+  background-color: #007bff;
+  border-color: #007bff;
+  font-weight: 600;
+}
+
+.page-item.disabled .page-link {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   FILTRES
+   ============================================================================ */
+
+.card-header[data-card-widget="collapse"] {
+  transition: all 0.2s ease-in-out;
+}
+
+.card-header[data-card-widget="collapse"]:hover {
+  background-color: #f8f9fa;
+}
+
+/* ============================================================================
+   FORMULAIRES
+   ============================================================================ */
+
+.form-control:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.input-group-text {
+  background-color: #e9ecef;
+  border-color: #ced4da;
+}
+
+/* ============================================================================
+   RESPONSIVE
+   ============================================================================ */
+
+@media (max-width: 768px) {
+  .small-box h3 {
+    font-size: 1.8rem;
+  }
+
+  .small-box .icon {
+    font-size: 2.5rem;
+  }
+
+  .btn-group {
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .btn-group .btn {
+    margin-bottom: 4px;
+  }
+
+  .table {
+    font-size: 0.875rem;
+  }
+
+  .table tbody td {
+    padding: 0.5rem;
+  }
+}
+
+/* ============================================================================
+   UTILITAIRES
+   ============================================================================ */
+
+.text-sm {
+  font-size: 0.875rem;
+}
+
+.font-weight-bold {
+  font-weight: 700;
+}
+
+.align-middle {
+  vertical-align: middle !important;
+}
+
+/* État de chargement sur les boutons */
+.btn[disabled] i {
+  opacity: 0.6;
+}
+
+/* ============================================================================
+   AMÉLIORATION DES CARDS
+   ============================================================================ */
+
+.card {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: all 0.3s ease-in-out;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+  background-color: #fff;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card-footer {
+  background-color: #fff;
+  border-top: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* ============================================================================
+   MESSAGES VIDES
+   ============================================================================ */
+
+.text-center.py-5 i.fa-inbox {
+  opacity: 0.3;
+}
+
+.text-center.py-5 strong {
+  font-size: 1.25rem;
+  color: #6c757d;
+}
+
+/* ============================================================================
+   ACCESSIBILITÉ
+   ============================================================================ */
+
+/* Focus visible pour l'accessibilité au clavier */
+*:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+button:focus,
+a:focus,
+input:focus,
+select:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Amélioration du contraste pour les badges */
+.badge-warning {
+  color: #212529 !important;
+}
+
+/* ============================================================================
+   PRINT STYLES
+   ============================================================================ */
+
+@media print {
+  .btn,
+  .pagination,
+  .card-tools {
+    display: none !important;
+  }
+
+  .overlay {
+    display: none !important;
+  }
+
+  .table {
+    border: 1px solid #dee2e6;
+  }
+}

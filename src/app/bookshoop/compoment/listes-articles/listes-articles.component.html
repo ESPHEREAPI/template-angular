@@ -1,0 +1,86 @@
+<!-- article-select.component.html -->
+<div class="article-select-container">
+  <div class="form-group">
+    <div class="input-group" [class.focus]="isDropdownOpen">
+      <input
+        #searchInput
+        type="text"
+        class="form-control"
+        [formControl]="searchControl"
+        [placeholder]="placeholder"
+        (focus)="onInputFocus()"
+        (blur)="onInputBlur()"
+        autocomplete="off"
+      />
+      <div class="input-group-append">
+        <button 
+          class="btn btn-outline-secondary"
+          type="button"
+          (click)="toggleDropdown()"
+        >
+          <i class="fas fa-chevron-down" [class.rotate-180]="isDropdownOpen"></i>
+        </button>
+        <button 
+          *ngIf="selectedArticle"
+          class="btn btn-outline-secondary"
+          type="button"
+          (click)="clearSelection()"
+        >
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Loading indicator -->
+    <div *ngIf="loading" class="loading-indicator">
+      <i class="fas fa-spinner fa-spin"></i> Recherche en cours...
+    </div>
+    
+    <!-- Dropdown avec virtualisation -->
+    <div 
+      class="dropdown-menu custom-dropdown"
+      [class.show]="isDropdownOpen"
+      *ngIf="isDropdownOpen"
+    >
+      <div class="search-info" *ngIf="filteredArticles$ | async as articles">
+        {{ articles.length }} article(s) trouvé(s)
+        <span *ngIf="articles.length === 100" class="text-muted">(limité à 100 résultats)</span>
+      </div>
+      
+      <div 
+        class="virtual-scroll-container"
+        [style.height.px]="containerHeight"
+        (scroll)="onScroll($event)"
+      >
+        <!-- Spacer pour la hauteur totale -->
+        <div [style.height.px]="getTotalHeight()"></div>
+        
+        <!-- Items visibles -->
+        <div 
+          class="virtual-items"
+          [style.transform]="getTransformStyle()"
+        >
+          <div
+            *ngFor="let article of getVisibleItems()"
+            class="dropdown-item article-item"
+            [class.selected]="selectedArticle?.id === article.id"
+            (click)="selectArticle(article)"
+          >
+            <div class="article-info">
+              <div class="article-name">{{ article.pointVente.produit.libelle }}</div>
+              <div class="article-details" *ngIf="article.pointVente.produit.libelle || article.pointVente.produit.categories?.libelle">
+                <span class="article-code" *ngIf="article.pointVente.produit.libelle">{{ article.pointVente.produit.libelle }}</span>
+                <span class="article-category" *ngIf="article.pointVente.produit.categories?.libelle">{{ article.pointVente.produit.categories?.libelle}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="no-results" *ngIf="(filteredArticles$ | async)?.length === 0 && !loading">
+        <i class="fas fa-search"></i>
+        Aucun article trouvé
+      </div>
+    </div>
+  </div>
+</div>

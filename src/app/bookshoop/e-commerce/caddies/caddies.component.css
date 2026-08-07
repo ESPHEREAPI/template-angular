@@ -1,0 +1,7 @@
+/* Pour s'assurer que les boutons ne masquent pas les prix */
+td {
+  vertical-align: middle;
+}
+button.p-button-sm {
+  min-width: 32px;
+}

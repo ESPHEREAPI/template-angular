@@ -1,0 +1,443 @@
+<!-- components/gestion-stock/gestion-stock.component.html -->
+
+  <!-- En-tête de contenu -->
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0">
+            <i class="fas fa-boxes mr-2"></i>
+            Gestion du Stock
+          </h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+            <li class="breadcrumb-item"><a href="#">Stock</a></li>
+            <li class="breadcrumb-item active">Gestion</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenu principal -->
+  <section class="content">
+    <div class="container-fluid">
+      
+      <!-- Carte de filtres -->
+      <div class="card card-primary card-outline">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-filter mr-2"></i>
+            Filtres et Recherche
+          </h3>
+          <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+              <i class="fas fa-minus"></i>
+            </button>
+          </div>
+        </div>
+        
+        <div class="card-body">
+          <form [formGroup]="filterForm" class="row">
+            <!-- Sélection du libellé stock -->
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="libelleStock">
+                  <i class="fas fa-tag mr-1"></i>
+                  Libellé Stock *
+                </label>
+                <select 
+                  id="libelleStock"
+                  class="form-control select2bs4" 
+                  formControlName="libelleStock"
+                  [class.is-invalid]="filterForm.get('libelleStock')?.invalid && filterForm.get('libelleStock')?.touched">
+                  <option value="">Sélectionner un libellé</option>
+                  <option 
+                    *ngFor="let option of libelleOptions; trackBy: trackByLibelle" 
+                    [ngValue]="option">
+                    {{ option.libelle }}
+                  </option>
+                </select>
+                <div class="invalid-feedback" *ngIf="filterForm.get('libelleStock')?.invalid && filterForm.get('libelleStock')?.touched">
+                  Le libellé stock est requis
+                </div>
+              </div>
+            </div>
+
+            <!-- Filtres de dates -->
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="dateDebut">
+                  <i class="fas fa-calendar-alt mr-1"></i>
+                  Date Début
+                </label>
+                <input 
+                  type="date" 
+                  id="dateDebut"
+                  class="form-control" 
+                  formControlName="dateDebut">
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="dateFin">
+                  <i class="fas fa-calendar-alt mr-1"></i>
+                  Date Fin
+                </label>
+                <input 
+                  type="date" 
+                  id="dateFin"
+                  class="form-control" 
+                  formControlName="dateFin">
+              </div>
+            </div>
+
+            <!-- Boutons d'action -->
+            <div class="col-md-2">
+              <div class="form-group">
+                <label>&nbsp;</label>
+                <div class="d-flex flex-column">
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-secondary btn-sm mb-1"
+                    (click)="onResetFilters()"
+                    [disabled]="state.loading">
+                    <i class="fas fa-eraser mr-1"></i>
+                    Reset
+                  </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-outline-primary btn-sm"
+                    (click)="onRefresh()"
+                    [disabled]="state.loading">
+                    <i class="fas fa-sync-alt mr-1" [class.fa-spin]="state.loading"></i>
+                    Actualiser
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+
+          <!-- Filtres de stock -->
+          <div class="row mt-3">
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="stockMinimum">
+                  <i class="fas fa-arrow-up mr-1"></i>
+                  Stock Minimum
+                </label>
+                <input 
+                  type="number" 
+                  id="stockMinimum"
+                  class="form-control" 
+                  formControlName="stockMinimum"
+                  min="0"
+                  placeholder="Quantité minimale">
+              </div>
+            </div>
+
+            <div class="col-md-3">
+              <div class="form-group">
+                <label for="stockMaximum">
+                  <i class="fas fa-arrow-down mr-1"></i>
+                  Stock Maximum
+                </label>
+                <input 
+                  type="number" 
+                  id="stockMaximum"
+                  class="form-control" 
+                  formControlName="stockMaximum"
+                  min="0"
+                  placeholder="Quantité maximale">
+              </div>
+            </div>
+
+            <!-- Recherche globale -->
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="globalSearch">
+                  <i class="fas fa-search mr-1"></i>
+                  Recherche Globale
+                </label>
+                <form [formGroup]="searchForm">
+                  <input 
+                    type="text" 
+                    id="globalSearch"
+                    class="form-control" 
+                    formControlName="globalSearch"
+                    placeholder="Rechercher par référence, libellé ou code-barres...">
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Carte des résultats -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-list mr-2"></i>
+            Résultats du Stock
+            <span class="badge badge-info ml-2" *ngIf="filteredData.length > 0">
+              {{ filteredData.length }}
+            </span>
+          </h3>
+          
+          <div class="card-tools">
+            <!-- Bouton export PDF -->
+            <button 
+              type="button" 
+              class="btn btn-danger btn-sm mr-2"
+              (click)="onExportPdf()"
+              [disabled]="!selectedLibelle || state.exportingPdf">
+              <i class="fas fa-file-pdf mr-1" [class.fa-spin]="state.exportingPdf"></i>
+              Export PDF
+            </button>
+
+            <!-- Sélecteur de taille de page -->
+            <div class="btn-group mr-2">
+              <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-toggle="dropdown">
+                <i class="fas fa-list-ol mr-1"></i>
+                {{ pagination.size }} par page
+              </button>
+              <div class="dropdown-menu">
+                <a 
+                  *ngFor="let size of pageSizeOptions" 
+                  class="dropdown-item"
+                  [class.active]="pagination.size === size"
+                  (click)="onPageSizeChange(size)">
+                  {{ size }} par page
+                </a>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-tool" data-card-widget="maximize">
+              <i class="fas fa-expand"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body p-0">
+          <!-- Indicateur de chargement -->
+          <div *ngIf="state.loading" class="d-flex justify-content-center align-items-center p-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="sr-only">Chargement...</span>
+            </div>
+            <span class="ml-2">Chargement des données...</span>
+          </div>
+
+          <!-- Message d'erreur -->
+          <div *ngIf="state.error" class="alert alert-danger m-3">
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            {{ state.error }}
+          </div>
+
+          <!-- Aucun résultat -->
+          <div *ngIf="showNoResults" class="text-center p-4">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Aucune donnée disponible</h5>
+            <p class="text-muted">Sélectionnez un libellé de stock pour afficher les données.</p>
+          </div>
+
+          <!-- Tableau des données -->
+          <div *ngIf="hasData && !state.loading" class="table-responsive">
+            <table class="table table-hover table-striped">
+              <thead class="thead-light">
+                <tr>
+                  <th style="width: 100px;">
+                    <i class="fas fa-barcode mr-1"></i>
+                    Référence
+                  </th>
+                  <th>
+                    <i class="fas fa-tag mr-1"></i>
+                    Libellé Produit
+                  </th>
+                  <th style="width: 120px;" class="text-center">
+                    <i class="fas fa-cubes mr-1"></i>
+                    Quantité
+                  </th>
+                  <th style="width: 120px;" class="text-right">
+                    <i class="fas fa-euro-sign mr-1"></i>
+                    Prix Unitaire
+                  </th>
+                  <th style="width: 140px;" class="text-right">
+                    <i class="fas fa-calculator mr-1"></i>
+                    Estimation
+                  </th>
+                  <th style="width: 100px;" class="text-center">
+                    <i class="fas fa-chart-line mr-1"></i>
+                    État
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr 
+                  *ngFor="let item of filteredData; trackBy: trackByStock; index as i" 
+                  [ngClass]="getRowClass(item)">
+                  <td>
+                    <code class="text-primary">{{ item.pointVente.produit.reference }}</code>
+                  </td>
+                  <td>
+                    <strong>{{ item.pointVente.produit.libelle }}</strong>
+                    <small class="d-block text-muted" *ngIf="item.pointVente.produit.description">
+                      Code-barres: {{ item.pointVente.produit.description }}
+                    </small>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge badge-lg" 
+                          [ngClass]="{
+                            'badge-success': getTotalQuantity(item) > 50,
+                            'badge-warning': getTotalQuantity(item) > 10 && getTotalQuantity(item) <= 50,
+                            'badge-danger': getTotalQuantity(item) <= 10
+                          }">
+                      {{ formatNumber(getTotalQuantity(item)) }}
+                    </span>
+                  </td>
+                  <td class="text-right">
+                    <strong>{{ formatNumber(item.prixVenteNet) }}</strong>
+                    <small class="text-muted d-block">FCFA</small>
+                  </td>
+                  <td class="text-right">
+                    <strong class="text-success">{{ getStockEstimation(item) }}</strong>
+                    <small class="text-muted d-block">FCFA</small>
+                  </td>
+                  <td class="text-center">
+                    <i class="fas fa-circle" 
+                       [ngClass]="{
+                         'text-success': getTotalQuantity(item) > 50,
+                         'text-warning': getTotalQuantity(item) > 10 && getTotalQuantity(item) <= 50,
+                         'text-danger': getTotalQuantity(item) <= 10
+                       }"></i>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="card-footer" *ngIf="hasData">
+          <div class="row align-items-center">
+            <div class="col-md-6">
+              <small class="text-muted">
+                <i class="fas fa-info-circle mr-1"></i>
+                {{ paginationInfo }}
+              </small>
+            </div>
+            <div class="col-md-6">
+              <nav aria-label="Pagination">
+                <ul class="pagination pagination-sm float-right m-0">
+                  <li class="page-item" [class.disabled]="!canGoPrevious">
+                    <a class="page-link" (click)="onPageChange(0)" [style.cursor]="canGoPrevious ? 'pointer' : 'not-allowed'">
+                      <i class="fas fa-angle-double-left"></i>
+                    </a>
+                  </li>
+                  <li class="page-item" [class.disabled]="!canGoPrevious">
+                    <a class="page-link" (click)="onPageChange(pagination.page - 1)" [style.cursor]="canGoPrevious ? 'pointer' : 'not-allowed'">
+                      <i class="fas fa-angle-left"></i>
+                    </a>
+                  </li>
+                  
+                  <!-- Pages numériques -->
+                  <li class="page-item active">
+                    <span class="page-link">
+                      {{ pagination.page + 1 }} / {{ pagination.totalPages }}
+                    </span>
+                  </li>
+                  
+                  <li class="page-item" [class.disabled]="!canGoNext">
+                    <a class="page-link" (click)="onPageChange(pagination.page + 1)" [style.cursor]="canGoNext ? 'pointer' : 'not-allowed'">
+                      <i class="fas fa-angle-right"></i>
+                    </a>
+                  </li>
+                  <li class="page-item" [class.disabled]="!canGoNext">
+                    <a class="page-link" (click)="onPageChange(pagination.totalPages - 1)" [style.cursor]="canGoNext ? 'pointer' : 'not-allowed'">
+                      <i class="fas fa-angle-double-right"></i>
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistiques rapides -->
+      <div class="row" *ngIf="hasData">
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-info">
+            <div class="inner">
+              <h3>{{ filteredData.length }}</h3>
+              <p>Articles Total</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-boxes"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-success">
+            <div class="inner">
+              <h3>{{ getStockEnBon() }}</h3>
+              <p>Stock Suffisant</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-warning">
+            <div class="inner">
+              <h3>{{ getStockFaible() }}</h3>
+              <p>Stock Faible</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-danger">
+            <div class="inner">
+              <h3>{{ getStockCritique() }}</h3>
+              <p>Stock Critique</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-times-circle"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+<!-- Modal de confirmation d'export -->
+<div class="modal fade" id="exportModal" tabindex="-1" role="dialog" aria-labelledby="exportModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exportModalLabel">
+          <i class="fas fa-file-export mr-2"></i>
+          Export en cours
+        </h5>
+      </div>
+      <div class="modal-body text-center">
+        <div class="spinner-border text-primary mb-3" role="status">
+          <span class="sr-only">Export en cours...</span>
+        </div>
+        <p>Génération du fichier PDF en cours...</p>
+        <small class="text-muted">Veuillez patienter quelques instants.</small>
+      </div>
+    </div>
+  </div>
+</div>

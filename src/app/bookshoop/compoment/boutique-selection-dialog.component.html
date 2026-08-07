@@ -1,0 +1,71 @@
+<p-dialog 
+      [(visible)]="visible" 
+      [modal]="true" 
+      [closable]="false"
+      [draggable]="false"
+      [resizable]="false"
+      [style]="{width: '450px'}"
+      header="Sélection de la boutique">
+      
+      <div class="dialog-content">
+        <p class="mb-3">
+          <i class="pi pi-info-circle"></i>
+          Veuillez sélectionner la boutique sur laquelle vous souhaitez travailler :
+        </p>
+        
+        <div class="field">
+          <label for="boutique" class="block mb-2">Boutique *</label>
+          <p-dropdown 
+            id="boutique"
+            [(ngModel)]="selectedBoutique" 
+            [options]="boutiques" 
+            optionLabel="nom"
+            placeholder="Sélectionnez une boutique"
+            [style]="{'width':'100%'}"
+            [filter]="true"
+            filterBy="nom"
+            [showClear]="false"
+            appendTo="body">
+            
+            <ng-template pTemplate="selectedItem">
+              <div *ngIf="selectedBoutique">
+                <i class="pi pi-shopping-cart mr-2"></i>
+                <span>{{ selectedBoutique.nom }}</span>
+              </div>
+            </ng-template>
+            
+            <ng-template let-boutique pTemplate="item">
+              <div class="flex align-items-center">
+                <i class="pi pi-shopping-cart mr-2"></i>
+                <div>
+                  <div>{{ boutique.nom }}</div>
+                  <small class="text-muted" *ngIf="boutique.adresse">{{ boutique.adresse }}</small>
+                </div>
+              </div>
+            </ng-template>
+          </p-dropdown>
+        </div>
+
+        <div *ngIf="loading" class="text-center mt-3">
+          <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+          <p>Chargement des boutiques...</p>
+        </div>
+
+        <div *ngIf="error" class="p-message p-message-error mt-3">
+          <i class="pi pi-times-circle"></i>
+          <span class="ml-2">{{ error }}</span>
+        </div>
+      </div>
+
+      <ng-template pTemplate="footer">
+        <button 
+          pButton 
+          type="button" 
+          label="Valider" 
+          icon="pi pi-check"
+          class="p-button-primary"
+          [disabled]="!selectedBoutique || loading"
+          (click)="onConfirm()">
+        </button>
+      </ng-template>
+    </p-dialog>

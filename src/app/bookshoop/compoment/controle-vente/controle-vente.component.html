@@ -1,0 +1,129 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Contrôle des Ventes</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Controle Vente</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Filtres</h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 form-group">
+            <label for="boutique">Boutique *</label>
+            <select class="form-control" id="boutique" [(ngModel)]="boutiqueId" name="boutique">
+              <option [ngValue]="null">-- Sélectionner une boutique --</option>
+              <option *ngFor="let boutique of boutiques" [ngValue]="boutique.id">
+                {{ boutique.nom }} ({{ boutique.code }})
+              </option>
+            </select>
+          </div>
+          <div class="col-md-3 form-group">
+            <label for="annee">Année *</label>
+            <input type="number" class="form-control" id="annee" [(ngModel)]="annee" name="annee">
+          </div>
+          <div class="col-md-3 form-group">
+            <label for="mois">Mois (1-12) *</label>
+            <input type="number" class="form-control" id="mois" min="1" max="12" [(ngModel)]="mois" name="mois">
+          </div>
+          <div class="col-md-2 form-group d-flex align-items-end">
+            <button type="button" class="btn btn-primary btn-block" (click)="generer()" [disabled]="loading">
+              <i class="fas fa-sync-alt" [class.fa-spin]="loading"></i> Générer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" *ngIf="summary">
+      <div class="col-md-3">
+        <div class="info-box">
+          <span class="info-box-icon bg-info"><i class="fas fa-cash-register"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Total Caisse</span>
+            <span class="info-box-number">{{ summary.totalCaisse }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="info-box">
+          <span class="info-box-icon bg-success"><i class="fas fa-users"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Total Client</span>
+            <span class="info-box-number">{{ summary.totalClient }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="info-box">
+          <span class="info-box-icon bg-warning"><i class="fas fa-print"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Photocopies</span>
+            <span class="info-box-number">{{ summary.totalPhotocopies }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="info-box">
+          <span class="info-box-icon bg-danger"><i class="fas fa-calculator"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Total Net</span>
+            <span class="info-box-number">{{ summary.totalNet }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" *ngIf="hasGenerated">
+      <div class="card-header">
+        <h3 class="card-title">Détail par jour</h3>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Caisse</th>
+                <th>Client</th>
+                <th>Photocopies</th>
+                <th>Ressources</th>
+                <th>Remise</th>
+                <th>Total</th>
+                <th>Total Net</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let controle of controles">
+                <td>{{ controle.date | date:'dd/MM/yyyy' }}</td>
+                <td>{{ controle.caisse }}</td>
+                <td>{{ controle.client }}</td>
+                <td>{{ controle.photocopies }}</td>
+                <td>{{ controle.resources }}</td>
+                <td>{{ controle.remise }}</td>
+                <td>{{ controle.total }}</td>
+                <td>{{ controle.totalNet }}</td>
+              </tr>
+              <tr *ngIf="controles.length === 0 && !loading">
+                <td colspan="8" class="text-center">Aucune opération trouvée pour cette période</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

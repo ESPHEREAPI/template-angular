@@ -1,0 +1,58 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Destockage</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Destockage</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Retirer une quantité du stock d'un article</h3>
+      </div>
+
+      <div class="card-body">
+        <form>
+          <div class="form-group">
+            <label for="boutique">Boutique *</label>
+            <select class="form-control" id="boutique" [(ngModel)]="boutiqueId" name="boutique">
+              <option [ngValue]="null">-- Sélectionner une boutique --</option>
+              <option *ngFor="let boutique of boutiques" [ngValue]="boutique.id">
+                {{ boutique.nom }} ({{ boutique.code }})
+              </option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="articleId">ID Article *</label>
+            <input type="number" class="form-control" id="articleId"
+                   [(ngModel)]="articleId" name="articleId" required>
+            <small class="form-text text-muted">Identifiant de l'article (visible dans l'écran Produits)</small>
+          </div>
+          <div class="form-group">
+            <label for="quantite">Quantité à retirer *</label>
+            <input type="number" class="form-control" id="quantite" min="1"
+                   [(ngModel)]="quantite" name="quantite" required>
+          </div>
+        </form>
+
+        <div class="alert alert-success" *ngIf="nouveauStock !== null">
+          Destockage effectué. Nouveau stock : <strong>{{ nouveauStock }}</strong>
+        </div>
+
+        <button type="button" class="btn btn-danger" (click)="destocker()" [disabled]="enCours">
+          <i class="fas fa-minus-circle"></i> Destocker
+        </button>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,503 @@
+
+    
+    <!-- En-tête avec breadcrumb -->
+    <div class="content-header">
+      <div class="container-fluid">
+        <div class="row mb-2">
+          <div class="col-sm-6">
+            <h1 class="m-0">
+              <i class="fas fa-user-edit text-primary mr-2"></i>
+              {{ isEditing ? 'Modifier Client' : 'Créer Nouveau Client' }}
+            </h1>
+          </div>
+          <div class="col-sm-6 text-right">
+            <ol class="breadcrumb float-sm-right mb-0">
+              <li class="breadcrumb-item">
+                <a href="#" class="text-muted">
+                  <i class="fas fa-home mr-1"></i>Accueil
+                </a>
+              </li>
+              <li class="breadcrumb-item">
+                <a href="#" (click)="retour(); $event.preventDefault()" class="text-muted">
+                  <i class="fas fa-list mr-1"></i>Clients
+                </a>
+              </li>
+              <li class="breadcrumb-item active">
+                {{ isEditing ? 'Modification' : 'Création' }}
+              </li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="content">
+      <div class="container-fluid">
+        
+        <!-- Alerte de chargement -->
+        <div *ngIf="chargement" class="alert alert-info alert-dismissible fade show" role="alert">
+          <div class="d-flex align-items-center">
+            <i class="fas fa-spinner fa-spin mr-3 fa-lg"></i>
+            <div>
+              <strong>Traitement en cours...</strong>
+              <p class="mb-0 text-sm">Veuillez patienter quelques secondes</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Résumé des erreurs -->
+        <div *ngIf="errorsCount > 0 && clientForm.invalid" 
+          class="alert alert-danger alert-dismissible fade show" role="alert">
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <strong>
+            <i class="fas fa-exclamation-triangle mr-2"></i>
+            {{ errorsCount }} erreur(s) détectée(s)
+          </strong>
+          <ul class="mb-0 mt-2 text-sm">
+            <li *ngFor="let error of getFormErrors()">{{ error }}</li>
+          </ul>
+        </div>
+
+        <!-- Barre de progression -->
+        <div class="mb-4">
+          <div class="d-flex justify-content-between align-items-center mb-2">
+            <label class="font-weight-bold text-sm">
+              <i class="fas fa-tasks mr-1"></i>Progression du formulaire
+            </label>
+            <span class="badge badge-info">{{ formCompletion }}%</span>
+          </div>
+          <div class="progress">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+              [style.width.%]="formCompletion"
+              role="progressbar" 
+              [attr.aria-valuenow]="formCompletion"
+              aria-valuemin="0" aria-valuemax="100">
+            </div>
+          </div>
+        </div>
+
+        <form [formGroup]="clientForm" (ngSubmit)="sauvegarder()" novalidate>
+          
+          <!-- SECTION IDENTITÉ -->
+          <div class="card card-primary card-outline">
+            <div class="card-header bg-primary">
+              <h3 class="card-title">
+                <i class="fas fa-id-card mr-2"></i>Identité
+              </h3>
+              <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Plier">
+                  <i class="fas fa-minus"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="row">
+                <!-- Code Client -->
+                <div class="col-12 col-md-6 col-lg-4">
+                  <div class="form-group">
+                    <label for="code" class="font-weight-bold">
+                      <i class="fas fa-barcode text-info mr-1"></i>
+                      Code Client
+                      <span class="text-danger">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      class="form-control form-control-lg"
+                      [ngClass]="{
+                        'is-invalid': isFieldInvalid('code'),
+                        'is-valid': isFieldValid('code')
+                      }"
+                      id="code"
+                      formControlName="code" 
+                      placeholder="CLI001"
+                      [readonly]="isEditing"
+                      aria-label="Code Client"
+                      aria-describedby="codeHelp">
+                    <small id="codeHelp" class="form-text" 
+                      [ngClass]="isFieldInvalid('code') ? 'text-danger' : 'text-muted'">
+                      <i class="fas mr-1" [ngClass]="isFieldInvalid('code') ? 'fa-exclamation-circle' : 'fa-info-circle'"></i>
+                      {{ isFieldInvalid('code') ? getErrorMessage('code') : 'Format: CLI+numéro' }}
+                    </small>
+                  </div>
+                </div>
+
+                <!-- Nom Complet -->
+                <div class="col-12 col-md-6 col-lg-4">
+                  <div class="form-group">
+                    <label for="nom" class="font-weight-bold">
+                      <i class="fas fa-user text-success mr-1"></i>
+                      Nom Complet
+                      <span class="text-danger">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      class="form-control form-control-lg"
+                      [ngClass]="{
+                        'is-invalid': isFieldInvalid('nom'),
+                        'is-valid': isFieldValid('nom')
+                      }"
+                      id="nom"
+                      formControlName="nom" 
+                      placeholder="Jean Dupont"
+                      aria-label="Nom Complet"
+                      aria-describedby="nomHelp">
+                    <small id="nomHelp" class="form-text"
+                      [ngClass]="isFieldInvalid('nom') ? 'text-danger' : 'text-muted'">
+                      <i class="fas mr-1" [ngClass]="isFieldInvalid('nom') ? 'fa-exclamation-circle' : 'fa-info-circle'"></i>
+                      {{ isFieldInvalid('nom') ? getErrorMessage('nom') : 'Minimum 3 caractères' }}
+                    </small>
+                  </div>
+                </div>
+
+                <!-- Indicatif Pays -->
+                <div class="col-12 col-md-6 col-lg-4">
+                  <div class="form-group">
+                    <label for="indicatifPays" class="font-weight-bold">
+                      <i class="fas fa-globe text-warning mr-1"></i>
+                      Indicatif Pays
+                    </label>
+                    <div class="input-group input-group-lg">
+                      <input 
+                        type="text" 
+                        class="form-control"
+                        id="indicatifPays"
+                        formControlName="indicatifPays" 
+                        placeholder="+237"
+                        maxlength="5"
+                        aria-label="Indicatif Pays">
+                      <div class="input-group-append">
+                        <span class="input-group-text">
+                          <i class="fas fa-phone-alt"></i>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <hr class="my-3">
+
+              <div class="row">
+                <!-- Email -->
+                <div class="col-12 col-md-6 col-lg-4">
+                  <div class="form-group">
+                    <label for="email" class="font-weight-bold">
+                      <i class="fas fa-envelope text-danger mr-1"></i>
+                      Email
+                      <span class="text-danger">*</span>
+                    </label>
+                    <input 
+                      type="email" 
+                      class="form-control form-control-lg"
+                      [ngClass]="{
+                        'is-invalid': isFieldInvalid('email'),
+                        'is-valid': isFieldValid('email')
+                      }"
+                      id="email"
+                      formControlName="email" 
+                      placeholder="client@example.com"
+                      aria-label="Email"
+                      aria-describedby="emailHelp">
+                    <small id="emailHelp" class="form-text"
+                      [ngClass]="isFieldInvalid('email') ? 'text-danger' : 'text-muted'">
+                      <i class="fas mr-1" [ngClass]="isFieldInvalid('email') ? 'fa-exclamation-circle' : 'fa-info-circle'"></i>
+                      {{ isFieldInvalid('email') ? getErrorMessage('email') : 'Adresse email valide' }}
+                    </small>
+                  </div>
+                </div>
+
+                <!-- Téléphone -->
+                <div class="col-12 col-md-6 col-lg-4">
+                  <div class="form-group">
+                    <label for="telephone" class="font-weight-bold">
+                      <i class="fas fa-phone text-success mr-1"></i>
+                      Téléphone
+                      <span class="text-danger">*</span>
+                    </label>
+                    <input 
+                      type="tel" 
+                      class="form-control form-control-lg"
+                      [ngClass]="{
+                        'is-invalid': isFieldInvalid('telephone'),
+                        'is-valid': isFieldValid('telephone')
+                      }"
+                      id="telephone"
+                      formControlName="telephone" 
+                      placeholder="+237 6XX XXX XXX"
+                      aria-label="Téléphone"
+                      aria-describedby="telephoneHelp">
+                    <small id="telephoneHelp" class="form-text"
+                      [ngClass]="isFieldInvalid('telephone') ? 'text-danger' : 'text-muted'">
+                      <i class="fas mr-1" [ngClass]="isFieldInvalid('telephone') ? 'fa-exclamation-circle' : 'fa-info-circle'"></i>
+                      {{ isFieldInvalid('telephone') ? getErrorMessage('telephone') : 'Minimum 8 caractères' }}
+                    </small>
+                  </div>
+                </div>
+
+                <!-- Fax -->
+                <div class="col-12 col-md-6 col-lg-4">
+                  <div class="form-group">
+                    <label for="fax" class="font-weight-bold">
+                      <i class="fas fa-fax text-secondary mr-1"></i>
+                      Fax
+                    </label>
+                    <input 
+                      type="text" 
+                      class="form-control form-control-lg"
+                      id="fax"
+                      formControlName="fax" 
+                      placeholder="+237 2XX XXX XXX"
+                      aria-label="Fax">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION ADRESSE -->
+          <div class="card card-warning card-outline mt-3">
+            <div class="card-header bg-warning">
+              <h3 class="card-title">
+                <i class="fas fa-map-marker-alt mr-2"></i>Adresse
+              </h3>
+              <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Plier">
+                  <i class="fas fa-minus"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <!-- Adresse complète -->
+              <div class="form-group">
+                <label for="adresse" class="font-weight-bold">
+                  <i class="fas fa-road text-info mr-1"></i>
+                  Adresse Complète
+                  <span class="text-danger">*</span>
+                </label>
+                <textarea 
+                  class="form-control form-control-lg"
+                  [ngClass]="{
+                    'is-invalid': isFieldInvalid('adresse'),
+                    'is-valid': isFieldValid('adresse')
+                  }"
+                  id="adresse"
+                  formControlName="adresse" 
+                  rows="2"
+                  placeholder="Rue, numéro, appartement..."
+                  aria-label="Adresse Complète"
+                  aria-describedby="adresseHelp"></textarea>
+                <small id="adresseHelp" class="form-text"
+                  [ngClass]="isFieldInvalid('adresse') ? 'text-danger' : 'text-muted'">
+                  <i class="fas mr-1" [ngClass]="isFieldInvalid('adresse') ? 'fa-exclamation-circle' : 'fa-info-circle'"></i>
+                  {{ isFieldInvalid('adresse') ? getErrorMessage('adresse') : 'Minimum 5 caractères' }}
+                </small>
+              </div>
+
+              <div class="row">
+                <!-- Quartier -->
+                <div class="col-12 col-md-6 col-lg-3">
+                  <div class="form-group">
+                    <label for="quartier" class="font-weight-bold">
+                      <i class="fas fa-map text-success mr-1"></i>
+                      Quartier
+                    </label>
+                    <input 
+                      type="text" 
+                      class="form-control form-control-lg"
+                      id="quartier"
+                      formControlName="quartier" 
+                      placeholder="Ex: Centre-ville"
+                      aria-label="Quartier">
+                  </div>
+                </div>
+
+                <!-- Ville -->
+                <div class="col-12 col-md-6 col-lg-3">
+                  <div class="form-group">
+                    <label for="ville" class="font-weight-bold">
+                      <i class="fas fa-city text-primary mr-1"></i>
+                      Ville
+                      <span class="text-danger">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      class="form-control form-control-lg"
+                      [ngClass]="{
+                        'is-invalid': isFieldInvalid('ville'),
+                        'is-valid': isFieldValid('ville')
+                      }"
+                      id="ville"
+                      formControlName="ville" 
+                      placeholder="Yaoundé"
+                      aria-label="Ville"
+                      aria-describedby="villeHelp">
+                    <small id="villeHelp" class="form-text"
+                      [ngClass]="isFieldInvalid('ville') ? 'text-danger' : 'text-muted'">
+                      <i class="fas mr-1" [ngClass]="isFieldInvalid('ville') ? 'fa-exclamation-circle' : 'fa-info-circle'"></i>
+                    </small>
+                  </div>
+                </div>
+
+                <!-- Région -->
+                <div class="col-12 col-md-6 col-lg-3">
+                  <div class="form-group">
+                    <label for="region" class="font-weight-bold">
+                      <i class="fas fa-flag text-danger mr-1"></i>
+                      Région
+                      <span class="text-danger">*</span>
+                    </label>
+                    <input 
+                      type="text" 
+                      class="form-control form-control-lg"
+                      [ngClass]="{
+                        'is-invalid': isFieldInvalid('region'),
+                        'is-valid': isFieldValid('region')
+                      }"
+                      id="region"
+                      formControlName="region" 
+                      placeholder="Centre"
+                      aria-label="Région"
+                      aria-describedby="regionHelp">
+                    <small id="regionHelp" class="form-text"
+                      [ngClass]="isFieldInvalid('region') ? 'text-danger' : 'text-muted'">
+                      <i class="fas mr-1" [ngClass]="isFieldInvalid('region') ? 'fa-exclamation-circle' : 'fa-info-circle'"></i>
+                    </small>
+                  </div>
+                </div>
+
+                <!-- B.P -->
+                <div class="col-12 col-md-6 col-lg-3">
+                  <div class="form-group">
+                    <label for="bp" class="font-weight-bold">
+                      <i class="fas fa-mailbox text-secondary mr-1"></i>
+                      B.P (Boîte Postale)
+                    </label>
+                    <input 
+                      type="text" 
+                      class="form-control form-control-lg"
+                      id="bp"
+                      formControlName="bp" 
+                      placeholder="BP 1234"
+                      aria-label="Boîte Postale">
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION PARAMÈTRES -->
+          <div class="card card-success card-outline mt-3">
+            <div class="card-header bg-success">
+              <h3 class="card-title">
+                <i class="fas fa-cogs mr-2"></i>Paramètres
+              </h3>
+              <div class="card-tools">
+                <button type="button" class="btn btn-tool" data-card-widget="collapse" title="Plier">
+                  <i class="fas fa-minus"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="card-body">
+              <div class="row">
+                <!-- Statut -->
+                <div class="col-12 col-md-6">
+                  <div class="form-group">
+                    <label for="statut" class="font-weight-bold">
+                      <i class="fas fa-toggle-on text-info mr-1"></i>
+                      Statut
+                      <span class="text-danger">*</span>
+                    </label>
+                    <select 
+                      class="form-control form-control-lg"
+                      [ngClass]="{'is-invalid': isFieldInvalid('statut')}"
+                      id="statut"
+                      formControlName="statut"
+                      aria-label="Statut">
+                      <option value="">-- Sélectionner --</option>
+                      <option value="ACTIF">
+                        <i class="fas fa-check-circle"></i> Actif
+                      </option>
+                      <option value="INACTIF">
+                        <i class="fas fa-times-circle"></i> Inactif
+                      </option>
+                      <option value="EN_ATTENTE">
+                        <i class="fas fa-clock"></i> En attente
+                      </option>
+                    </select>
+                  </div>
+                </div>
+
+                <!-- Fidélité -->
+                <div class="col-12 col-md-6">
+                  <div class="form-group">
+                    <label class="font-weight-bold d-block mb-2">
+                      <i class="fas fa-heart text-danger mr-1"></i>
+                      Statut Fidélité
+                    </label>
+                    <div class="custom-control custom-switch custom-switch-lg">
+                      <input 
+                        type="checkbox" 
+                        class="custom-control-input" 
+                        id="fidelite"
+                        formControlName="fidelite"
+                        aria-label="Statut Fidélité">
+                      <label class="custom-control-label" for="fidelite">
+                        <span *ngIf="clientForm.get('fidelite')?.value" class="badge badge-success">
+                          <i class="fas fa-star mr-1"></i>Client Fidélisé
+                        </span>
+                        <span *ngIf="!clientForm.get('fidelite')?.value" class="badge badge-secondary">
+                          <i class="fas fa-star mr-1"></i>Client Standard
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SECTION ACTIONS -->
+          <div class="card mt-3">
+            <div class="card-footer bg-light">
+              <div class="btn-group" role="group" aria-label="Actions">
+                <button 
+                  type="submit" 
+                  class="btn btn-primary btn-lg"
+                  [disabled]="!clientForm.valid || chargement"
+                  title="Enregistrer les modifications">
+                  <i class="fas fa-save mr-2"></i>
+                  {{ chargement ? 'Traitement...' : (isEditing ? 'Mettre à jour' : 'Créer Client') }}
+                </button>
+
+                <button 
+                  type="button" 
+                  class="btn btn-secondary btn-lg"
+                  (click)="retour()"
+                  [disabled]="chargement"
+                  title="Retourner à la liste">
+                  <i class="fas fa-arrow-left mr-2"></i>Retour
+                </button>
+
+                <button 
+                  type="reset" 
+                  class="btn btn-outline-secondary btn-lg"
+                  (click)="resetForm()"
+                  *ngIf="!isEditing"
+                  [disabled]="chargement"
+                  title="Réinitialiser le formulaire">
+                  <i class="fas fa-redo mr-2"></i>Réinitialiser
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+      </div>
+    </div>
+ 

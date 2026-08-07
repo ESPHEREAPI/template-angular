@@ -1,61 +1,31 @@
 import { Injectable } from '@angular/core';
-import { environment } from '../../environments/environment.prod';
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { environment } from '../../environments/environment';
+import { HttpClient } from '@angular/common/http';
 
-import { Observable } from 'rxjs';
-import { Roles } from '../model/roles';
-import { RolePermission } from '../model/role-permission';
+import { Observable, map } from 'rxjs';
+import { Role } from '../bookshoop/model/role';
 
+/**
+ * Le Role est une simple etiquette/categorie assignee a un utilisateur (plus
+ * la hierarchie systeme SUPER_ADMIN/SYSTEM_ADMIN/COMPANY_ADMIN, geree a
+ * part). Pour les droits d'acces (Menu x Action), voir ProfilService - c'est
+ * le Profil qui les porte.
+ */
 @Injectable({
   providedIn: 'root'
 })
 export class RoleService {
-  private apiUrl = `${environment.apiUrl}/roles`;
+  private readonly API_URL = `${environment.apiUrl}/gateway-proxy/api`;
 
   constructor(private http: HttpClient) { }
 
-  getRoles(page: number = 1, limit: number = 10, search?: string): Observable<{ data: Roles[], total: number }> {
-    let params = new HttpParams()
-      .set('page', page.toString())
-      .set('limit', limit.toString());
-    
-    if (search) {
-      params = params.set('search', search);
-    }
-
-    return this.http.get<{ data: Roles[], total: number }>(this.apiUrl, { params });
+  getAllRoles(): Observable<Role[]> {
+    return this.http.get<Role[]>(`${this.API_URL}/users/roles`);
   }
 
-  getAllRoles(): Observable<Roles[]> {
-    return this.http.get<Roles[]>(`${this.apiUrl}/all`);
+  // Pas d'endpoint dedie cote backend pour un role unique - derive de la
+  // liste complete (deja peu volumineuse, chargee une seule fois).
+  getRoleById(id: number): Observable<Role | undefined> {
+    return this.getAllRoles().pipe(map(roles => roles.find(r => r.id === id)));
   }
-
-  getRoleById(id: number): Observable<Roles> {
-    return this.http.get<Roles>(`${this.apiUrl}/${id}`);
-  }
-
-  createRole(role: Roles): Observable<Roles> {
-    return this.http.post<Roles>(this.apiUrl, role);
-  }
-
-  updateRole(id: number, role: Roles): Observable<Roles> {
-    return this.http.put<Roles>(`${this.apiUrl}/${id}`, role);
-  }
-
-  deleteRole(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
-  }
-
-  getRolePermissions(roleId: number): Observable<RolePermission[]> {
-    return this.http.get<RolePermission[]>(`${this.apiUrl}/${roleId}/permissions`);
-  }
-
-  assignPermissionsToRole(roleId: number, permissionIds: number[]): Observable<void> {
-    return this.http.post<void>(`${this.apiUrl}/${roleId}/permissions`, { permissionIds });
-  }
-
-  removePermissionFromRole(roleId: number, permissionId: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${roleId}/permissions/${permissionId}`);
-  }
-  
 }

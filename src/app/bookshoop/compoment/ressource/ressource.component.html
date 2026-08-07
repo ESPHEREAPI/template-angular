@@ -1,0 +1,174 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Ressources</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Ressource</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Filtres</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-secondary btn-sm" (click)="openTypeModal()">
+            <i class="fas fa-tags"></i> Gérer les types
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3 form-group">
+            <label>Boutique *</label>
+            <select class="form-control" [(ngModel)]="boutiqueId" name="boutique">
+              <option [ngValue]="null">-- Sélectionner --</option>
+              <option *ngFor="let boutique of boutiques" [ngValue]="boutique.id">{{ boutique.nom }}</option>
+            </select>
+          </div>
+          <div class="col-md-3 form-group">
+            <label>Début</label>
+            <input type="date" class="form-control" [(ngModel)]="debut" name="debut">
+          </div>
+          <div class="col-md-3 form-group">
+            <label>Fin</label>
+            <input type="date" class="form-control" [(ngModel)]="fin" name="fin">
+          </div>
+          <div class="col-md-3 form-group d-flex align-items-end">
+            <button type="button" class="btn btn-primary mr-2" (click)="charger()">
+              <i class="fas fa-search"></i> Charger
+            </button>
+            <button type="button" class="btn btn-success" (click)="openModal()">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Liste des Ressources</h3>
+        <div class="card-tools">
+          <span class="badge badge-success">Total : {{ getTotal() }}</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Montant</th>
+                <th>Commentaire</th>
+                <th style="width: 80px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let ressource of ressources">
+                <td>{{ ressource.dateRessource | date:'dd/MM/yyyy' }}</td>
+                <td>{{ ressource.typeResource?.libelle }}</td>
+                <td>{{ ressource.montant }}</td>
+                <td>{{ ressource.commentaire || '-' }}</td>
+                <td>
+                  <button class="btn btn-sm btn-danger" (click)="delete(ressource.id!)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="ressources.length === 0">
+                <td colspan="5" class="text-center">Aucune ressource trouvée</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal Nouvelle Ressource -->
+<div class="modal fade" id="ressourceModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Nouvelle Ressource</h4>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label>Type *</label>
+            <select class="form-control" [(ngModel)]="newRessource.typeResourceId" name="type">
+              <option [ngValue]="0">-- Sélectionner --</option>
+              <option *ngFor="let type of types" [ngValue]="type.id">{{ type.libelle }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Montant *</label>
+            <input type="number" class="form-control" [(ngModel)]="newRessource.montant" name="montant">
+          </div>
+          <div class="form-group">
+            <label>Date</label>
+            <input type="date" class="form-control" [(ngModel)]="newRessource.dateRessource" name="date">
+          </div>
+          <div class="form-group">
+            <label>Commentaire</label>
+            <textarea class="form-control" [(ngModel)]="newRessource.commentaire" name="commentaire"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="save()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Gestion Types -->
+<div class="modal fade" id="typeResourceModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Types de Ressource</h4>
+        <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+      </div>
+      <div class="modal-body">
+        <table class="table table-sm table-bordered mb-3">
+          <thead><tr><th>Code</th><th>Libellé</th><th></th></tr></thead>
+          <tbody>
+            <tr *ngFor="let type of types">
+              <td>{{ type.code }}</td>
+              <td>{{ type.libelle }}</td>
+              <td><button class="btn btn-xs btn-danger" (click)="deleteType(type.id!)"><i class="fas fa-trash"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+        <form>
+          <div class="form-group">
+            <label>Code</label>
+            <input type="text" class="form-control" [(ngModel)]="newType.code" name="typeCode">
+          </div>
+          <div class="form-group">
+            <label>Libellé</label>
+            <input type="text" class="form-control" [(ngModel)]="newType.libelle" name="typeLibelle">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Fermer</button>
+        <button type="button" class="btn btn-primary" (click)="saveType()">Ajouter</button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -12,9 +12,29 @@
         <a routerLink="/contact" class="nav-link">Contact</a>
       </li>
     </ul>
-  
+
+    <!-- Point de vente centré -->
+    <div class="point-vente-container">
+      <div class="point-vente-card">
+        <i class="pi pi-shopping-cart"></i>
+        <div class="point-vente-info">
+          <div class="point-vente-label">Point de vente</div>
+          <div class="point-vente-nom">{{ boutique?.nom || 'Non défini' }}</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto">
+      <!-- Alerte licence (COMPANY_ADMIN uniquement) -->
+      <li class="nav-item" *ngIf="licenceJoursRestants !== null">
+        <a class="nav-link licence-widget" routerLink="/compagnie/mes-licences"
+           [class.licence-warning]="licenceJoursRestants < 30">
+          <i class="fas fa-key mr-1"></i>
+          Licence : {{ licenceJoursRestants }} jour{{ licenceJoursRestants > 1 ? 's' : '' }}
+        </a>
+      </li>
+
       <!-- Messages Dropdown Menu -->
       <li class="nav-item dropdown">
         <a class="nav-link" data-toggle="dropdown" href="#">
@@ -23,7 +43,6 @@
         </a>
         <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
           <a href="#" class="dropdown-item">
-            <!-- Message Start -->
             <div class="media">
               <img src="../img/user2-160x160.jpg" alt="User Avatar" class="img-size-50 mr-3 img-circle">
               <div class="media-body">
@@ -35,12 +54,12 @@
                 <p class="text-sm text-muted"><i class="far fa-clock mr-1"></i> Il y a 4 heures</p>
               </div>
             </div>
-            <!-- Message End -->
           </a>
           <div class="dropdown-divider"></div>
           <a href="#" class="dropdown-item dropdown-footer">Voir tous les messages</a>
         </div>
       </li>
+
       <!-- Notifications Dropdown Menu -->
       <li class="nav-item dropdown">
         <a class="nav-link" data-toggle="dropdown" href="#">
@@ -58,14 +77,12 @@
           <a href="#" class="dropdown-item dropdown-footer">Voir toutes les notifications</a>
         </div>
       </li>
-    </ul>
-    <ul class="nav navbar-nav pull-right"  >
-      <li>
-        <a class="btn" (click)="onLogout()">
+
+      <!-- Logout -->
+      <li class="nav-item">
+        <a class="nav-link" (click)="onLogout()" role="button">
           <i class="pi pi-power-off"></i>
-        
         </a>
       </li>
-
     </ul>
   </nav>

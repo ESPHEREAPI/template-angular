@@ -1,5 +1,9 @@
 <!-- src/app/pages/dashboard/dashboard.component.html -->
 <app-content-header [pageTitle]="pageTitle" [breadcrumbItems]="breadcrumbItems"></app-content-header>
+
+<app-platform-dashboard *ngIf="estCompteSysteme"></app-platform-dashboard>
+
+<ng-container *ngIf="!estCompteSysteme">
 <div class="row">
     <div class="col-lg-3 col-6">
       <div class="small-box bg-info">
@@ -102,3 +106,4 @@
     <!-- right col -->
   </div>
   <!-- /.row -->
+</ng-container>

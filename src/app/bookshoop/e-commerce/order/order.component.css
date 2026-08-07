@@ -1,0 +1,6 @@
+.fcfa-icon::before {
+  content: "FCFA";
+  font-weight: bold;
+  font-size: 0.9em;
+  font-family: Arial, sans-serif;
+}

@@ -1,0 +1,54 @@
+.cursor-pointer {
+    cursor: pointer;
+  }
+
+  .hover-highlight:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+    transition: background-color 0.3s ease;
+  }
+
+  .transition-all {
+    transition: all 0.3s ease;
+  }
+
+  .small-box {
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+    transition: all 0.3s ease;
+  }
+
+  .small-box:hover {
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+    transform: translateY(-2px);
+  }
+
+  .position-absolute {
+    position: absolute;
+  }
+
+  .pl-5 {
+    padding-left: 2.5rem;
+  }
+
+  .ml-3 {
+    margin-left: 1rem;
+  }
+
+  .flex-grow-1 {
+    flex-grow: 1;
+  }
+
+  @media (max-width: 768px) {
+    .table {
+      font-size: 0.85rem;
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.7rem;
+    }
+
+    .small-box-footer {
+      font-size: 0.8rem;
+    }
+  }

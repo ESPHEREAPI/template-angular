@@ -1,0 +1,493 @@
+<!-- src/app/features/factures/pages/facture-form/facture-form.component.html -->
+
+  <!-- Content Header -->
+  <section class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1>
+            <i class="fas fa-file-invoice"></i>
+            {{ isEditMode ? 'Modifier la Facture' : 'Nouvelle Facture' }}
+          </h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="/"><i class="fas fa-home"></i> Accueil</a></li>
+            <li class="breadcrumb-item"><a href="/factures">Factures</a></li>
+            <li class="breadcrumb-item active">{{ isEditMode ? 'Modifier' : 'Créer' }}</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      
+      <form [formGroup]="factureForm" (ngSubmit)="onSubmit()">
+        
+        <!-- Informations Client -->
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-user"></i> Informations Client
+            </h3>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="clientSearch">Client <span class="text-danger">*</span></label>
+                  
+                  <!-- Champ de recherche client -->
+                  <div class="input-group mb-2">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">
+                        <i class="fas fa-search"></i>
+                      </span>
+                    </div>
+                    <input 
+                      type="text" 
+                      class="form-control" 
+                      id="clientSearch"
+                      [(ngModel)]="clientSearchTerm"
+                      [ngModelOptions]="{standalone: true}"
+                      (input)="filterClients()"
+                      placeholder="Rechercher un client par code ou nom..."
+                      (focus)="showClientDropdown = true"
+                    >
+                  </div>
+                  
+                  <!-- Dropdown des clients filtrés -->
+                  <div 
+                    class="list-group" 
+                    *ngIf="showClientDropdown && filteredClients.length > 0"
+                    style="max-height: 300px; overflow-y: auto; position: absolute; z-index: 1000; width: 100%;"
+                  >
+                    <button
+                      type="button"
+                      class="list-group-item list-group-item-action"
+                      *ngFor="let client of filteredClients"
+                      (click)="selectClient(client)"
+                    >
+                      <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1">{{ client.code }} - {{ client.nom }}</h6>
+                      </div>
+                      <small class="text-muted" *ngIf="client.telephone">
+                        <i class="fas fa-phone"></i> {{ client.telephone }}
+                      </small>
+                    </button>
+                  </div>
+                  
+                  <!-- Client sélectionné -->
+                  <div 
+                    class="alert alert-info mt-2" 
+                    *ngIf="selectedClient"
+                  >
+                    <strong>Client sélectionné:</strong> {{ selectedClient.code }} - {{ selectedClient.nom }}
+                    <button 
+                      type="button" 
+                      class="close" 
+                      (click)="clearClient()"
+                    >
+                      <span>&times;</span>
+                    </button>
+                  </div>
+                  
+                  <div class="invalid-feedback d-block" *ngIf="factureForm.get('clientId')?.invalid && factureForm.get('clientId')?.touched">
+                    Veuillez sélectionner un client
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="dateFacture">Date Facture <span class="text-danger">*</span></label>
+                  <input 
+                    type="date" 
+                    class="form-control" 
+                    id="dateFacture" 
+                    formControlName="dateFacture"
+                    [class.is-invalid]="factureForm.get('dateFacture')?.invalid && factureForm.get('dateFacture')?.touched"
+                  >
+                  <div class="invalid-feedback">
+                    Date requise
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-md-3">
+                <div class="form-group">
+                  <label for="dateEcheance">Date Échéance <span class="text-danger">*</span></label>
+                  <input 
+                    type="date" 
+                    class="form-control" 
+                    id="dateEcheance" 
+                    formControlName="dateEcheance"
+                    [class.is-invalid]="factureForm.get('dateEcheance')?.invalid && factureForm.get('dateEcheance')?.touched"
+                  >
+                  <div class="invalid-feedback">
+                    Date requise
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label for="delaiPaiement">Délai de Paiement (jours)</label>
+                  <input 
+                    type="number" 
+                    class="form-control" 
+                    id="delaiPaiement" 
+                    formControlName="delaiPaiement"
+                    placeholder="30"
+                  >
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label for="tauxRemiseGlobale">Remise Globale (%)</label>
+                  <input 
+                    type="number" 
+                    class="form-control" 
+                    id="tauxRemiseGlobale" 
+                    formControlName="tauxRemiseGlobale"
+                    step="0.01"
+                    min="0"
+                    max="100"
+                    placeholder="0.00"
+                    (change)="calculerTotaux()"
+                  >
+                </div>
+              </div>
+              
+              <div class="col-md-4">
+                <div class="form-group">
+                  <label for="accompte">Accompte</label>
+                  <input 
+                    type="number" 
+                    class="form-control" 
+                    id="accompte" 
+                    formControlName="accompte"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                  >
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="conditionsPaiement">Conditions de Paiement</label>
+                  <textarea 
+                    class="form-control" 
+                    id="conditionsPaiement" 
+                    formControlName="conditionsPaiement"
+                    rows="2"
+                    placeholder="Ex: Paiement à 30 jours fin de mois"
+                  ></textarea>
+                </div>
+              </div>
+              
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="remarques">Remarques</label>
+                  <textarea 
+                    class="form-control" 
+                    id="remarques" 
+                    formControlName="remarques"
+                    rows="2"
+                    placeholder="Remarques ou notes supplémentaires"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Articles de la Facture -->
+        <div class="card card-success">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-list"></i> Articles de la Facture
+            </h3>
+            <div class="card-tools">
+              <button 
+                type="button" 
+                class="btn btn-success btn-sm" 
+                (click)="addItem()"
+              >
+                <i class="fas fa-plus"></i> Ajouter un article
+              </button>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-striped">
+                <thead>
+                  <tr>
+                    <th style="width: 5%">#</th>
+                    <th style="width: 25%">Produit</th>
+                    <th style="width: 10%">Stock Dispo</th>
+                    <th style="width: 10%">Quantité</th>
+                    <th style="width: 12%">Prix Unit. HT</th>
+                    <th style="width: 8%">TVA (%)</th>
+                    <th style="width: 10%">Remise (%)</th>
+                    <th style="width: 12%">Montant HT</th>
+                    <th style="width: 8%">Actions</th>
+                  </tr>
+                </thead>
+                <tbody formArrayName="items">
+                  <tr *ngFor="let item of items.controls; let i = index" [formGroupName]="i">
+                    <td>{{ i + 1 }}</td>
+                    
+                    <!-- Produit avec recherche -->
+                    <td>
+                      <div class="position-relative">
+                        <!-- Champ de recherche produit -->
+                        <input 
+                          type="text" 
+                          class="form-control form-control-sm mb-1" 
+                          [value]="produitSearchTerms[i] || ''"
+                          (input)="onProduitSearch(i, $event)"
+                          (focus)="showProduitDropdown[i] = true"
+                          placeholder="Rechercher un produit..."
+                          [class.is-invalid]="item.get('produitId')?.invalid && item.get('produitId')?.touched"
+                        >
+                        
+                        <!-- Dropdown des produits filtrés -->
+                        <div 
+                          class="list-group" 
+                          *ngIf="showProduitDropdown[i] && filteredProduitsArray[i].length > 0"
+                          style="max-height: 250px; overflow-y: auto; position: absolute; z-index: 1000; width: 100%;"
+                        >
+                          <button
+                            type="button"
+                            class="list-group-item list-group-item-action p-2"
+                            *ngFor="let produit of filteredProduitsArray[i]"
+                            (click)="selectProduit(i, produit)"
+                          >
+                            <div class="d-flex w-100 justify-content-between">
+                              <small class="mb-0">
+                                <strong>{{ produit.reference }}</strong> - {{ produit.libelle }}
+                              </small>
+                            </div>
+                            <div class="d-flex w-100 justify-content-between mt-1">
+                              <small class="text-success">
+                                <i class="fas fa-tag"></i> {{ formatMontant(produit.prixVente ?? 0) }}
+                              </small>
+                              <small class="text-info">
+                                <i class="fas fa-cubes"></i> Stock: {{ produit.stock }}
+                              </small>
+                            </div>
+                          </button>
+                        </div>
+                        
+                        <!-- Produit sélectionné -->
+                        <div *ngIf="selectedProduits[i]" class="small text-muted">
+                          <i class="fas fa-check-circle text-success"></i>
+                          {{ selectedProduits[i].reference }} - {{ selectedProduits[i].libelle }}
+                        </div>
+                      </div>
+                    </td>
+                    
+                    <!-- Stock disponible -->
+                    <td>
+                      <span 
+                        *ngIf="selectedProduits[i]"
+                        [class.text-success]="selectedProduits[i].stock ?? 0 > 10"
+                        [class.text-warning]=" selectedProduits[i].stock ?? 0 <= 10"
+                        [class.text-danger]="selectedProduits[i].stock ?? 0<= 0"
+                      >
+                        <strong>{{ selectedProduits[i].stock }} | {{ selectedProduits[i].prixVente }}  </strong>
+                      </span>
+                    </td>
+                    
+                    <!-- Quantité -->
+                    <td>
+                      <input 
+                        type="number" 
+                        class="form-control form-control-sm" 
+                        formControlName="quantite"
+                        min="1"
+                        [max]="selectedProduits[i].stock || 9999"
+                        (change)="calculerTotaux()"
+                        [class.is-invalid]="item.get('quantite')?.invalid && item.get('quantite')?.touched"
+                      >
+                      <small class="text-danger" *ngIf="item.get('quantite')?.value > (selectedProduits[i]?.stock || 0)">
+                        Dépasse le stock!
+                      </small>
+                    </td>
+                    
+                    <!-- Prix Unitaire HT -->
+                    <td>
+                      <input 
+                        type="number" 
+                        class="form-control form-control-sm" 
+                        formControlName="prixUnitaireHT"
+                        step="0.01"
+                        min="0"
+                        (change)="calculerTotaux()"
+                        [class.is-invalid]="item.get('prixUnitaireHT')?.invalid && item.get('prixUnitaireHT')?.touched"
+                      >
+                    </td>
+                    
+                    <!-- TVA -->
+                    <td>
+                      <input 
+                        type="number" 
+                        class="form-control form-control-sm" 
+                        formControlName="tauxTVA"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        (change)="calculerTotaux()"
+                      >
+                    </td>
+                    
+                    <!-- Remise -->
+                    <td>
+                      <input 
+                        type="number" 
+                        class="form-control form-control-sm" 
+                        formControlName="tauxRemise"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        (change)="calculerTotaux()"
+                      >
+                    </td>
+                    
+                    <!-- Montant HT calculé -->
+                    <td class="text-right">
+                      <strong>
+                        {{ calculateItemTotal(i) | number:'1.0-0' }} XAF
+                      </strong>
+                    </td>
+                    
+                    <!-- Actions -->
+                    <td>
+                      <button 
+                        type="button" 
+                        class="btn btn-danger btn-sm" 
+                        (click)="removeItem(i)"
+                        [disabled]="items.length === 1"
+                      >
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </td>
+                  </tr>
+                  
+                  <!-- Message si aucun article -->
+                  <tr *ngIf="items.length === 0">
+                    <td colspan="9" class="text-center text-muted py-4">
+                      <i class="fas fa-inbox fa-2x mb-2"></i>
+                      <p>Aucun article ajouté. Cliquez sur "Ajouter un article" pour commencer.</p>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Totaux -->
+        <div class="row">
+          <div class="col-md-8">
+            <!-- Espace vide -->
+          </div>
+          
+          <div class="col-md-4">
+            <div class="card card-info">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-calculator"></i> Totaux
+                </h3>
+              </div>
+              <div class="card-body p-0">
+                <table class="table">
+                  <tbody>
+                    <tr>
+                      <td><strong>Total HT:</strong></td>
+                      <td class="text-right">
+                        <strong>{{ formatMontant(totalHT) }}</strong>
+                      </td>
+                    </tr>
+                    <tr *ngIf="totalRemise > 0">
+                      <td><strong>Remise Totale:</strong></td>
+                      <td class="text-right text-danger">
+                        <strong>-{{ formatMontant(totalRemise) }}</strong>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td><strong>Total TVA:</strong></td>
+                      <td class="text-right">
+                        <strong>{{ formatMontant(totalTVA) }}</strong>
+                      </td>
+                    </tr>
+                    <tr class="bg-light">
+                      <td><strong>Total TTC:</strong></td>
+                      <td class="text-right">
+                        <h4 class="text-success mb-0">
+                          <strong>{{ formatMontant(totalTTC) }}</strong>
+                        </h4>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Boutons d'action -->
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card">
+              <div class="card-body">
+                <div class="float-right">
+                  <button 
+                    type="button" 
+                    class="btn btn-secondary mr-2" 
+                    (click)="onCancel()"
+                    [disabled]="submitting"
+                  >
+                    <i class="fas fa-times"></i> Annuler
+                  </button>
+                  
+                  <button 
+                    type="submit" 
+                    class="btn btn-primary"
+                    [disabled]="factureForm.invalid || submitting || items.length === 0"
+                  >
+                    <i class="fas fa-save"></i>
+                    <span *ngIf="!submitting">{{ isEditMode ? 'Mettre à jour' : 'Créer la Facture' }}</span>
+                    <span *ngIf="submitting">
+                      <i class="fas fa-spinner fa-spin"></i> Enregistrement...
+                    </span>
+                  </button>
+                </div>
+                
+                <div class="clearfix"></div>
+                
+                <div class="mt-3" *ngIf="factureForm.invalid && factureForm.touched">
+                  <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Veuillez remplir tous les champs obligatoires et ajouter au moins un article.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+      </form>
+      
+    </div>
+  </section>

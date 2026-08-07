@@ -1,0 +1,1242 @@
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { debounceTime, distinctUntilChanged, forkJoin, Subject, takeUntil } from 'rxjs';
+import { CaisseItem } from '../../model/caisse-item';
+
+import { PaymentType } from '../../enums/payment-type';
+import { Person } from '../../model/person';
+import { BarcodeService } from '../../service/barcode.service';
+
+import { BonAchat } from '../../model/bon-achat';
+import { Produit } from '../../model/produit';
+import { CommonModule } from '@angular/common';
+import { ArticleService } from '../../service/article.service';
+import { VenteService } from '../../service/vente.service';
+import { BonAchatService } from '../../service/bon-achat.service';
+import { PersonneService } from '../../service/personne.service';
+import { NumberToWordsService } from '../../service/number-to-words.service';
+import { ToastrService } from 'ngx-toastr';
+import { Vente } from '../../model/vente';
+import { PrixArticlesService } from '../../service/prix-articles.service';
+import { PrixArticles } from '../../model/prix-articles';
+import { PaginationResponse } from '../../model/pagination-response';
+import { NotificationService } from '../../service/notification.service';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { UserService } from '../../service/user-service.service';
+import { PrintService } from '../../service/print.service';
+import { StockServiceService } from '../../service/stock-service.service';
+import { data } from 'jquery';
+import { StockManagementService } from '../../service/stock-management.service';
+import { User } from '../../model/user';
+import { AuthService } from '../../../auth/auth.service';
+
+
+@Component({
+  selector: 'app-vente',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  templateUrl: './vente.component.html',
+  styleUrl: './vente.component.css'
+})
+export class VenteComponent implements OnInit, OnDestroy {
+  @ViewChild('barcodeInput') barcodeInput!: ElementRef<HTMLInputElement>;
+  private destroy$ = new Subject<void>();
+
+  articleSearchRef!: Produit;
+
+  // Forms
+  venteForm!: FormGroup;
+  articleForm!: FormGroup;
+  bonAchatForm!: FormGroup;
+  clientForm!: FormGroup;
+
+  // Data
+  caisseItems: CaisseItem[] = [];
+  articles: Produit[] = [];
+  filteredArticles: Produit[] = [];
+  personnes: Person[] = [];
+  typesPaiement: string[] = ['ESPECES', 'MOBILE_MONEY', 'ORANGE_MONEY', 'EXPRESS_UNION', 'CARTE_BANCAIRE', 'VIREMENT', 'CHEQUE'];
+
+  // UI State
+  loading = false;
+  showArticleModal = false;
+  showPaiementModal = false;
+  showBonAchatModal = false;
+  showClientModal = false;
+  showConfirmationModal = false;
+  isLoading = false;
+
+  // Vente data
+  numeroTicket = '';
+  montantTotal = 0;
+  montantTotalApaye = 0;
+  montantRemise = 0;
+  typePaiementSelectionne = 'ESPECES';
+  montantRecu = 0;
+  monnaieRendue = 0;
+  venteValidee!: Vente; // Pour stocker les données de la vente validée
+
+  // Bon d'achat
+  bonAchatCode = '';
+  bonAchatValide = false;
+  montantBonAchat = 0;
+  resteApresBonAchat = 0;
+  venteid!: number;
+  venteCreee = false;
+  numerocommande:number=0;
+   user: User | null = null;
+    userSession: any;
+
+  constructor(
+    private fb: FormBuilder, private barcodeService: BarcodeService, private notificationService: NotificationService,
+    private prixArticlesService: PrixArticlesService, private userService: UserService, private printService: PrintService,
+    private stockService: StockServiceService,private stockManagementService:StockManagementService, private authService: AuthService
+  ) {
+    this.initializeForms();
+  }
+
+  ngOnInit(): void {
+    this.userSession = this.authService.currentUserValue;
+    if (this.userSession && this.userSession.usersDTO) {
+      console.log(this.user)
+      this.user = this.userSession.usersDTO;
+      console.log("verification du stock");
+    
+    }
+   this.genererNumeroTicket();
+  this.chargerDonnees();
+  this.focusBarcodeInput();
+
+  // 🔄 Écouter les alertes de stock
+  this.stockManagementService.stockAlert$
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(alerts => {
+      alerts.forEach(alert => {
+        if (alert.type === 'RUPTURE') {
+          this.notificationService.error(
+            `⚠️ RUPTURE DE STOCK: ${alert.libelle} (Stock: ${alert.stockActuel})`
+          );
+        } else if (alert.type === 'ALERTE') {
+          this.notificationService.warning(
+            `⚠️ ALERTE STOCK BAS: ${alert.libelle} (Stock: ${alert.stockActuel}/${alert.seuilAlerte})`
+          );
+        }
+      });
+    });
+
+  // 🔄 Écouter les mises à jour de stock
+  this.stockManagementService.stockUpdated$
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(produitMisAJour => {
+      this.actualiserArticleStockEnListe(produitMisAJour);
+    });
+
+  // 🎯 Articles ajoutés ailleurs
+  this.prixArticlesService.articleAjoute$
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(() => {
+      this.chargerArticles();
+    });
+
+  // 💰 Changements de remise
+  this.venteForm.get('remise')?.valueChanges
+    .pipe(
+      debounceTime(300),
+      takeUntil(this.destroy$)
+    )
+    .subscribe(nouvelleValeur => {
+      this.recalculerTotalAvecRemise(nouvelleValeur);
+    });
+
+  // 📊 Changement du type de remise
+  this.venteForm.get('typeRemise')?.valueChanges
+    .pipe(takeUntil(this.destroy$))
+    .subscribe(value => {
+      this.venteForm.get('remise')?.reset();
+    });
+  }
+
+
+  recalculerTotalAvecRemise(remise: number) {
+    if (this.venteForm.get('typeRemise')?.value === 'taux') {
+      this.montantRemise = (this.montantTotal * remise / 100)
+      this.montantTotalApaye = this.montantTotal - this.montantRemise;
+    } else {
+      this.montantRemise = (remise)
+      this.montantTotalApaye = this.montantTotal - this.montantRemise;
+    }
+
+  }
+
+  ngOnDestroy(): void {
+     this.destroy$.next();
+  this.destroy$.complete();
+  this.stockManagementService.destroy();
+  }
+  private initializeForms(): void {
+    this.venteForm = this.fb.group({
+      barcode: [''],
+      client: [''],
+      typeRemise: ['taux'], // valeur par défaut
+      remise: [0, [Validators.min(0), Validators.max(100)]]
+    });
+
+    this.articleForm = this.fb.group({
+      libelle: ['', Validators.required],
+      quantite: [1, [Validators.required, Validators.min(1)]],
+      prixUnitaire: [0, [Validators.required, Validators.min(0)]]
+    });
+
+    this.bonAchatForm = this.fb.group({
+      personne: ['', Validators.required],
+      montant: [0, [Validators.required, Validators.min(0)]],
+      renduEspece: [0, [Validators.min(0)]]
+    });
+
+    this.clientForm = this.fb.group({
+      nom: ['', Validators.required],
+      prenom: ['', Validators.required],
+      telephone: [''],
+      email: ['', Validators.email]
+    });
+  }
+
+  private genererNumeroTicket(): void {
+    const now = new Date();
+    const timestamp = now.getTime().toString().slice(-6);
+    this.numeroTicket = `TKT${timestamp}`;
+  }
+
+  private async chargerDonnees(): Promise<void> {
+    try {
+      this.loading = true;
+      // Simuler le chargement des données
+      await this.chargerArticles();
+      await this.chargerPersonnes();
+    } catch (error) {
+      console.error('Erreur lors du chargement des données:', error);
+    } finally {
+      this.loading = false;
+    }
+  }
+  private handleError(message: string, error: any): void {
+    console.error(message, error);
+    this.notificationService.error(message);
+    this.isLoading = false;
+
+  }
+  resetArticles() {
+    this.loading = true;
+    this.articles = [];
+    this.filteredArticles = [];
+    if(!this.user) return;
+    this.barcodeService.getProduitsAutoComplet(this.user.boutiqueid?? 0)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (produits) => {
+          this.articles = produits;
+
+          this.filteredArticles = [...this.articles];
+          this.loading = false;
+        },
+        error: (error) => this.handleError('Erreur lors du chargement des produits', error)
+      });
+  }
+
+  private async chargerArticles(): Promise<void> {
+  this.loading = true;
+      if(!this.user) return;
+  this.barcodeService.getProduitsAutoComplet(this.user.boutiqueid?? 0)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (produits) => {
+        this.articles = produits;
+        this.filteredArticles = [...this.articles];
+        
+        // 🔄 Précharger tous les stocks dans le service
+        const articleIds = produits
+          .map(p => p.id)
+          .filter((id): id is number => id !== undefined);
+        
+        if (articleIds.length > 0) {
+          this.stockManagementService.getStocksProduits(articleIds)
+            .pipe(takeUntil(this.destroy$))
+            .subscribe({
+              next: (stockMap) => {
+                // Mettre à jour les articles avec les stocks récupérés
+                this.articles.forEach(article => {
+                  if (article.id && stockMap.has(article.id)) {
+                    article.stockFinal = stockMap.get(article.id)!;
+                  }
+                });
+                this.filteredArticles = [...this.articles];
+                this.loading = false;
+              },
+              error: (error) => {
+                this.handleError('Erreur lors du chargement des stocks', error);
+                this.loading = false;
+              }
+            });
+        } else {
+          this.loading = false;
+        }
+      },
+      error: (error) => {
+        this.handleError('Erreur lors du chargement des produits', error);
+        this.loading = false;
+      }
+    });
+  }
+
+  public getstockProduit(article: Produit) {
+    let qte;
+    console.log(article)
+    if (!article.id) return;
+    this.barcodeService.getStockcurrentProduit(article.id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (stock) => {
+          qte = stock;
+
+
+        },
+        error: (error) => {
+          this.handleError('Erreur lors du chargement du produit par sa référence', error);
+        }
+      });
+    return qte;
+  }
+
+  private async chargerPersonnes(): Promise<void> {
+    // Simuler un appel API
+
+    this.barcodeService.getAllPersons().subscribe({
+      next: (data: Person[]) => this.personnes = data,
+
+      error: (err) => {
+        this.handleError('Erreur lors du chargement des clients', err);
+      },
+
+    })
+    /** this.personnes = [
+       {
+         id: 1,
+         matricule: "00012",
+         nom: 'Dupont',
+         prenom: 'Jean',
+         telephone: '123456789',
+         email: 'jean.dupont@email.com'
+       }
+     ];*/
+  }
+
+  private focusBarcodeInput(): void {
+    setTimeout(() => {
+      if (this.barcodeInput) {
+        this.barcodeInput.nativeElement.focus();
+      }
+    }, 100);
+  }
+
+  // Event handlers
+  onBarcodeInput(event: any): void {
+    const barcode = event.target.value;
+    if (barcode) {
+
+       this.barcodeService.verificationNumeTicketForEcom(barcode).subscribe({
+    next: (venteExistante:Vente) => {
+      if (venteExistante && venteExistante.id) {
+        this.numerocommande=venteExistante.numerocommande || 0;
+        this.caisseItems=[...venteExistante.items];
+      this.venteForm.patchValue({ barcode: '' });
+      this.calculerMontantTotal();
+        //alert('Ce numéro de ticket existe déjà avec l\'ID : ' + venteExistante.id);
+        this.loading = false;
+        return;
+      }
+
+    },
+    error: (error) => {
+      console.error('Erreur lors de la vérification du ticket :', error);
+      alert('Erreur réseau lors de la vérification du ticket');
+      this.loading = false;
+      this.numerocommande=0;
+    }
+  });
+      //this.rechercherArticleParCodeBarre(barcode);
+    }
+  }
+
+  onSearchInput(event: any): void {
+
+    const searchTerm = event.target.value.toLowerCase();
+    this.filteredArticles = this.articles.filter(article =>
+      article.libelle.toLowerCase().includes(searchTerm) ||
+      article.reference.toLowerCase().includes(searchTerm)
+    );
+  }
+  onSearchInputRef(ref: string): void {
+    const reference = ref.trim();
+    if (!reference) return;
+
+    this.barcodeService.getArticleByReference(reference)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (article) => {
+          if (!article || !article.id) {
+            this.openArticleModal();
+            return;
+          }
+
+          this.articleSearchRef = article;
+          this.ajouterArticleVente(article);
+        },
+        error: (error) => {
+          this.handleError('Erreur lors du chargement du produit par sa référence', error);
+        }
+      });
+  }
+
+
+  onSearchInputReference(event: any): void {
+    const searchTerm = event.target.value.toLowerCase();
+    if (searchTerm.size >= 6) {
+      console.log("size ")
+      console.log()
+   if(!this.user) return;
+      this.barcodeService.getProduitsAutoComplet(this.user.boutiqueid?? 0)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (produits) => this.articles = produits,
+          error: (error) => this.handleError('Erreur lors du chargement des produits', error)
+        });
+      this.filteredArticles = [...this.articles];
+    }
+
+  }
+
+  onQuantiteChange(item: CaisseItem, event: any): void {
+    const newQuantite = parseInt(event.target.value);
+    if (newQuantite > 0) {
+      this.modifierQuantite(item, newQuantite);
+    }
+  }
+
+  onPrixChange(item: CaisseItem, event: any): void {
+    const newPrix = parseFloat(event.target.value);
+    if (newPrix >= 0) {
+      item.prixUnitaire = newPrix;
+      item.montantTotal = item.quantite * newPrix;
+      this.calculerMontantTotal();
+    }
+  }
+
+  onMontantRecuInput(event: any): void {
+    this.montantRecu = parseFloat(event.target.value) ;
+    if (this.montantTotalApaye !== 0) {
+      this.monnaieRendue = Math.max(0, this.montantRecu - this.montantTotalApaye);
+    } else {
+      this.monnaieRendue = Math.max(0, this.montantRecu - this.montantTotal);
+    }
+
+  }
+
+  // Article methods
+  private rechercherArticleParCodeBarre(barcode: string): void {
+    const article = this.articles.find(a => a.reference === barcode);
+    if (article) {
+      this.ajouterArticleVente(article);
+      this.venteForm.patchValue({ barcode: '' });
+    } else {
+      //alert('Article non trouvé');
+      this.openArticleModal();
+    }
+  }
+
+
+
+  // ============= AJOUT D'ARTICLE À LA VENTE =============
+ajouterArticleVente(article: Produit): void {
+  // ✅ Vérifier le stock avec le service
+  this.stockManagementService.getStockProduit(article.id!, true)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (stockActuel) => {
+        article.stockFinal = stockActuel;
+
+        if (stockActuel <= 0) {
+          this.notificationService.error(
+            `❌ Article "${article.libelle}" en rupture de stock`
+          );
+          return;
+        }
+
+        const existingItem = this.caisseItems.find(
+          item => item.article.id === article.id
+        );
+
+        if (existingItem) {
+          const nouvelleQuantite = existingItem.quantite + 1;
+          if (nouvelleQuantite > stockActuel) {
+            this.notificationService.warning(
+              `⚠️ Stock insuffisant pour "${article.libelle}". ` +
+              `Stock disponible: ${stockActuel}`
+            );
+            return;
+          }
+          this.modifierQuantite(existingItem, nouvelleQuantite);
+        } else {
+          const newItem: CaisseItem = {
+            article: article,
+            quantite: 1,
+            prixUnitaire: article.prixVenteTTC,
+            montantTotal: article.prixVenteTTC
+          };
+          this.caisseItems.push(newItem);
+        }
+
+        this.calculerMontantTotal();
+        this.venteForm.patchValue({ barcode: '' });
+      },
+      error: (error) => {
+        this.handleError(
+          `Erreur lors de la récupération du stock de "${article.libelle}"`,
+          error
+        );
+      }
+    });
+  }
+  
+
+  ajouterArticleNonStock(): void {
+    if (this.articleForm.valid) {
+      const formValue = this.articleForm.value;
+      const articleLibre: Produit = {
+        id: Date.now(),
+        libelle: formValue.libelle,
+        reference: `LIBRE_${Date.now()}`,
+        prixVenteTTC: formValue.prixUnitaire,
+        stockFinal: 999,
+        prixVenteModifiable: true,
+        pacquets: false,
+        quantiteByPacquet: 0,
+        quantitePrete: 0,
+        quantiteLivree: 0,
+        prixVenteNet: 1500,
+        deletes: false,
+        remise: 0,
+        tva: 0
+      };
+
+      const newItem: CaisseItem = {
+        //id: Date.now().toString(),
+        article: articleLibre,
+        quantite: formValue.quantite,
+        prixUnitaire: formValue.prixUnitaire,
+        montantTotal: formValue.quantite * formValue.prixUnitaire
+      };
+
+      this.caisseItems.push(newItem);
+      this.calculerMontantTotal();
+      this.articleForm.reset();
+      this.showArticleModal = false;
+      this.focusBarcodeInput();
+    }
+  }
+
+  // ============= MODIFICATION DE QUANTITÉ =============
+modifierQuantite(item: CaisseItem, nouvelleQuantite: number): void {
+  if (nouvelleQuantite <= 0) {
+    this.supprimerItem(this.caisseItems.indexOf(item));
+    return;
+  }
+
+  // ✅ Vérifier le stock en temps réel
+  this.stockManagementService.getStockProduit(item.article.id!, true)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (stockActuel) => {
+        item.article.stockFinal = stockActuel;
+
+        if (nouvelleQuantite > stockActuel) {
+          this.notificationService.warning(
+            `⚠️ Quantité non disponible. Stock: ${stockActuel}, Demandé: ${nouvelleQuantite}`
+          );
+          return;
+        }
+
+        item.quantite = nouvelleQuantite;
+        item.montantTotal = item.quantite * item.prixUnitaire;
+        this.calculerMontantTotal();
+      },
+      error: (error) => this.handleError('Erreur de vérification du stock', error)
+    });
+}
+
+
+
+  supprimerItem(index: number): void {
+    this.caisseItems.splice(index, 1);
+    this.calculerMontantTotal();
+  }
+
+  // Modal methods
+  openArticleModal(): void {
+
+    this.showArticleModal = true;
+
+    this.filteredArticles = [...this.articles];
+  }
+
+  openPaiementModal(type: string): void {
+    this.typePaiementSelectionne = type === 'especes' ? 'ESPECES' : 'CARTE_BANCAIRE';
+    this.montantRecu = 0;
+    this.monnaieRendue = 0;
+    this.showPaiementModal = true;
+   this.montantTotalApaye = this.montantTotal - this.montantRemise;
+  }
+
+  // Calculs
+  private calculerMontantTotal(): void {
+    let total = this.caisseItems.reduce((sum, item) => sum + item.montantTotal, 0);
+      this.montantTotal=total;
+    const remise = this.venteForm.get('remise')?.value || 0;
+    if (remise > 0) {
+    this.recalculerTotalAvecRemise(remise);
+    }
+
+    //this.montantTotal = total;
+  }
+
+  getMontantEnLettres(): string {
+    // Implémentation simplifiée pour la conversion en lettres
+    if (this.montantTotal === 0) return '';
+
+    // Fonction basique de conversion (peut être améliorée)
+    const montant = Math.floor(this.montantTotal);
+    const unites = ['', 'un', 'deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+    const dizaines = ['', '', 'vingt', 'trente', 'quarante', 'cinquante', 'soixante', 'soixante-dix', 'quatre-vingt', 'quatre-vingt-dix'];
+    const centaines = ['', 'cent', 'deux-cent', 'trois-cent', 'quatre-cent', 'cinq-cent', 'six-cent', 'sept-cent', 'huit-cent', 'neuf-cent'];
+
+    if (montant < 10) {
+      return `${unites[montant]} franc${montant > 1 ? 's' : ''} CFA`;
+    } else if (montant < 1000) {
+      return `${montant} francs CFA`;
+    } else {
+      return `${montant.toLocaleString('fr-FR')} francs CFA`;
+    }
+  }
+
+  // Bon d'achat methods
+  verifierBonAchat(): void {
+    if (!this.bonAchatCode) return;
+
+    // Simuler la vérification du bon d'achat
+    // Dans un vrai système, ceci ferait un appel API
+    setTimeout(() => {
+      this.bonAchatValide = true;
+      this.montantBonAchat = Math.min(1000, this.montantTotal); // Exemple
+      this.resteApresBonAchat = Math.max(0, this.montantTotal - this.montantBonAchat);
+    }, 500);
+  }
+
+  // Client methods
+  creerClient(): void {
+    if (this.clientForm.valid) {
+      const nouveauClient: Person = {
+        // id: Date.now(),
+        ...this.clientForm.value
+      };
+      this.barcodeService.createPerson(nouveauClient).subscribe({
+        next: (cl: Person) => {
+          if (cl) {
+            this.personnes.push(cl);
+          }
+        },
+        error: (erro) => {
+          this.handleError('Erreur de creation client', nouveauClient.nom);
+        }
+      });
+      this.personnes.push(nouveauClient);
+      this.venteForm.patchValue({ client: nouveauClient.id });
+      this.clientForm.reset();
+      this.showClientModal = false;
+    }
+  }
+
+  // Vente methods
+// ============= VALIDATION DE LA VENTE =============
+validerVente(): void {
+  if (this.caisseItems.length === 0) {
+    this.notificationService.error('Aucun article dans le panier');
+    return;
+  }
+
+  if (!this.verifierStockAvantVente()) {
+    this.notificationService.error('Stock insuffisant pour valider la vente');
+    return;
+  }
+
+  if (this.typePaiementSelectionne === 'ESPECES' && 
+      this.montantRecu < this.montantTotalApaye) {
+    this.notificationService.error('Montant reçu insuffisant');
+    return;
+  }
+
+  this.loading = true;
+
+  // Vérifier si le ticket existe
+  this.barcodeService.verificationNumeTicket(this.numeroTicket)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (venteExistante) => {
+        if (venteExistante?.id) {
+          this.notificationService.error(
+            `Ticket ${this.numeroTicket} déjà utilisé`
+          );
+          this.loading = false;
+          return;
+        }
+
+        this.enregistrerVente();
+      },
+      error: (error) => {
+        console.error('Erreur vérification ticket:', error);
+        this.enregistrerVente(); // Continuer si erreur API
+      }
+    });
+}
+
+  private checkMontantApaye(): number {
+    if (this.montantTotalApaye == 0) {
+      return this.montantTotal;
+    }
+    return this.montantTotalApaye;
+  }
+
+  //verification ticket
+ /** verificationNumeTicket(){
+    setTimeout(() => {
+    this.barcodeService.verificationNumeTicket(this.numeroTicket).subscribe({
+      next: data => {
+       this.venteid=data.id ?? 0;
+
+    
+      },
+      error: err => {
+        console.error('Erreur lors de la récupération des prix', err);
+      }
+    });
+  }, 500); // délai de  5 milli secondes
+}*/ 
+
+
+  private async enregistrerVente(): Promise<void> {
+     const userinsert = this.userService.getUserConnected();
+  
+  // Auto-remplir le montant reçu pour paiements non-espèces
+  const paiementsAutoMontantRecu = [
+    'MOBILE_MONEY', 'ORANGE_MONEY', 'EXPRESS_UNION', 'CARTE_BANCAIRE'
+  ];
+  
+  if (paiementsAutoMontantRecu.includes(this.typePaiementSelectionne)) {
+    this.montantRecu = this.montantTotalApaye;
+  }
+
+  this.venteValidee = {
+    numeroTicket: this.numeroTicket,
+    date: new Date(),
+    items: [...this.caisseItems],
+    montantTotal: this.montantTotal,
+    typePaiement: this.typePaiementSelectionne,
+    montantRecu: this.montantRecu,
+    monnaieRendue: this.monnaieRendue,
+    montantNet: this.checkMontantApaye(),
+    client: this.getDefautClient(),
+    userinsert: userinsert.username,
+    remise: this.montantRemise || 0,
+    statut: 'TERMINEE'
+  };
+
+  // 📤 Envoyer la vente au serveur
+  this.barcodeService.createVente(this.venteValidee, this.numerocommande)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (venteId) => {
+        this.venteid = venteId;
+
+        // 🔄 IMPORTANT: Décrémenter les stocks après la vente
+        this.decrementStocksApresVente();
+
+        this.showPaiementModal = false;
+        this.showConfirmationModal = true;
+      },
+      error: (error) => {
+        this.handleError('Erreur lors de l\'enregistrement de la vente', error);
+        this.loading = false;
+      }
+    });
+
+  }
+
+
+  // 8. Ajoutez une méthode pour actualiser un article spécifique
+  private actualiserArticleStock(articleId: number): void {
+    this.barcodeService.getArticleById(articleId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (articleMisAJour: Produit) => {
+          // Mettre à jour l'article dans la liste
+          const index = this.articles.findIndex(a => a.id === articleId);
+          if (index !== -1) {
+            this.articles[index] = articleMisAJour;
+          }
+
+          // Mettre à jour aussi dans les articles filtrés
+          const filteredIndex = this.filteredArticles.findIndex(a => a.id === articleId);
+          if (filteredIndex !== -1) {
+            this.filteredArticles[filteredIndex] = articleMisAJour;
+          }
+        },
+        error: (error: any) => {
+          console.error('Erreur lors de l\'actualisation de l\'article:', error);
+        }
+      });
+  }
+
+
+  // 9. Méthode pour recharger tous les stocks après une vente
+  private rechargerStocks(): void {
+    //let articlesIds: number[] = this.caisseItems.map(item => item.article.id); 
+    let articlesIds: number[] = this.caisseItems
+      .map(item => item.article.id)
+      .filter((id): id is number => id !== undefined);
+
+    articlesIds.forEach((id) => {
+      this.actualiserArticleStock(id);
+    });
+  }
+  // 6. Ajoutez une méthode pour vérifier le stock avant validation
+  private verifierStockAvantVente(): boolean {
+    for (const item of this.caisseItems) {
+    if (item.article.stockFinal <= 0) {
+      this.notificationService.error(
+        `Rupture: ${item.article.libelle}`
+      );
+      return false;
+    }
+    if (item.quantite > item.article.stockFinal) {
+      this.notificationService.error(
+        `Stock insuffisant: ${item.article.libelle}` +
+        ` (Disponible: ${item.article.stockFinal}, Demandé: ${item.quantite})`
+      );
+      return false;
+    }
+  }
+  return true;
+  }
+  private getDefautClient(): Person | undefined {
+    const clientId = this.venteForm.get('client')?.value;
+    if (clientId) {
+      const client = this.personnes.find(p => p.id == clientId);
+      return client;
+    }
+    const clientDefaut: Person = {
+      matricule: "0000000",
+      nom: 'Client de passage',
+      prenom: "",
+      telephone: "0000000",
+      email: ""
+
+    }
+    return clientDefaut;
+  }
+  private getClientInfo(): string {
+    const clientId = this.venteForm.get('client')?.value;
+    if (clientId) {
+      const client = this.personnes.find(p => p.id == clientId);
+      return client ? `${client.nom} ${client.prenom}` : 'Client de passage';
+    }
+    return 'Client de passage';
+  }
+
+
+refreshApplication(): void {
+   this.loading = true;
+   this.showConfirmationModal = false;
+  //this.router.navigate([this.router.url]); // recharge la même route
+  this.loading = false;
+  window.location.reload();
+
+}
+
+  async nouvelleVente(): Promise<void> {
+
+     this.loading = true;
+  
+  // 🔄 Rafraîchir tous les stocks
+  this.stockManagementService.refreshAllStocks();
+  
+  // Réinitialiser le formulaire
+  this.caisseItems = [];
+  this.montantTotal = 0;
+  this.montantTotalApaye = 0;
+  this.montantRemise = 0;
+  this.venteForm.reset({ typeRemise: 'taux', remise: 0 });
+  this.bonAchatCode = '';
+  this.bonAchatValide = false;
+  this.numerocommande = 0;
+  
+  // 📋 Recharger les articles
+  await this.chargerArticles();
+  
+  this.genererNumeroTicket();
+  this.showConfirmationModal = false;
+  this.focusBarcodeInput();
+  
+  this.loading = false;
+
+  }
+
+  // Print & Download methods
+  imprimerTicket(ticketId: number): void {
+    /* if (this.venteValidee) {
+       // Générer le PDF et l'ouvrir pour impression
+       const pdf = this.genererTicketPDF(this.venteValidee);
+       pdf.autoPrint();
+       window.open(pdf.output('bloburl'), '_blank');
+     }*/
+
+    if (this.venteid) {
+      this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe(blob => {
+        const file = new Blob([blob], { type: 'text/plain;charset=utf-8' });
+        this.printService.imprimerAvecPrevisualisation(file);
+        // const url = window.URL.createObjectURL(blob);gggggggg
+        // window.open(url); // ✅ Ouvre dans un nouvel onglet
+      });
+    }
+    /* *this.barcodeService.downloadTicketVente(this.venteid).subscribe(blob => {
+       const url = window.URL.createObjectURL(blob);
+       window.open(url); // ✅ Ouvre dans un nouvel onglet
+     });*/
+  }
+
+  telechargerTicket(ticketId: number): void {
+    /**   if (this.venteValidee) {
+        // Générer et télécharger le PDF du ticket
+        const pdf = this.genererTicketPDF(this.venteValidee);
+        pdf.save(`ticket_${this.venteValidee.numeroTicket}.pdf`);
+      }*/
+    if (this.venteid) {
+
+      this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe(blob => {
+
+        /**  const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `ticket-vente-${this.venteid}.pdf`;
+          link.click();*/
+        // ✅ Convertir en fichier avec le bon MIME
+        const file = new Blob([blob], { type: 'text/plain;charset=utf-8' });
+
+        // ✅ Créer un lien temporaire pour téléchargement
+        const url = window.URL.createObjectURL(file);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'ticket.txt'; // nom du fichier
+        a.click();
+
+        // ✅ Libérer l'URL
+        window.URL.revokeObjectURL(url);
+      });
+    }
+  }
+
+
+
+  private genererTicketPDF(vente: any): jsPDF {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: [80, 200] // Format ticket de caisse (80mm de largeur)
+    });
+
+    // Configuration des polices et couleurs
+    doc.setFont('helvetica');
+    doc.setFontSize(10);
+
+    let yPosition = 10;
+    const lineHeight = 4;
+    const pageWidth = 80;
+    const margin = 5;
+
+    // En-tête du magasin
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    this.addCenteredText(doc, 'POINT DE VENTE', yPosition, pageWidth);
+    yPosition += lineHeight + 2;
+
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    this.addCenteredText(doc, 'Votre magasin de confiance', yPosition, pageWidth);
+    yPosition += lineHeight;
+    this.addCenteredText(doc, 'Tel: +237 6XX XX XX XX', yPosition, pageWidth);
+    yPosition += lineHeight + 3;
+
+    // Ligne de séparation
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 3;
+
+    // Informations du ticket
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Ticket N°: ${vente.numeroTicket}`, margin, yPosition);
+    yPosition += lineHeight;
+
+    doc.setFont('helvetica', 'normal');
+    const dateStr = vente.date.toLocaleDateString('fr-FR') + ' ' +
+      vente.date.toLocaleTimeString('fr-FR');
+    doc.text(`Date: ${dateStr}`, margin, yPosition);
+    yPosition += lineHeight;
+
+    doc.text(`Client: ${vente.client}`, margin, yPosition);
+    yPosition += lineHeight;
+
+    if (vente.remise > 0) {
+      doc.text(`Remise: ${vente.remise}%`, margin, yPosition);
+      yPosition += lineHeight;
+    }
+
+    yPosition += 2;
+
+    // Ligne de séparation
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 3;
+
+    // Articles
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    doc.text('ARTICLES', margin, yPosition);
+    yPosition += lineHeight;
+
+    doc.setFont('helvetica', 'normal');
+
+    vente.items.forEach((item: CaisseItem) => {
+      // Nom de l'article
+      const articleLines = this.splitText(doc, item.article.libelle, pageWidth - 2 * margin);
+      articleLines.forEach((line: string) => {
+        doc.text(line, margin, yPosition);
+        yPosition += lineHeight;
+      });
+
+      // Détails : quantité x prix = total
+      const detailText = `${item.quantite} x ${this.formatCurrency(item.prixUnitaire)} = ${this.formatCurrency(item.montantTotal)}`;
+      doc.text(detailText, margin + 2, yPosition);
+      yPosition += lineHeight + 1;
+    });
+
+    yPosition += 2;
+
+    // Ligne de séparation
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 3;
+
+    // Totaux
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+
+    const sousTotal = vente.items.reduce((sum: number, item: CaisseItem) => sum + item.montantTotal, 0);
+    doc.text(`Sous-total: ${this.formatCurrency(sousTotal)}`, margin, yPosition);
+    yPosition += lineHeight;
+
+    if (vente.remise > 0) {
+      const montantRemise = sousTotal * vente.remise / 100;
+      doc.text(`Remise (${vente.remise}%): -${this.formatCurrency(montantRemise)}`, margin, yPosition);
+      yPosition += lineHeight;
+    }
+
+    doc.setFontSize(11);
+    doc.text(`TOTAL: ${this.formatCurrency(vente.montantTotal)}`, margin, yPosition);
+    yPosition += lineHeight + 2;
+
+    // Paiement
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Mode de paiement: ${this.getTypePaiementLibelle(vente.typePaiement)}`, margin, yPosition);
+    yPosition += lineHeight;
+
+    if (vente.typePaiement === 'ESPECES') {
+      doc.text(`Montant reçu: ${this.formatCurrency(vente.montantRecu)}`, margin, yPosition);
+      yPosition += lineHeight;
+      doc.text(`Monnaie rendue: ${this.formatCurrency(vente.monnaieRendue)}`, margin, yPosition);
+      yPosition += lineHeight;
+    }
+
+    yPosition += 3;
+
+    // Ligne de séparation
+    doc.line(margin, yPosition, pageWidth - margin, yPosition);
+    yPosition += 3;
+
+    // Pied de page
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    this.addCenteredText(doc, 'Merci pour votre visite !', yPosition, pageWidth);
+    yPosition += lineHeight;
+    this.addCenteredText(doc, 'Conservez votre ticket', yPosition, pageWidth);
+    yPosition += lineHeight + 2;
+
+    // Montant en lettres
+    doc.setFontSize(7);
+    const montantEnLettres = this.getMontantEnLettres();
+    if (montantEnLettres) {
+      const lettresLines = this.splitText(doc, montantEnLettres, pageWidth - 2 * margin);
+      lettresLines.forEach((line: string) => {
+        this.addCenteredText(doc, line, yPosition, pageWidth);
+        yPosition += lineHeight - 1;
+      });
+    }
+
+    return doc;
+  }
+
+  private addCenteredText(doc: jsPDF, text: string, y: number, pageWidth: number): void {
+    const textWidth = doc.getTextWidth(text);
+    const x = (pageWidth - textWidth) / 2;
+    doc.text(text, x, y);
+  }
+
+  private splitText(doc: jsPDF, text: string, maxWidth: number): string[] {
+    return doc.splitTextToSize(text, maxWidth);
+  }
+
+  private formatCurrency(amount: number): string {
+    console.log(amount);
+    return new Intl.NumberFormat('fr-FR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount).replace('/', ' ') + ' FCFA';
+  }
+
+  /**private formatCurrency(amount: number): string {
+  if (isNaN(amount) || amount == null) return '0 FCFA';
+
+  return new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'XAF',
+    currencyDisplay: 'code', // ou 'symbol' si tu veux juste FCFA
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(amount).replace('XOF', 'XAF');
+}*/
+
+  private getTypePaiementLibelle(type: string): string {
+    const types: { [key: string]: string } = {
+      'ESPECES': 'Espèces',
+      'CARTE_BANCAIRE': 'Carte bancaire',
+      'VIREMENT': 'Virement',
+      'CHEQUE': 'Chèque',
+      'MOBILE_MONEY': 'Mobile Money',
+      'ORANGE_MONEY': 'Orange Money'
+    };
+    return types[type] || type;
+  }
+
+  private attendre(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  reduireLibelle(libelle: string, maxLength: number = 25): string {
+  //if (!libelle) return '';
+  console.log(libelle)
+  return libelle.length > maxLength ? libelle.slice(0, maxLength) + '...' : libelle;
+}
+
+
+
+
+// ============= DÉCRÉMENTATION DES STOCKS =============
+private decrementStocksApresVente(): void {
+  const itemsToDecrement = this.caisseItems
+    .filter(item => item.article.id && !item.article.reference.startsWith('LIBRE_'))
+    .map(item => ({
+      articleId: item.article.id!,
+      quantite: item.quantite
+    }));
+
+  if (itemsToDecrement.length === 0) {
+    this.loading = false;
+    return;
+  }
+
+  // 📉 Utiliser le batch decrement pour performance
+  this.stockManagementService.decrementStocksBatch(itemsToDecrement)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (results) => {
+        console.log('Stocks décrémentés avec succès:', results);
+        
+        // 🔄 Rafraîchir les articles en panier
+        this.rafraichirArticlesApresVente();
+        
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Erreur décrémentation stocks:', error);
+        // ⚠️ La vente est créée, mais stock non décrémenté - log important!
+        this.notificationService.error(
+          'Vente enregistrée mais erreur mise à jour stock'
+        );
+        this.loading = false;
+      }
+    });
+}
+
+// ============= RAFRAÎCHISSEMENT ARTICLES =============
+private rafraichirArticlesApresVente(): void {
+  const articleIds = this.caisseItems
+    .map(item => item.article.id)
+    .filter((id): id is number => id !== undefined);
+
+  if (articleIds.length === 0) return;
+
+  articleIds.forEach(id => {
+    this.stockManagementService.refreshArticleStock(id)
+      .pipe(
+        debounceTime(500),
+        takeUntil(this.destroy$)
+      )
+      .subscribe({
+        next: (articleMisAJour) => {
+          this.actualiserArticleStockEnListe(articleMisAJour);
+        },
+        error: (error) => console.error('Erreur rafraîchissement stock:', error)
+      });
+  });
+}
+
+// ============= ACTUALISER ARTICLE EN LISTE =============
+private actualiserArticleStockEnListe(articleMisAJour: Produit): void {
+  const indexArticles = this.articles.findIndex(
+    a => a.id === articleMisAJour.id
+  );
+  if (indexArticles !== -1) {
+    this.articles[indexArticles] = articleMisAJour;
+  }
+
+  const indexFiltered = this.filteredArticles.findIndex(
+    a => a.id === articleMisAJour.id
+  );
+  if (indexFiltered !== -1) {
+    this.filteredArticles[indexFiltered] = articleMisAJour;
+  }
+}
+
+
+
+
+// ============= CLEANUP =============
+
+
+}

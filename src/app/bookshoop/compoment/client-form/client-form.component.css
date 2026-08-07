@@ -1,0 +1,43 @@
+.custom-switch-lg .custom-control-label {
+    padding-top: 0.5rem;
+  }
+
+  .form-control-lg:focus,
+  .form-control-lg.is-valid:focus,
+  .form-control-lg.is-invalid:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+  }
+
+  .progress {
+    height: 1.5rem;
+    border-radius: 0.5rem;
+    background-color: #e9ecef;
+  }
+
+  .progress-bar {
+    line-height: 1.5rem;
+    font-weight: 600;
+    color: white;
+  }
+
+  textarea.form-control {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  @media (max-width: 768px) {
+    .btn-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .btn-group .btn {
+      border-radius: 0.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .card {
+      margin-bottom: 1rem;
+    }
+  }

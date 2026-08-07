@@ -1,4 +1,5 @@
-import { User } from "./user";
+import { User } from "../bookshoop/model/user";
+
 
 
 export interface UserSession {
@@ -6,4 +7,7 @@ export interface UserSession {
     token: string;
     permissions: string[];
     expiresAt: Date;
+     anneeid?:number;
+    hasAuditAccess?: boolean;
+    mustChangePassword?: boolean;
 }

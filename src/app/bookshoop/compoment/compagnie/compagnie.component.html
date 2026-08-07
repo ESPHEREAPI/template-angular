@@ -1,0 +1,214 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Gestion des Compagnies</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Compagnies</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Liste des Compagnies</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-primary" (click)="openModal()">
+            <i class="fas fa-plus"></i> Nouvelle Compagnie
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Type de commerce</th>
+                <th>Administrateur</th>
+                <th>Actif</th>
+                <th>Date création</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let compagnie of compagnies">
+                <td>{{ compagnie.id }}</td>
+                <td>{{ compagnie.nom }}</td>
+                <td>{{ compagnie.typeCommerce ? typeCommerceLabels[compagnie.typeCommerce] : '-' }}</td>
+                <td>
+                  <div *ngIf="compagnie.adminUserName; else aucunAdmin">
+                    <div>{{ compagnie.adminNom || '-' }}</div>
+                    <div class="text-muted small">{{ compagnie.adminUserName }}</div>
+                    <div class="text-muted small">{{ compagnie.adminEmail || '-' }}</div>
+                  </div>
+                  <ng-template #aucunAdmin>-</ng-template>
+                </td>
+                <td>
+                  <span class="badge" [class.badge-success]="compagnie.actif" [class.badge-secondary]="!compagnie.actif">
+                    {{ compagnie.actif ? 'Actif' : 'Inactif' }}
+                  </span>
+                </td>
+                <td>{{ compagnie.dateCreation | date:'dd/MM/yyyy HH:mm' }}</td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-secondary" (click)="resetAdminPassword(compagnie)">
+                    <i class="fas fa-key"></i> Réinitialiser le mot de passe admin
+                  </button>
+                  <button type="button" class="btn btn-sm" [class.btn-outline-warning]="compagnie.actif" [class.btn-outline-success]="!compagnie.actif"
+                          (click)="toggleActive(compagnie)">
+                    <i class="fas" [class.fa-ban]="compagnie.actif" [class.fa-check]="!compagnie.actif"></i>
+                    {{ compagnie.actif ? 'Désactiver' : 'Activer' }}
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="!loading && compagnies.length === 0">
+                <td colspan="7" class="text-center">Aucune compagnie trouvée</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal -->
+<div class="modal fade" id="compagnieModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Nouvelle Compagnie</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <h5>Compagnie</h5>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="nom">Nom *</label>
+                <input type="text" class="form-control" id="nom"
+                       [(ngModel)]="newCompagnie.nom" name="nom" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="typeCommerce">Type de commerce *</label>
+                <select class="form-control" id="typeCommerce" [(ngModel)]="newCompagnie.typeCommerce" name="typeCommerce">
+                  <option *ngFor="let type of typeCommerceOptions" [value]="type">{{ typeCommerceLabels[type] }}</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="adresse">Adresse</label>
+                <input type="text" class="form-control" id="adresse"
+                       [(ngModel)]="newCompagnie.adresse" name="adresse">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="tel">Téléphone</label>
+                <input type="text" class="form-control" id="tel"
+                       [(ngModel)]="newCompagnie.tel" name="tel">
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" class="form-control" id="email"
+                       [(ngModel)]="newCompagnie.email" name="email">
+              </div>
+            </div>
+          </div>
+
+          <hr>
+          <h5>Administrateur de la compagnie</h5>
+          <div class="alert alert-info">
+            L'identifiant et le mot de passe de l'admin compagnie sont générés automatiquement et affichés à la fin.
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="adminFirstName">Nom</label>
+                <input type="text" class="form-control" id="adminFirstName"
+                       [(ngModel)]="newCompagnie.adminFirstName" name="adminFirstName">
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="adminLastname">Prénom</label>
+                <input type="text" class="form-control" id="adminLastname"
+                       [(ngModel)]="newCompagnie.adminLastname" name="adminLastname">
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="adminEmail">Email</label>
+            <input type="email" class="form-control" id="adminEmail"
+                   [(ngModel)]="newCompagnie.adminEmail" name="adminEmail">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="save()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal identifiants generes (creation ou reinitialisation) -->
+<div class="modal fade" id="credentialsModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Identifiants</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-warning">À noter maintenant, ce mot de passe ne sera plus jamais réaffiché.</div>
+        <div class="form-group" *ngIf="credentialsUsername">
+          <label>Identifiant</label>
+          <div class="input-group">
+            <input type="text" class="form-control" readonly [value]="credentialsUsername">
+            <div class="input-group-append">
+              <button type="button" class="btn btn-outline-secondary" (click)="copyToClipboard(credentialsUsername)">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="form-group" *ngIf="credentialsPassword">
+          <label>Mot de passe</label>
+          <div class="input-group">
+            <input type="text" class="form-control" readonly [value]="credentialsPassword">
+            <div class="input-group-append">
+              <button type="button" class="btn btn-outline-secondary" (click)="copyToClipboard(credentialsPassword)">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>

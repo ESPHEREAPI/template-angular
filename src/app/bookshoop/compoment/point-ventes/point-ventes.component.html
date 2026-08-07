@@ -1,0 +1,613 @@
+<!-- Content Header (Page header) -->
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">Gestion des Points de Vente</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Points de Vente</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Messages d'alerte -->
+<div class="container-fluid" *ngIf="messages.length > 0">
+  <div class="row">
+    <div class="col-12">
+      <div *ngFor="let message of messages" 
+           class="alert alert-dismissible"
+           [ngClass]="{
+             'alert-success': message.severity === 'success',
+             'alert-danger': message.severity === 'error',
+             'alert-warning': message.severity === 'warning',
+             'alert-info': message.severity === 'info'
+           }">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+        <h5><i class="icon fas fa-check" *ngIf="message.severity === 'success'"></i>{{ message.summary }}</h5>
+        {{ message.detail }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Main content -->
+<section class="content">
+  <div class="container-fluid">
+    
+    <!-- Formulaire de sélection -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card card-primary">
+          <div class="card-header">
+            <h3 class="card-title">Sélection Point de Vente</h3>
+          </div>
+          <form [formGroup]="pointVenteForm" class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="depot">Dépôt *</label>
+                  <select id="depot" 
+                          class="form-control" 
+                          formControlName="depot"
+                          [class.is-invalid]="isFieldInvalid(pointVenteForm, 'depot')">
+                    <option value="">Sélectionnez un dépôt</option>
+                    <option *ngFor="let depot of listeDepots; trackBy: trackByFn" 
+                            [ngValue]="depot">
+                      {{ depot.libelle }}
+                    </option>
+                  </select>
+                  <div class="invalid-feedback" *ngIf="isFieldInvalid(pointVenteForm, 'depot')">
+                    {{ getFieldError(pointVenteForm, 'depot') }}
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="boutique">Boutique *</label>
+                  <div class="input-group">
+                    <select id="boutique" 
+                            class="form-control" 
+                            formControlName="boutique"
+                            [class.is-invalid]="isFieldInvalid(pointVenteForm, 'boutique')">
+                      <option value="">Sélectionnez une boutique</option>
+                      <option *ngFor="let boutique of listeBoutiques; trackBy: trackByFn" 
+                              [ngValue]="boutique">
+                        {{ boutique.nom }} 
+                      </option>
+                    </select>
+                    <div class="input-group-append">
+                      <button class="btn btn-outline-secondary" 
+                              type="button" 
+                              data-toggle="modal" 
+                              data-target="#boutiqueModal">
+                        <i class="fas fa-plus"></i>
+                      </button>
+                    </div>
+                    <div class="invalid-feedback" *ngIf="isFieldInvalid(pointVenteForm, 'boutique')">
+                      {{ getFieldError(pointVenteForm, 'boutique') }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Boutons d'action -->
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between flex-wrap">
+              <div class="btn-group" role="group">
+                <button type="button" 
+                        class="btn btn-success" 
+                        [disabled]="!isFormValid || loading"
+                        (click)="onAjouter()">
+                  <i class="fas fa-plus"></i> Ajouter
+                </button>
+                <button type="button" 
+                        class="btn btn-warning" 
+                        [disabled]="!canModify || submitting"
+                        (click)="onModifier()">
+                  <i class="fas fa-edit"></i> Modifier
+                </button>
+                <button type="button" 
+                        class="btn btn-info" 
+                        [disabled]="loading"
+                        (click)="onRafraichir()">
+                  <i class="fas fa-sync-alt"></i> Rafraîchir
+                </button>
+                <button type="button" 
+                        class="btn btn-secondary" 
+                        [disabled]="!isFormValid"
+                        (click)="onImprimer()">
+                  <i class="fas fa-print"></i> Imprimer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tableau des données -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Liste des Prix Articles</h3>
+            <div class="card-tools">
+              <!-- Recherche -->
+              <form [formGroup]="searchForm" class="input-group input-group-sm" style="width: 300px;">
+                <input type="text" 
+                       class="form-control float-right" 
+                       placeholder="Rechercher..."
+                       formControlName="searchTerm">
+                <div class="input-group-append">
+                  <button type="button" class="btn btn-default">
+                    <i class="fas fa-search"></i>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+          
+          <div class="card-body table-responsive p-0">
+            <!-- Loader -->
+            <div *ngIf="loading" class="text-center p-4">
+              <div class="spinner-border" role="status">
+                <span class="sr-only">Chargement...</span>
+              </div>
+              <p class="mt-2">Chargement des données...</p>
+            </div>
+
+            <!-- Tableau -->
+            <table class="table table-hover text-nowrap" *ngIf="!loading">
+              <thead>
+                <tr>
+                  <th>Référence</th>
+                  <th>Libellé</th>
+                  <th>Quantite Ventdue</th>
+              
+                  <th>Stock Final</th>
+                  <th>Prix Vente Net</th>
+                  <th>TVA (%)</th>
+                  <th>Remise (%)</th>
+                  <th>Prix TTC</th>
+                  <th>Estimation</th>
+                  <th class="text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of getPaginatedItems(); trackBy: trackByFn" 
+                    [class.table-active]="currentPointVente?.id === item.pointVente.id">
+                  <td>
+                    <span class="badge badge-info">{{ item.pointVente.produit.reference }}</span>
+                  </td>
+                  <td>{{ item.pointVente.produit.libelle }}</td>
+                  <td>
+                     <span class="badge badge-danger">{{ formatNumber(item.pointVente.sortiProduit) }}</span>
+                  </td>
+                  <td>
+                    <span class="badge badge-primary">{{ formatNumber(item.pointVente.stockFinalTheorie) }}</span>
+                  </td>
+                  <td>{{ formatNumber(item.prixVenteNet) }} FCFA</td>
+                  <td>{{ formatNumber(item.tva) }}%</td>
+                  <td>{{ formatNumber(item.remise) }}%</td>
+                  <td>
+                    <strong>{{ formatNumber(item.prixVenteNet * (1 + item.tva/100)) }} FCFA</strong>
+                  </td>
+                  <td>
+                    <span class="badge badge-success">
+                      {{ calculateEstimation(item.pointVente.stockFinalTheorie, item.prixVenteNet) }} FCFA
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <button type="button" 
+                            class="btn btn-sm btn-outline-primary" 
+                            (click)="showDetails(item)"
+                            title="Voir détails"
+                             data-toggle="modal" 
+                              data-target="#commandeModal">
+                      <i class="fas fa-eye"></i>
+                    </button>
+                  </td>
+                </tr>
+                <tr *ngIf="getPaginatedItems().length === 0">
+                  <td colspan="10" class="text-center text-muted py-4">
+                    <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                    Aucun élément trouvé
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination -->
+          <div class="card-footer" *ngIf="!loading && pagination.totalItems > 0">
+            <div class="row align-items-center">
+              <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                  <span class="mr-3">{{ getPaginationInfo() }}</span>
+                  <div class="input-group input-group-sm" style="width: 120px;">
+                    <div class="input-group-prepend">
+                      <span class="input-group-text">Afficher</span>
+                    </div>
+                    <select class="form-control" 
+                            [value]="pagination.itemsPerPage"
+                            (change)="onItemsPerPageChange(+$any($event.target).value)">
+                      <option *ngFor="let option of itemsPerPageOptions" [value]="option">
+                        {{ option }}
+                      </option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+
+                   <span class="badge badge-success">
+                    Estimation ToTal :  {{ calculateEstimationTotal() }} FCFA
+                    </span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <nav aria-label="Navigation des pages">
+                  <ul class="pagination pagination-sm m-0 float-right">
+                    <!-- Bouton Précédent -->
+                    <li class="page-item" [class.disabled]="!hasPreviousPage">
+                      <button class="page-link" 
+                              [disabled]="!hasPreviousPage"
+                              (click)="onPageChange(pagination.currentPage - 1)">
+                        <i class="fas fa-angle-left"></i>
+                      </button>
+                    </li>
+                    
+                    <!-- Pages -->
+                    <li *ngFor="let page of getPaginationArray(); trackBy: trackByPage" 
+                        class="page-item" 
+                        [class.active]="page === pagination.currentPage">
+                      <button class="page-link" (click)="onPageChange(page)">
+                        {{ page }}
+                      </button>
+                    </li>
+                    
+                    <!-- Bouton Suivant -->
+                    <li class="page-item" [class.disabled]="!hasNextPage">
+                      <button class="page-link" 
+                              [disabled]="!hasNextPage"
+                              (click)="onPageChange(pagination.currentPage + 1)">
+                        <i class="fas fa-angle-right"></i>
+                      </button>
+                    </li>
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal Commande -->
+<div class="modal fade" id="commandeModal" tabindex="-1" role="dialog" aria-labelledby="commandeModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary">
+        <h4 class="modal-title" id="commandeModalLabel">
+          <i class="fas fa-shopping-cart"></i> Gestion des Commandes
+        </h4>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <!-- Informations Point de Vente -->
+        <div class="card card-outline card-info mb-3" *ngIf="currentPointVente">
+          <div class="card-header">
+            <h3 class="card-title">Informations Produit</h3>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-6">
+                <p><strong>Référence:</strong> {{ currentPointVente.produit.reference }}</p>
+                <p><strong>Libellé:</strong> {{ currentPointVente.produit.libelle }}</p>
+              </div>
+              <div class="col-md-6">
+                <p *ngIf="currentPointVente.boutique"><strong>Boutique:</strong> {{ currentPointVente.boutique.nom }}</p>
+                <p><strong>Stock disponible:</strong> 
+                  <span class="badge badge-info">{{ formatNumber(currentPointVente.stockFinalTheorie || 0) }}</span>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulaire Commande -->
+        <form [formGroup]="commandeForm">
+          <div class="card card-outline card-success">
+            <div class="card-header">
+              <h3 class="card-title">Nouvelle Commande</h3>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="quantite">Quantité *</label>
+                    <input type="number" 
+                           id="quantite"
+                           class="form-control" 
+                           formControlName="quantite"
+                           min="1"
+                           [class.is-invalid]="isFieldInvalid(commandeForm, 'quantite')">
+                    <div class="invalid-feedback" *ngIf="isFieldInvalid(commandeForm, 'quantite')">
+                      {{ getFieldError(commandeForm, 'quantite') }}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="prixVenteNet">Prix de Vente Net *</label>
+                    <div class="input-group">
+                      <input type="number" 
+                             id="prixVenteNet"
+                             class="form-control" 
+                             formControlName="prixVenteNet"
+                             min="0"
+                             step="0.01"
+                             [class.is-invalid]="isFieldInvalid(commandeForm, 'prixVenteNet')">
+                      <div class="input-group-append">
+                        <span class="input-group-text">FCFA</span>
+                      </div>
+                      <div class="invalid-feedback" *ngIf="isFieldInvalid(commandeForm, 'prixVenteNet')">
+                        {{ getFieldError(commandeForm, 'prixVenteNet') }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="remise">Remise (%)</label>
+                    <input type="number" 
+                           id="remise"
+                           class="form-control" 
+                           formControlName="remise"
+                           min="0"
+                           max="100"
+                           step="0.01"
+                           [class.is-invalid]="isFieldInvalid(commandeForm, 'remise')">
+                    <div class="invalid-feedback" *ngIf="isFieldInvalid(commandeForm, 'remise')">
+                      {{ getFieldError(commandeForm, 'remise') }}
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="tva">TVA (%)</label>
+                    <input type="number" 
+                           id="tva"
+                           class="form-control" 
+                           formControlName="tva"
+                           min="0"
+                           step="0.01"
+                           [class.is-invalid]="isFieldInvalid(commandeForm, 'tva')">
+                    <div class="invalid-feedback" *ngIf="isFieldInvalid(commandeForm, 'tva')">
+                      {{ getFieldError(commandeForm, 'tva') }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Calcul automatique -->
+              <div class="row" *ngIf="commandeForm.get('prixVenteNet')?.value && commandeForm.get('tva')?.value">
+                <div class="col-12">
+                  <div class="alert alert-info">
+                    <h5><i class="icon fas fa-calculator"></i> Calcul automatique</h5>
+                    Prix TTC: <strong>{{ formatNumber(calculatePrixTTC()) }} FCFA</strong>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="text-right">
+                <button type="button" 
+                        class="btn btn-success" 
+                        [disabled]="commandeForm.invalid || submitting"
+                        (click)="addCommande()">
+                  <i class="fas fa-plus"></i> Ajouter à la liste
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <!-- Liste des commandes -->
+        <div class="card card-outline card-warning" *ngIf="listeCommandes.length > 0">
+          <div class="card-header">
+            <h3 class="card-title">
+              Commandes à valider ({{ listeCommandes.length }})
+            </h3>
+          </div>
+          <div class="card-body p-0">
+            <table class="table table-sm">
+              <thead>
+                <tr>
+                  <th>Quantité</th>
+                  <th>Prix Net</th>
+                  <th>Remise</th>
+                  <th>TVA</th>
+                  <th>Prix TTC</th>
+                  <th>Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let cmd of listeCommandes; let i = index; trackBy: trackByFn">
+                  <td>{{ cmd.quantite }}</td>
+                  <td>{{ formatNumber(cmd.prixVente) }} FCFA</td>
+                  <td>{{ formatNumber(cmd.remise || 0) }}%</td>
+                  <td>{{ formatNumber(cmd.tva || 0) }}%</td>
+                  <td>{{ formatNumber(cmd.prixVente) }} FCFA</td>
+                  <td>
+                    <strong>{{ formatNumber((cmd.prixVente) * cmd.quantite) }} FCFA</strong>
+                  </td>
+                  <td>
+                    <button type="button" 
+                            class="btn btn-sm btn-danger" 
+                            (click)="listeCommandes.splice(i, 1)">
+                      <i class="fas fa-trash"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+          <i class="fas fa-times"></i> Fermer
+        </button>
+        <button type="button" 
+                class="btn btn-primary" 
+                [disabled]="listeCommandes.length === 0 || submitting"
+                (click)="validerCommandes()">
+          <span *ngIf="submitting" class="spinner-border spinner-border-sm mr-2"></span>
+          <i class="fas fa-save" *ngIf="!submitting"></i> 
+          Valider les commandes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Boutique -->
+<div class="modal fade" id="boutiqueModal" tabindex="-1" role="dialog" aria-labelledby="boutiqueModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-success">
+        <h4 class="modal-title" id="boutiqueModalLabel">
+          <i class="fas fa-store"></i> Nouvelle Boutique
+        </h4>
+        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      
+      <form [formGroup]="boutiqueForm" (ngSubmit)="ajouterBoutique()">
+        <div class="modal-body">
+          <div class="row">
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="code">Code *</label>
+                <input type="text" 
+                       id="code"
+                       class="form-control" 
+                       formControlName="code"
+                       [class.is-invalid]="isFieldInvalid(boutiqueForm, 'code')"
+                       placeholder="Ex: BT001">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid(boutiqueForm, 'code')">
+                  {{ getFieldError(boutiqueForm, 'code') }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="nom">Nom *</label>
+                <input type="text" 
+                       id="nom"
+                       class="form-control" 
+                       formControlName="nom"
+                       [class.is-invalid]="isFieldInvalid(boutiqueForm, 'nom')"
+                       placeholder="Nom de la boutique">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid(boutiqueForm, 'nom')">
+                  {{ getFieldError(boutiqueForm, 'nom') }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="heureDebut">Heure d'ouverture *</label>
+                <input type="time" 
+                       id="heureDebut"
+                       class="form-control" 
+                       formControlName="heureDebut"
+                       [class.is-invalid]="isFieldInvalid(boutiqueForm, 'heureDebut')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid(boutiqueForm, 'heureDebut')">
+                  {{ getFieldError(boutiqueForm, 'heureDebut') }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="heureFin">Heure de fermeture *</label>
+                <input type="time" 
+                       id="heureFin"
+                       class="form-control" 
+                       formControlName="heureFin"
+                       [class.is-invalid]="isFieldInvalid(boutiqueForm, 'heureFin')">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid(boutiqueForm, 'heureFin')">
+                  {{ getFieldError(boutiqueForm, 'heureFin') }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="quartier">Quartier *</label>
+                <input type="text" 
+                       id="quartier"
+                       class="form-control" 
+                       formControlName="quartier"
+                       [class.is-invalid]="isFieldInvalid(boutiqueForm, 'quartier')"
+                       placeholder="Nom du quartier">
+                <div class="invalid-feedback" *ngIf="isFieldInvalid(boutiqueForm, 'quartier')">
+                  {{ getFieldError(boutiqueForm, 'quartier') }}
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="ville">Ville *</label>
+                <select id="ville" 
+                        class="form-control" 
+                        formControlName="ville"
+                        [class.is-invalid]="isFieldInvalid(boutiqueForm, 'ville')">
+                  <option value="">Sélectionnez une ville</option>
+                  <option *ngFor="let ville of listeVilles; trackBy: trackByFn" 
+                          [ngValue]="ville">
+                    {{ ville.libelle }}
+                  </option>
+                </select>
+                <div class="invalid-feedback" *ngIf="isFieldInvalid(boutiqueForm, 'ville')">
+                  {{ getFieldError(boutiqueForm, 'ville') }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">
+            <i class="fas fa-times"></i> Annuler
+          </button>
+          <button type="submit" 
+                  class="btn btn-success" 
+                  [disabled]="boutiqueForm.invalid || submitting">
+            <span *ngIf="submitting" class="spinner-border spinner-border-sm mr-2"></span>
+            <i class="fas fa-save" *ngIf="!submitting"></i> 
+            Créer la boutique
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,227 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Gestion des Licences</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Licences</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+
+    <div class="card" *ngIf="isSuperAdmin && parametresEssai">
+      <div class="card-header">
+        <h3 class="card-title">Paramètres de l'essai gratuit</h3>
+      </div>
+      <div class="card-body">
+        <div class="form-check mb-3">
+          <input type="checkbox" class="form-check-input" id="essaiActif" [(ngModel)]="parametresEssai.essaiActif" name="essaiActif">
+          <label class="form-check-label" for="essaiActif">Essai gratuit disponible pour les compagnies</label>
+        </div>
+        <div class="row">
+          <div class="col-md-4">
+            <div class="form-group">
+              <label for="essaiDureeJours">Durée (jours)</label>
+              <input type="number" min="1" class="form-control" id="essaiDureeJours" [(ngModel)]="parametresEssai.essaiDureeJours" name="essaiDureeJours">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label for="essaiMaxUtilisateurs">Max utilisateurs</label>
+              <input type="number" min="1" class="form-control" id="essaiMaxUtilisateurs" [(ngModel)]="parametresEssai.essaiMaxUtilisateurs" name="essaiMaxUtilisateurs">
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="form-group">
+              <label for="essaiMaxBoutiques">Max boutiques</label>
+              <input type="number" min="1" class="form-control" id="essaiMaxBoutiques" [(ngModel)]="parametresEssai.essaiMaxBoutiques" name="essaiMaxBoutiques">
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Modules inclus dans l'essai</label>
+          <div class="form-check" *ngFor="let module of modulesCatalogue">
+            <input type="checkbox" class="form-check-input" [id]="'essai-module-' + module"
+                   [checked]="parametresEssai.essaiModules.includes(module)" (change)="toggleModuleEssai(module)">
+            <label class="form-check-label" [for]="'essai-module-' + module">{{ labelModule(module) }}</label>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary" [disabled]="savingParametres" (click)="enregistrerParametresEssai()">
+          Enregistrer
+        </button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Compagnies</h3>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nom</th>
+                <th>Type de commerce</th>
+                <th>Actif</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let compagnie of compagnies">
+                <td>{{ compagnie.id }}</td>
+                <td>{{ compagnie.nom }}</td>
+                <td>{{ compagnie.typeCommerce }}</td>
+                <td>
+                  <span class="badge" [class.badge-success]="compagnie.actif" [class.badge-secondary]="!compagnie.actif">
+                    {{ compagnie.actif ? 'Actif' : 'Inactif' }}
+                  </span>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-primary" (click)="openModal(compagnie)">
+                    <i class="fas fa-key"></i> Gerer la licence
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="!loading && compagnies.length === 0">
+                <td colspan="5" class="text-center">Aucune compagnie trouvee</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal -->
+<div class="modal fade" id="licenceModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Licence - {{ selectedCompagnie?.nom }}</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="licenceLoading">Chargement...</div>
+
+        <div *ngIf="!licenceLoading && currentLicence">
+          <h5>Licence actuelle</h5>
+          <p>
+            Statut :
+            <span class="badge"
+                  [class.badge-success]="currentLicence.statut === 'ACTIVE'"
+                  [class.badge-warning]="currentLicence.statut === 'SUSPENDUE'"
+                  [class.badge-danger]="currentLicence.statut === 'REVOQUEE' || currentLicence.statut === 'EXPIREE'">
+              {{ currentLicence.statut }}
+            </span>
+          </p>
+          <p>Expiration : {{ currentLicence.dateExpiration | date:'dd/MM/yyyy' }}</p>
+          <p>Max utilisateurs : {{ currentLicence.maxUtilisateurs }} / Max boutiques : {{ currentLicence.maxBoutiques }}</p>
+          <p>Modules : {{ currentLicence.modules?.join(', ') || '-' }}</p>
+
+          <div class="form-group" *ngIf="currentLicence.cle">
+            <label>Cle de licence</label>
+            <div class="input-group">
+              <input type="text" class="form-control" readonly [value]="currentLicence.cle" onclick="this.select()">
+              <div class="input-group-append">
+                <button type="button" class="btn btn-outline-secondary" (click)="copierCle(currentLicence.cle)">
+                  <i class="fas fa-copy"></i> Copier
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn-group" *ngIf="isSuperAdmin">
+            <button type="button" class="btn btn-sm btn-warning" (click)="suspendre()" *ngIf="currentLicence.statut === 'ACTIVE'">Suspendre</button>
+            <button type="button" class="btn btn-sm btn-success" (click)="reactiver()" *ngIf="currentLicence.statut !== 'ACTIVE'">Reactiver</button>
+            <button type="button" class="btn btn-sm btn-danger" (click)="revoquer()" *ngIf="currentLicence.statut !== 'REVOQUEE'">Revoquer</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" (click)="resynchroniserModules()"
+                    title="A utiliser si le menu de l'administrateur de cette compagnie n'affiche pas tous les modules attendus">
+              <i class="fas fa-sync"></i> Resynchroniser les modules
+            </button>
+          </div>
+          <hr>
+        </div>
+        <div *ngIf="!licenceLoading && !currentLicence" class="alert alert-info">
+          Aucune licence pour cette compagnie.
+        </div>
+
+        <h5>{{ currentLicence ? 'Renouveler la licence' : 'Generer une licence' }}</h5>
+        <form>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="dateExpiration">Date d'expiration *</label>
+                <input type="date" class="form-control" id="dateExpiration" [(ngModel)]="form.dateExpiration" name="dateExpiration" required>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="maxUtilisateurs">Max utilisateurs *</label>
+                <input type="number" min="1" class="form-control" id="maxUtilisateurs" [(ngModel)]="form.maxUtilisateurs" name="maxUtilisateurs" required>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="maxBoutiques">Max boutiques *</label>
+                <input type="number" min="1" class="form-control" id="maxBoutiques" [(ngModel)]="form.maxBoutiques" name="maxBoutiques" required>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Modules actifs</label>
+            <div class="form-check" *ngFor="let module of moduleOptions">
+              <input type="checkbox" class="form-check-input" [id]="'module-' + module"
+                     [checked]="form.modules.includes(module)" (change)="toggleModule(module)">
+              <label class="form-check-label" [for]="'module-' + module">{{ labelModule(module) }}</label>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Fermer</button>
+        <button type="button" class="btn btn-primary" (click)="generer()">
+          {{ currentLicence ? 'Renouveler' : 'Generer' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : cle de licence generee (a copier / transmettre) -->
+<div class="modal fade" id="cleGenereeModal" tabindex="-1" data-backdrop="static" data-keyboard="false">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-success">
+        <h4 class="modal-title text-white"><i class="fas fa-check-circle"></i> Licence generee avec succes</h4>
+      </div>
+      <div class="modal-body">
+        <p>Copiez cette cle et transmettez-la a la compagnie. Vous pourrez la consulter a nouveau a tout moment depuis "Gerer la licence".</p>
+        <div class="input-group">
+          <input type="text" class="form-control" readonly [value]="cleGeneree" onclick="this.select()">
+          <div class="input-group-append">
+            <button type="button" class="btn btn-primary" (click)="copierCle(cleGeneree)">
+              <i class="fas fa-copy"></i> Copier
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" (click)="fermerCleGeneree()">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>

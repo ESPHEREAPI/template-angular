@@ -1,23 +1,21 @@
+<!-- login.component.html - Version avec dialogue de sélection de boutique -->
 <!DOCTYPE html>
-<html   >
+<html>
 
-<body  style="background-color: aliceblue">
+<body style="background-color: aliceblue">
 
+    <!-- Dialogue de sélection de boutique -->
+    <app-boutique-selection-dialog></app-boutique-selection-dialog>
 
-
-
-
-    <div class="content-wrapper " *ngIf="loginService.isConnect()==false">
-
+    <div class="content-wrapper" *ngIf="loginService.isConnect()==false">
 
         <br><br>
 
         <div class="content">
             <p-toast></p-toast>
-              
-           
-            <div class="hold-transition ">
-                <div class="container col-sm-6">
+
+            <div class="hold-transition">
+                <div class="container col-sm-4">
                     <div class="login-box">
 
                         <div class="container">
@@ -26,37 +24,54 @@
                                     class="brand-image img-circle elevation-3" style="opacity: .8">
                                 <b class="login-logo">EASYCOM-PRO</b>Gestion Commercial
                             </a>
-
-
-
-
                         </div>
 
                         <div class="card card-primary card-outline">
                             <div class="card-body login-card-body card-primary">
                                 <p class="login-box-msg">Veuillez saisir votre login et votre mot de passe</p>
+                                
                                 <form #f="ngForm" accept-charset="UTF-8" role="form" (ngSubmit)="onLogin(f.value)">
+                                    <!-- Champ Username -->
                                     <div class="input-group mb-3">
-                                        <input type="text" p class="form-control " placeholder="Email"  name="username" ngModel>
+                                        <input 
+                                            type="text" 
+                                            class="form-control" 
+                                            placeholder="Login" 
+                                            name="username" 
+                                            ngModel
+                                            required>
                                         <div class="input-group-append">
                                             <div class="input-group-text">
                                                 <span class="fas fa-envelope"></span>
                                             </div>
                                         </div>
                                     </div>
-                                   
+
+                                    <!-- Champ Password -->
                                     <div class="input-group mb-3">
-                                        <input type="password" class="form-control" placeholder="Password" name="password" ngModel>
+                                        <input 
+                                            type="password" 
+                                            class="form-control" 
+                                            placeholder="Password" 
+                                            name="password" 
+                                            ngModel
+                                            required>
                                         <div class="input-group-append">
                                             <div class="input-group-text">
                                                 <span class="fas fa-lock"></span>
                                             </div>
                                         </div>
                                     </div>
+
+                                    <!-- Options et bouton -->
                                     <div class="row">
                                         <div class="col-8">
                                             <div class="icheck-primary">
-                                                <input type="checkbox"  name="remember" ngModel>
+                                                <input 
+                                                    type="checkbox" 
+                                                    id="remember"
+                                                    name="remember" 
+                                                    ngModel>
                                                 <label for="remember">
                                                     Remember Me
                                                 </label>
@@ -64,34 +79,24 @@
                                         </div>
 
                                         <div class="col-4">
-                                            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+                                            <button 
+                                                type="submit" 
+                                                class="btn btn-primary btn-block"
+                                                [disabled]="!f.valid">
+                                                Sign In
+                                            </button>
                                         </div>
-
                                     </div>
                                 </form>
 
-
-
-                           
                             </div>
-
                         </div>
                     </div>
-
                 </div>
             </div>
         </div>
-      
-       
-    </div>
-   
-   
-        
-   
 
-        
-        
-        
-      
+    </div>
+
 </body>
 </html>

@@ -1,0 +1,158 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Verrouillage Stock</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Verrouillage Stock</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Liste des Verrouillages</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-primary" (click)="openModal()">
+            <i class="fas fa-plus"></i> Nouveau Verrouillage
+          </button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Date début</th>
+                <th>Date fin</th>
+                <th>Montant</th>
+                <th>Taux</th>
+                <th>Auto</th>
+                <th>Manuel</th>
+                <th style="width: 150px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let verrouillage of verrouillages">
+                <td>{{ verrouillage.id }}</td>
+                <td>{{ verrouillage.typeVerrou || '-' }}</td>
+                <td>{{ verrouillage.datedebut | date:'dd/MM/yyyy' }}</td>
+                <td>{{ verrouillage.dateFin | date:'dd/MM/yyyy' }}</td>
+                <td>{{ verrouillage.montant ?? '-' }}</td>
+                <td>{{ verrouillage.taux ?? '-' }}</td>
+                <td>
+                  <span class="badge" [class.badge-success]="verrouillage.verrouAuto" [class.badge-secondary]="!verrouillage.verrouAuto">
+                    {{ verrouillage.verrouAuto ? 'Oui' : 'Non' }}
+                  </span>
+                </td>
+                <td>
+                  <span class="badge" [class.badge-success]="verrouillage.verrouManuel" [class.badge-secondary]="!verrouillage.verrouManuel">
+                    {{ verrouillage.verrouManuel ? 'Oui' : 'Non' }}
+                  </span>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-info mr-1" (click)="openModal(verrouillage)">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteVerrouillage(verrouillage.id!)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="verrouillages.length === 0">
+                <td colspan="9" class="text-center">Aucun verrouillage trouvé</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card-footer clearfix">
+        <ul class="pagination pagination-sm m-0 float-right">
+          <li class="page-item" [class.disabled]="currentPage === 0">
+            <a class="page-link" (click)="changePage(currentPage - 1)">«</a>
+          </li>
+          <li class="page-item" *ngFor="let page of getPagesArray()"
+              [class.active]="page === currentPage">
+            <a class="page-link" (click)="changePage(page)">{{ page + 1 }}</a>
+          </li>
+          <li class="page-item" [class.disabled]="currentPage >= totalPages - 1">
+            <a class="page-link" (click)="changePage(currentPage + 1)">»</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal -->
+<div class="modal fade" id="verrouillageModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">{{ isEditMode ? 'Modifier' : 'Nouveau' }} Verrouillage</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="typeVerrou">Type de verrou</label>
+            <input type="text" class="form-control" id="typeVerrou"
+                   [(ngModel)]="selectedVerrouillage.typeVerrou" name="typeVerrou"
+                   placeholder="Ex: Stock, Prix, Inventaire...">
+          </div>
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label for="datedebut">Date début</label>
+              <input type="date" class="form-control" id="datedebut"
+                     [(ngModel)]="selectedVerrouillage.datedebut" name="datedebut">
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="dateFin">Date fin</label>
+              <input type="date" class="form-control" id="dateFin"
+                     [(ngModel)]="selectedVerrouillage.dateFin" name="dateFin">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 form-group">
+              <label for="montant">Montant</label>
+              <input type="number" class="form-control" id="montant"
+                     [(ngModel)]="selectedVerrouillage.montant" name="montant">
+            </div>
+            <div class="col-md-6 form-group">
+              <label for="taux">Taux</label>
+              <input type="number" class="form-control" id="taux"
+                     [(ngModel)]="selectedVerrouillage.taux" name="taux">
+            </div>
+          </div>
+          <div class="form-group form-check">
+            <input type="checkbox" class="form-check-input" id="verrouAuto"
+                   [(ngModel)]="selectedVerrouillage.verrouAuto" name="verrouAuto">
+            <label class="form-check-label" for="verrouAuto">Verrou automatique</label>
+          </div>
+          <div class="form-group form-check">
+            <input type="checkbox" class="form-check-input" id="verrouManuel"
+                   [(ngModel)]="selectedVerrouillage.verrouManuel" name="verrouManuel">
+            <label class="form-check-label" for="verrouManuel">Verrou manuel</label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="saveVerrouillage()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

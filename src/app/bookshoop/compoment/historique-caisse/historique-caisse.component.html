@@ -1,0 +1,363 @@
+<!-- historique-caisse.component.html -->
+
+  <!-- Content Header -->
+  <div class="content-header">
+    <div class="container-fluid">
+      <div class="row mb-2">
+        <div class="col-sm-6">
+          <h1 class="m-0">Historique de Caisse</h1>
+        </div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+            <li class="breadcrumb-item active">Historique Caisse</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main content -->
+  <section class="content">
+    <div class="container-fluid">
+      
+      <!-- Filtres et Actions -->
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-filter mr-2"></i>
+            Critères de Recherche
+          </h3>
+        </div>
+        <div class="card-body">
+          <!-- Boutons d'action -->
+          <div class="row mb-3">
+            <div class="col-12">
+              <button 
+                type="button" 
+                class="btn btn-primary mr-2"
+                [disabled]="loading || !isFilterValid()"
+                (click)="genererHistorique()">
+                <i class="fas fa-sync-alt mr-1" [class.fa-spin]="loading"></i>
+                {{ loading ? 'Génération...' : 'Générer' }}
+              </button>
+              
+              <button 
+                type="button" 
+                class="btn btn-secondary"
+                [disabled]="printing || !historiqueCaisse"
+                (click)="imprimerDetail()">
+                <i class="fas fa-print mr-1" [class.fa-spin]="printing"></i>
+                {{ printing ? 'Impression...' : 'Imprimer' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Filtres -->
+          <div class="row">
+            <!-- Année -->
+            <div class="col-md-3 mb-3">
+              <label for="annee" class="form-label">Année <span class="text-danger">*</span></label>
+              
+              <select 
+                id="annee"
+                class="form-control"
+                [(ngModel)]="filter.annee"
+                (change)="onAnneeChange()">
+                <option [ngValue]="null">-- Sélectionner --</option>
+                <option 
+                  *ngFor="let annee of annees" 
+                  [ngValue]="annee">
+                  {{ annee.id }}
+                </option>
+              </select>
+            </div>
+
+              <!-- caissiere -->
+            <div class="col-md-3 mb-3" *ngIf="users.length > 0 ">
+              <label for="annee" class="form-label">Caissier(e) <span class="text-danger">*</span></label>
+              
+              <select 
+                id="caissier"
+                class="form-control"
+                [(ngModel)]="usercaisse"
+                (change)="chargeAlldatesForCaissier()">
+                <option [ngValue]="null">-- Sélectionner --</option>
+                <option 
+                  *ngFor="let caisse of users" 
+                  [ngValue]="caisse">
+                  {{ caisse.userName }}  || {{ caisse.firstName }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Date Vente -->
+            <div class="col-md-3 mb-3">
+              <label for="mois" class="form-label">Date Vente <span class="text-danger">*</span></label>
+              <select  disabled=false
+                id="mois"
+                class="form-control"
+                [(ngModel)]="filter.date"
+                (change)="genererHistorique()"
+                [disabled]="!filter.annee">
+                <option [ngValue]="null">-- Sélectionner --</option>
+                <option 
+                  *ngFor="let date of dateByAnnee" 
+                  [ngValue]="date">
+                  {{ formatDate(date) }}
+                </option>
+              </select>
+            </div>
+           
+
+
+            <!-- Caissier (conditionnel) -->
+            <div class="col-md-3 mb-3" *ngIf="users.length==0">
+              <label for="caissier" class="form-label">Caissier : {{ vendeur }} </label>
+          
+            </div>
+
+            <!-- Date
+            <div class="col-md-3 mb-3">
+              <label for="date" class="form-label">Date <span class="text-danger">*</span></label>
+              <select 
+                id="date"
+                class="form-select"
+                [(ngModel)]="filter.date"
+                [disabled]="!filter.mois">
+                <option [ngValue]="null">-- Sélectionner --</option>
+                <option 
+                  *ngFor="let date of datesCaisse" 
+                  [ngValue]="date">
+                  {{ formatDate(date) }}
+                </option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div> -->
+
+      <!-- Totaux -->
+      <div class="card" >
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-calculator mr-2"></i>
+            Récapitulatif
+          </h3>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <!-- Total Caisse -->
+            <div class="col-md-4 col-sm-6 col-12">
+              <div class="info-box">
+                <span class="info-box-icon bg-danger">
+                  <i class="fas fa-cash-register"></i>
+                </span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Total Net en  Caisse</span>
+                  <span class="info-box-number">
+                    {{ formatNumber(montantNetEnCaisse) }} F
+                  </span>
+                  <small class="text-muted">(Remise exclue)</small>
+                </div>
+              </div>
+            </div>
+
+            <!-- Remise -->
+            <div class="col-md-4 col-sm-6 col-12">
+              <div class="info-box">
+                <span class="info-box-icon bg-warning">
+                  <i class="fas fa-percentage"></i>
+                </span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Remise Article</span>
+                  <span class="info-box-number">
+                    {{ formatNumber(remise) }} F
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Total Net -->
+            <div class="col-md-4 col-sm-6 col-12">
+              <div class="info-box">
+                <span class="info-box-icon bg-success">
+                  <i class="fas fa-coins"></i>
+                </span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Total </span>
+                  <span class="info-box-number">
+                    {{ formatNumber(montantTotal) }} F
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Autres montants conditionnels -->
+            <div class="col-md-4 col-sm-6 col-12" 
+                 *ngIf="montantPaieEnEspece > 0">
+              <div class="info-box">
+                <span class="info-box-icon bg-info">
+                  <i class="fas fa-money-bill"></i>
+                </span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Paiement Espèce</span>
+                  <span class="info-box-number">
+                    {{ formatNumber(montantPaieEnEspece) }} F
+                  </span>
+                </div>
+              </div>
+            </div>
+
+           <div class="col-md-4 col-sm-6 col-12" 
+                 *ngIf="montantCodeMarchantMtn > 0">
+              <div class="info-box">
+                <span class="info-box-icon bg-primary">
+                  <i class="fas fa-mobile-alt"></i>
+                </span>
+                <div class="info-box-content">
+                  <span class="info-box-text">MTN Mobile</span>
+                  <span class="info-box-number">
+                    {{ formatNumber(montantCodeMarchantMtn) }} F
+                  </span>
+                </div>
+              </div>
+            </div>
+
+       <div class="col-md-4 col-sm-6 col-12" 
+                 *ngIf="montantCodeMarchantOrange > 0">
+              <div class="info-box">
+                <span class="info-box-icon bg-orange">
+                  <i class="fas fa-mobile-alt"></i>
+                </span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Orange Money</span>
+                  <span class="info-box-number">
+                    {{ formatNumber(montantCodeMarchantOrange) }} F
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div> 
+
+      <!-- Tableau des ventes -->
+      <div class="card" >
+        <div class="card-header">
+          <h3 class="card-title">
+            <i class="fas fa-list mr-2"></i>
+            Détail des Ventes
+          </h3>
+          <div class="card-tools">
+            <div class="input-group input-group-sm" style="width: 250px;">
+              <input 
+                type="text" 
+                class="form-control" 
+                placeholder="Rechercher..."
+                [(ngModel)]="globalFilter"
+                (keyup.enter)="onGlobalFilter()"
+                (input)="onGlobalFilter()">
+              <div class="input-group-append">
+                <button type="button" class="btn btn-default" (click)="onGlobalFilter()">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card-body table-responsive p-0">
+          <table class="table table-hover text-nowrap">
+            <thead>
+              <tr>
+                <th *ngFor="let col of columns">
+                  {{ col.header }}
+                  <i class="fas fa-sort ml-1" *ngIf="col.sortable"></i>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of filteredVentes" 
+                  [ngClass]="getRowClass(item)">
+                <td>{{ item.numeroTicket}}</td>
+                <td>{{ item.article.reference }}</td>
+                <td>{{ item.article.libelle }}</td>
+                <td>{{ item.quantite }}</td>
+                <td>{{ item.prixUnitaire }}</td>
+                <td>{{ item.typePaiement }}</td>
+                <!--<td class="text-right">{{ item.quantite }}</td>
+                <td class="text-right">{{ formatNumber(item.prixUnitaire) }}</td>
+                <td class="text-right">{{ formatNumber(item.caisse) }}</td>-->
+                <td></td>
+              </tr>
+              <tr *ngIf="paginatedVentes.length === 0">
+                <td [attr.colspan]="columns.length" class="text-center text-muted py-4">
+                  <i class="fas fa-inbox fa-2x mb-2"></i>
+                  <div>Aucune donnée disponible</div>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot >
+              <tr class="bg-light font-weight-bold">
+                <td [attr.colspan]="columns.length - 1" class="text-right">
+                  <strong>Total:</strong>
+                </td>
+                <td class="text-right">
+                  <strong>{{ formatNumber(montantTotal) }} F</strong>
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <!-- Pagination -->
+        <div class="card-footer" *ngIf="totalPages > 1">
+          <div class="row align-items-center">
+            <div class="col-sm-6">
+              <div class="dataTables_info">
+                Affichage de {{ (currentPage - 1) * itemsPerPage + 1 }} à 
+                {{ min(currentPage * itemsPerPage, totalItems) }} sur 
+                {{ totalItems }} entrées
+              </div>
+            </div>
+            <div class="col-sm-6">
+              <div class="dataTables_paginate paging_simple_numbers float-right">
+                <ul class="pagination">
+                  <li class="paginate_button page-item" 
+                      [class.disabled]="currentPage === 1">
+                    <a class="page-link" (click)="onPageChange(currentPage - 1)">
+                      Précédent
+                    </a>
+                  </li>
+                  
+                  <li class="paginate_button page-item"
+                      *ngFor="let page of [].constructor(totalPages); let i = index"
+                      [class.active]="currentPage === i + 1">
+                    <a class="page-link" (click)="onPageChange(i + 1)">
+                      {{ i + 1 }}
+                    </a>
+                  </li>
+                  
+                  <li class="paginate_button page-item" 
+                      [class.disabled]="currentPage === totalPages">
+                    <a class="page-link" (click)="onPageChange(currentPage + 1)">
+                      Suivant
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+     </div>
+      </div>
+       </div>
+  </section>
+
+<!-- Loading Overlay -->
+<div class="overlay dark" *ngIf="loading">
+  <i class="fas fa-3x fa-sync-alt fa-spin"></i>
+</div>

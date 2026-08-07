@@ -1,0 +1,61 @@
+<!-- module-securite.component.html -->
+
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">Module Sécurité</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Module Sécurité</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Catalogue Module → Menu → Action</h3>
+      </div>
+      <div class="card-body">
+        <p class="text-muted small">
+          Vue de référence de la structure complète du système (lecture seule). Pour accorder des droits,
+          voir l'écran <strong>Profil</strong> — c'est là que chaque action est activée pour un profil précis.
+        </p>
+        <div *ngIf="chargement" class="text-muted">Chargement...</div>
+        <div *ngIf="erreur" class="text-danger">Erreur lors du chargement du catalogue.</div>
+
+        <div *ngFor="let groupe of modulesGroupes" class="mb-4">
+          <h5 class="border-bottom pb-1">{{ groupe.moduleDescription }}</h5>
+          <table class="table table-sm">
+            <thead>
+              <tr>
+                <th>Menu</th>
+                <th>Actions disponibles</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let menu of groupe.menus">
+                <td>{{ menu.menuDescription }}</td>
+                <td>
+                  <span class="badge badge-light border mr-1" *ngFor="let action of menu.actions">
+                    {{ libelleAction[action] || action }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div *ngIf="!chargement && modulesGroupes.length === 0" class="text-muted">
+          Aucun menu dans le catalogue.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

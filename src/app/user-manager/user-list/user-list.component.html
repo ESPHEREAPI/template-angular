@@ -52,10 +52,10 @@
             <tbody>
               <tr *ngFor="let user of users" (click)="viewUserDetails(user.id!)">
                 <td>{{ user.id }}</td>
-                <td>{{ user.username }}</td>
-                <td>{{ user.firstName }} {{ user.lastName }}</td>
+                <td>{{ user.userName }}</td>
+                <td>{{ user.firstName }} {{ user.lastname }}</td>
                 <td>{{ user.email }}</td>
-                <td>{{ user.role?.name }}</td>
+                <td>{{ user.roleid }}</td>
                 <td>
                   <span *ngIf="user.isActive" class="badge bg-success">Actif</span>
                   <span *ngIf="!user.isActive" class="badge bg-danger">Inactif</span>

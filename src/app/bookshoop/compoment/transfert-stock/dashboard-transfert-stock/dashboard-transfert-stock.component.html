@@ -1,0 +1,316 @@
+<!-- 
+  Dashboard Template - AdminLTE v3
+  
+  Affiche le tableau de bord complet avec:
+  - Cartes KPIs en haut
+  - Graphiques de valeur et mouvement
+  - Tableau des produits en stock faible
+  - Tableaux des valeurs par magasin et point de vente
+-->
+
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">Tableau de bord - Gestion du Stock</h1>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Contenu principal -->
+<div class="content">
+  <div class="container-fluid">
+
+    <!-- Message de chargement -->
+    <div *ngIf="chargement" class="alert alert-info" role="alert">
+      <i class="fas fa-spinner fa-spin"></i> Chargement du dashboard...
+    </div>
+
+    <!-- Message d'erreur -->
+    <div *ngIf="erreur" class="alert alert-danger" role="alert">
+      <i class="fas fa-exclamation-circle"></i> {{ erreur }}
+      <button type="button" class="btn btn-sm btn-outline-danger ml-2" (click)="chargerDashboard()">
+        <i class="fas fa-redo"></i> Réessayer
+      </button>
+    </div>
+
+    <!-- Contenu du dashboard -->
+    <div *ngIf="dashboard && !chargement">
+
+      <!-- ROW 1: Cartes KPIs -->
+      <div class="row">
+        <!-- Valeur totale du stock -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-info">
+            <div class="inner">
+              <h3>{{ formatDevise(dashboard.totalValeurStock) }}</h3>
+              <p>Valeur totale du stock</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-cubes"></i>
+            </div>
+            <a href="#" class="small-box-footer">Plus d'infos <i class="fas fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+
+        <!-- Valeur des magasins -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-primary">
+            <div class="inner">
+              <h3>{{ formatDevise(dashboard.totalValeurMagasins) }}</h3>
+              <p>Magasins de stock</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-warehouse"></i>
+            </div>
+            <a href="#valeur-magasins" class="small-box-footer">Détails <i class="fas fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+
+        <!-- Valeur des points de vente -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-success">
+            <div class="inner">
+              <h3>{{ formatDevise(dashboard.totalValeurPointsVente) }}</h3>
+              <p>Points de vente</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-store"></i>
+            </div>
+            <a href="#valeur-points" class="small-box-footer">Détails <i class="fas fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+
+        <!-- Produits en alerte -->
+        <div class="col-lg-3 col-6">
+          <div class="small-box bg-warning">
+            <div class="inner">
+              <h3>{{ dashboard.nombreProduitsFaibles }}</h3>
+              <p>Produits en alerte</p>
+            </div>
+            <div class="icon">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <a href="#produits-faibles" class="small-box-footer">Voir <i class="fas fa-arrow-circle-right"></i></a>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- ROW 5: Valeur par point de vente -->
+      <div class="row" id="valeur-points">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header with-border bg-success">
+              <h3 class="card-title">
+                <i class="fas fa-store"></i> Valeur du stock par point de vente
+              </h3>
+              <div class="card-tools pull-right">
+                <button type="button" class="btn btn-box-tool" data-card-widget="collapse">
+                  <i class="fas fa-minus"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                  <thead class="bg-light">
+                    <tr>
+                      <th>Nom du point de vente</th>
+                      <th>Dépôt</th>
+                      <th class="text-right">Nombre d'articles</th>
+                      <th class="text-right">Quantité totale</th>
+                      <th class="text-right">Valeur totale (TTC)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let point of dashboard.valeurPointsVente">
+                      <td><strong>{{ point.pointVenteNom }}</strong></td>
+                      <td><span class="badge badge-success">{{ point.magasinDepot }}</span></td>
+                      <td class="text-right">{{ point.nombreArticles }}</td>
+                      <td class="text-right">{{ point.quantiteTotal | number: '1.2-2' }}</td>
+                      <td class="text-right">
+                        <strong>{{ formatDevise(point.valeurTotal) }}</strong>
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="bg-light">
+                      <th colspan="3">TOTAL</th>
+                      <th class="text-right">
+                    {{ getTotalQuantite() | number: '1.2-2' }}
+                      </th>
+                      <th class="text-right">
+                        <strong>{{ formatDevise(dashboard.totalValeurPointsVente) }}</strong>
+                      </th>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- ROW 2: Graphiques -->
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header with-border">
+              <h3 class="card-title">Évolution de la valeur du stock</h3>
+              <div class="card-tools pull-right">
+                <button type="button" class="btn btn-box-tool" data-card-widget="collapse">
+                  <i class="fas fa-minus"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <canvas id="graphiqueValeur" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header with-border">
+              <h3 class="card-title">Mouvements de stock</h3>
+              <div class="card-tools pull-right">
+                <button type="button" class="btn btn-box-tool" data-card-widget="collapse">
+                  <i class="fas fa-minus"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <canvas id="graphiqueMouvement" height="300"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+ <!-- ROW 4: Valeur par magasin -->
+      <div class="row" id="valeur-magasins">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header with-border bg-primary">
+              <h3 class="card-title">
+                <i class="fas fa-warehouse"></i> Valeur du stock par magasin
+              </h3>
+              <div class="card-tools pull-right">
+                <button type="button" class="btn btn-box-tool" data-card-widget="collapse">
+                  <i class="fas fa-minus"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                  <thead class="bg-light">
+                    <tr>
+                      <th>Code</th>
+                      <th>Libellé</th>
+                      <th>Ville</th>
+                      <th class="text-right">Nombre d'articles</th>
+                      <th class="text-right">Quantité totale</th>
+                      <th class="text-right">Valeur totale</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let magasin of dashboard.valeurMagasins">
+                      <td><span class="badge badge-primary">{{ magasin.magasinCode }}</span></td>
+                      <td><strong>{{ magasin.magasinLibelle }}</strong></td>
+                      <td>{{ magasin.ville }}</td>
+                      <td class="text-right">{{ magasin.nombreArticles }}</td>
+                      <td class="text-right">{{ magasin.quantiteTotal | number: '1.2-2' }}</td>
+                      <td class="text-right">
+                        <strong>{{ formatDevise(magasin.valeurTotal) }}</strong>
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot>
+                    <tr class="bg-light">
+                      <th colspan="4">TOTAL</th>
+                      <th class="text-right">
+                      {{ getTotalMagasins() | number:'1.2-2' }}
+
+                      </th>
+                      <th class="text-right">
+                        <strong>{{ formatDevise(dashboard.totalValeurMagasins) }}</strong>
+                      </th>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ROW 3: Produits en stock faible -->
+      <div class="row" id="produits-faibles">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header with-border bg-danger">
+              <h3 class="card-title">
+                <i class="fas fa-exclamation-circle"></i> Produits en stock faible (≤ 10 unités)
+              </h3>
+              <div class="card-tools pull-right">
+                <button type="button" class="btn btn-box-tool" data-card-widget="collapse">
+                  <i class="fas fa-minus"></i>
+                </button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div *ngIf="dashboard.produitsFaibleStock.length === 0" class="alert alert-success">
+                <i class="fas fa-check-circle"></i> Aucun produit en stock faible. Bonne gestion!
+              </div>
+
+              <div *ngIf="dashboard.produitsFaibleStock.length > 0">
+                <div class="table-responsive">
+                  <table class="table table-striped table-hover">
+                    <thead class="bg-light">
+                      <tr>
+                        <th>Produit</th>
+                        <th>Code</th>
+                        <th>Magasin/Localisation</th>
+                        <th class="text-center">Quantité</th>
+                        <th class="text-center">Alerte</th>
+                        <th class="text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let produit of dashboard.produitsFaibleStock"
+                          [ngClass]="'alert ' + obtenirClasseAlerte(produit.couleur)">
+                        <td>{{ produit.produitLibelle }}</td>
+                        <td><span class="badge badge-secondary">{{ produit.produitCode }}</span></td>
+                        <td>
+                          {{ produit.magasinLibelle }}
+                          <small class="text-muted">({{ produit.ville }})</small>
+                        </td>
+                        <td class="text-center">
+                          <span class="badge badge-lg" [ngClass]="'badge-' + produit.couleur">
+                            {{ produit.quantite | number: '1.0-2' }}
+                          </span>
+                        </td>
+                        <td class="text-center">
+                          <i [class]="obtenirIconeAlerte(produit.couleur)"></i>
+                        </td>
+                        <td class="text-center">
+                          <a [routerLink]="produit.lienDetail" class="btn btn-sm btn-info">
+                            <i class="fas fa-eye"></i> Détails
+                          </a>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+     
+
+    </div>
+  </div>
+</div>

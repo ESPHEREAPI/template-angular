@@ -1,0 +1,258 @@
+<!-- correction-stock.component.html -->
+
+    <!-- Content Header (Page header) -->
+    <div class="content-header">
+        <div class="container-fluid">
+            <div class="row mb-2">
+                <div class="col-sm-6">
+                    <h1 class="m-0">Gestion Correction Stock</h1>
+                </div>
+                <div class="col-sm-6">
+                    <ol class="breadcrumb float-sm-right">
+                        <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+                        <li class="breadcrumb-item active">Correction Stock</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <section class="content">
+        <div class="container-fluid">
+
+            <!-- Action Buttons -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <form [formGroup]="correctionForm">
+                                <button type="button" class="btn btn-success mr-2"
+                                    [disabled]="saving || correctionForm.invalid" (click)="saveCorrections()">
+                                    <i class="fas fa-save"></i>
+                                    <span *ngIf="!saving">Valider</span>
+                                    <span *ngIf="saving">
+                                        <i class="fas fa-spinner fa-spin"></i> Sauvegarde...
+                                    </span>
+                                </button>
+
+                                <button type="button" class="btn btn-primary"
+                                    [disabled]="printing || correctionForm.invalid" (click)="printReport()">
+                                    <i class="fas fa-print"></i>
+                                    <span *ngIf="!printing">Imprimer</span>
+                                    <span *ngIf="printing">
+                                        <i class="fas fa-spinner fa-spin"></i> Impression...
+                                    </span>
+                                </button>
+
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="boutique">Zone de vente :</label>
+                                            <select id="boutique" class="form-control" formControlName="boutique"
+                                                [class.is-invalid]="correctionForm.get('boutique')?.invalid && correctionForm.get('boutique')?.touched">
+                                                <option [ngValue]="null">Choisir...</option>
+                                                <option *ngFor="let boutique of boutiques" [ngValue]="boutique">
+                                                    {{boutique.id}} {{boutique.nom}}
+                                                </option>
+                                            </select>
+                                            <div class="invalid-feedback"
+                                                *ngIf="correctionForm.get('boutique')?.invalid && correctionForm.get('boutique')?.touched">
+                                                Veuillez sélectionner une zone de vente
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="categories">Catégorie :</label>
+                                            <select id="categories" class="form-control" formControlName="categories"
+                                                [class.is-invalid]="correctionForm.get('categories')?.invalid && correctionForm.get('categories')?.touched">
+                                                <option [ngValue]="null">Sélectionner...</option>
+                                                <option *ngFor="let categorie of categories" [ngValue]="categorie">
+                                                    {{categorie.libelle}}
+                                                </option>
+                                            </select>
+                                            <div class="invalid-feedback"
+                                                *ngIf="correctionForm.get('categories')?.invalid && correctionForm.get('categories')?.touched">
+                                                Veuillez sélectionner une catégorie
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Liste des produits</h3>
+                            <div class="card-tools">
+                                <div class="input-group input-group-sm" style="width: 300px;">
+                                    <input type="text" class="form-control" placeholder="Recherche globale..."
+                                        [(ngModel)]="globalFilter" (keyup.enter)="onGlobalFilterChange()"
+                                        (input)="onGlobalFilterChange()">
+                                    <div class="input-group-append">
+                                        <button type="button" class="btn btn-default">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card-body table-responsive p-0">
+                            <div *ngIf="loading" class="text-center p-4">
+                                <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                <p class="mt-2">Chargement en cours...</p>
+                            </div>
+
+                            <table class="table table-hover text-nowrap" *ngIf="!loading">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 150px;">
+                                            Référence Article
+                                            <input type="text" class="form-control form-control-sm mt-1"
+                                                placeholder="Filtrer..." [(ngModel)]="referenceFilter"
+                                                (input)="onReferenceFilterChange()">
+                                        </th>
+                                        <th style="width: 200px;">
+                                            Libellé
+                                            <input type="text" class="form-control form-control-sm mt-1"
+                                                placeholder="Filtrer..." [(ngModel)]="libelleFilter"
+                                                (input)="onLibelleFilterChange()">
+                                        </th>
+                                        <th style="width: 100px;">Stock</th>
+                                        <th style="width: 150px;">Quantité Réelle</th>
+                                         <th style="width: 100px;">Montant</th>
+                                        <th style="width: 150px;">Montant Réelle</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr *ngFor="let item of getPaginatedItems(); trackBy: trackByFn">
+                                        <td>{{item.produit.reference}}</td>
+                                        <td>{{item.produit.libelle}}</td>
+                                        <td>
+                                            <span class="badge badge-info">{{item.stockFinalTheorie}}</span>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control" [value]="item.stockFinalTheorie"
+                                                (blur)="onQuantiteChange(item, $event)"
+                                                (keyup.enter)="blurInput($event)" min="0" step="1">
+                                        </td>
+                                         <td>
+                                            <span class="badge badge-info">{{item.prix}}</span>
+                                        </td>
+                                        <td>
+                                            <input type="number" class="form-control" [value]="item.prix"
+                                                (blur)="onQuantiteChangePrix(item, $event)"
+                                                (keyup.enter)="blurInputPrix($event)" min="0" step="1">
+                                        </td>
+                                    </tr>
+                                    <tr *ngIf="filteredPointsVente.length === 0 && !loading">
+                                        <td colspan="4" class="text-center text-muted">
+                                            <i class="fas fa-inbox fa-2x"></i>
+                                            <p class="mt-2">Aucun résultat trouvé</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="card-footer clearfix" *ngIf="filteredPointsVente.length > 0">
+                            <div class="row">
+                                <div class="col-sm-6">
+                                    <div class="dataTables_info" *ngIf="totalItems > 0">
+                                        Affichage de
+                                        {{ ((currentPage - 1) * itemsPerPage) + 1 }}
+                                        à
+                                        {{ getEndIndex() }}
+                                        sur {{ totalItems }} entrées
+                                    </div>
+                                </div>
+                                <div class="col-sm-6">
+                                    <div class="float-right">
+                                        <div class="btn-group mb-2 mr-2">
+                                            <select class="form-control form-control-sm" [(ngModel)]="itemsPerPage"
+                                                (change)="onPageSizeChange(itemsPerPage)">
+                                                <option *ngFor="let size of pageSizeOptions" [value]="size">
+                                                    {{size}}
+                                                </option>
+                                            </select>
+                                        </div>
+
+                                        <ul class="pagination pagination-sm m-0">
+                                            <li class="page-item" [class.disabled]="currentPage === 1">
+                                                <a class="page-link" (click)="onPageChange(1)">«</a>
+                                            </li>
+                                            <li class="page-item" [class.disabled]="currentPage === 1">
+                                                <a class="page-link" (click)="onPageChange(currentPage - 1)">‹</a>
+                                            </li>
+
+                                            <li *ngFor="let page of getPageNumbers()" class="page-item"
+                                                [class.active]="page === currentPage">
+                                                <a class="page-link" (click)="onPageChange(page)">{{page}}</a>
+                                            </li>
+
+                                            <li class="page-item" [class.disabled]="currentPage === getTotalPages()">
+                                                <a class="page-link" (click)="onPageChange(currentPage + 1)">›</a>
+                                            </li>
+                                            <li class="page-item" [class.disabled]="currentPage === getTotalPages()">
+                                                <a class="page-link" (click)="onPageChange(getTotalPages())">»</a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+<style>
+    .content-wrapper {
+        margin-left: 250px;
+    }
+
+    .table th input {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .badge {
+        font-size: 0.875em;
+    }
+
+    .pagination {
+        margin-bottom: 0;
+    }
+
+    .dataTables_info {
+        line-height: 2.2;
+    }
+
+    .card-tools .input-group {
+        width: 300px;
+    }
+
+    .btn-group {
+        margin-right: 10px;
+    }
+
+    .table-responsive {
+        min-height: 400px;
+    }
+
+    .text-center.p-4 {
+        padding: 3rem !important;
+    }
+</style>

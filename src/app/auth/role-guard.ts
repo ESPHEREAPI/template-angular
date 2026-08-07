@@ -18,14 +18,19 @@ export class RoleGuard implements CanActivate {
           this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
           return false;
         }
-    
+
+        if (this.authService.currentUserValue?.mustChangePassword) {
+          this.router.navigateByUrl('change-password');
+          return false;
+        }
+
         // Vérifier les permissions requises
         const requiredPermissions = route.data['permissions'] as string[];
         if (!requiredPermissions || requiredPermissions.length === 0) {
           return true;
         }
     
-        // Vérifier si l'utilisateur a les permissions nécessaires
+        /**Vérifier si l'utilisateur a les permissions nécessaires
         const permissionCheckMethod = route.data['permissionCheckMethod'] || 'any';
         
         if (permissionCheckMethod === 'all') {
@@ -38,7 +43,7 @@ export class RoleGuard implements CanActivate {
             this.router.navigate(['/unauthorized']);
             return false;
           }
-        }
+        }*/
     
         return true;
       }

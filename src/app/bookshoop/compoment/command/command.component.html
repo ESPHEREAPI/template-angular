@@ -1,0 +1,577 @@
+<app-content-header [pageTitle]="pageTitle" [breadcrumbItems]="breadcrumbItems"></app-content-header>
+
+<!-- Main content -->
+<section class="content">
+  <div class="container-fluid">
+    <!-- Loading Overlay -->
+    <div class="overlay dark" *ngIf="isLoading">
+      <i class="fas fa-3x fa-sync-alt fa-spin"></i>
+    </div>
+
+    <!-- Alert Messages -->
+    <div class="row" *ngIf="alertMessage">
+      <div class="col-12">
+        <div class="alert alert-dismissible fade show" 
+             [ngClass]="{
+               'alert-success': alertType === 'success',
+               'alert-danger': alertType === 'error',
+               'alert-warning': alertType === 'warning',
+               'alert-info': alertType === 'info'
+             }">
+          <button type="button" class="close" (click)="closeAlert()" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <i class="icon" 
+             [ngClass]="{
+               'fas fa-check': alertType === 'success',
+               'fas fa-ban': alertType === 'error',
+               'fas fa-exclamation-triangle': alertType === 'warning',
+               'fas fa-info': alertType === 'info'
+             }"></i>
+          {{ alertMessage }}
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Card -->
+    <div class="card card-primary card-outline">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-boxes"></i>
+          Gestion Approvisionnement | Mois : <strong>{{ currentMonth }}</strong>
+        </h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+        </div>
+      </div>
+
+      <form [formGroup]="commandeForm" class="card-body">
+        <!-- Action Buttons -->
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <button type="button" class="btn btn-primary btn-lg" (click)="ajoutArticle()">
+              <i class="fas fa-plus-circle"></i> Ajouter Article
+            </button>
+          </div>
+          <div class="col-md-6 text-right">
+            <button type="button" class="btn btn-outline-secondary" (click)="refreshProduit()">
+              <i class="fas fa-sync-alt"></i> Actualiser
+            </button>
+          </div>
+        </div>
+
+        <!-- Product Info Display -->
+        <div class="row mb-3" *ngIf="selectedProduit">
+          <div class="col-md-4">
+            <div class="info-box bg-gradient-info">
+              <span class="info-box-icon"><i class="fas fa-tag"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Référence</span>
+                <span class="info-box-number">{{ selectedProduit.reference }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="info-box bg-gradient-primary">
+              <span class="info-box-icon"><i class="fas fa-box"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Libellé</span>
+                <span class="info-box-number">{{ selectedProduit.libelle }}</span>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="info-box" [ngClass]="currentStock > 10 ? 'bg-gradient-success' : 'bg-gradient-warning'">
+              <span class="info-box-icon"><i class="fas fa-cubes"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Stock Actuel</span>
+                <span class="info-box-number">{{ currentStock }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Form Fields -->
+        <div class="row">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="dateReception">
+                <i class="far fa-calendar-alt"></i> Date de réception *
+              </label>
+              <input type="date" class="form-control" id="dateReception" formControlName="dateReception"
+                     [class.is-invalid]="commandeForm.get('dateReception')?.touched && commandeForm.get('dateReception')?.invalid">
+              <div *ngIf="commandeForm.get('dateReception')?.touched && commandeForm.get('dateReception')?.invalid"
+                   class="invalid-feedback">
+                <small *ngIf="commandeForm.get('dateReception')?.errors?.['required']">
+                  La date est requise.
+                </small>
+                <small *ngIf="commandeForm.get('dateReception')?.errors?.['dateInPast']">
+                  La date ne peut pas être antérieure à aujourd'hui.
+                </small>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label for="numeroRepartition">
+                <i class="fas fa-hashtag"></i> Numéro de commande
+              </label>
+              <input type="text" class="form-control" id="numeroRepartition" formControlName="numeroRepartition"
+                     placeholder="Auto-généré si vide">
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-12">
+            <div class="form-group">
+              <label for="barcode">
+                <i class="fas fa-barcode"></i> Code-barres
+              </label>
+              <input type="text" class="form-control form-control-lg" id="barcode" formControlName="barcode"
+                     placeholder="Scanner ou saisir le code-barres" maxlength="13">
+              <small class="form-text text-muted">
+                Scannez le code-barres ou saisissez-le manuellement
+              </small>
+            </div>
+          </div>
+        </div>
+
+        <!-- Commandes Table -->
+        <div class="row" *ngIf="commandes.length > 0">
+          <div class="col-12">
+            <div class="card card-outline card-success">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fas fa-list"></i> Commandes en cours
+                  <span class="badge badge-success ml-2">{{ commandes.length }}</span>
+                </h3>
+              </div>
+              <div class="card-body table-responsive p-0">
+                <table class="table table-hover table-striped">
+                  <thead class="bg-light">
+                    <tr>
+                      <th><i class="fas fa-sort-numeric-up"></i> Quantité</th>
+                      <th><i class="fas fa-dollar-sign"></i> Prix d'achat</th>
+                      <th><i class="fas fa-tag"></i> Prix de vente net</th>
+                      <th class="text-center"><i class="fas fa-cog"></i> Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let commande of commandes; let i = index">
+                      <td>
+                        <input type="number" class="form-control form-control-sm" 
+                               [(ngModel)]="commande.quantite"
+                               [ngModelOptions]="{standalone: true}" 
+                               min="-999999999" step="1"
+                               placeholder="Quantité">
+                      </td>
+                      <td>
+                        <div class="input-group input-group-sm">
+                          <input type="number" class="form-control" 
+                                 [(ngModel)]="commande.prixAchat"
+                                 [ngModelOptions]="{standalone: true}" 
+                                 step="0.01" min="0"
+                                 placeholder="Prix achat">
+                          <div class="input-group-append">
+                            <span class="input-group-text">XAF</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="input-group input-group-sm">
+                          <input type="number" class="form-control" 
+                                 [(ngModel)]="commande.prixVente"
+                                 [ngModelOptions]="{standalone: true}" 
+                                 step="0.01" min="0"
+                                 placeholder="Prix vente">
+                          <div class="input-group-append">
+                            <span class="input-group-text">XAF</span>
+                          </div>
+                        </div>
+                      </td>
+                      <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-danger" 
+                                (click)="removeCommande(i)"
+                                title="Supprimer">
+                          <i class="fas fa-trash-alt"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div class="card-footer">
+                <div class="row">
+                  <div class="col-md-6">
+                    <button type="button" class="btn btn-success btn-lg" 
+                            (click)="approvisionnementProduit()"
+                            [disabled]="isLoading || commandes.length === 0">
+                      <i class="fas fa-save"></i> Enregistrer l'Approvisionnement
+                    </button>
+                  </div>
+                  <div class="col-md-6 text-right">
+                    <button type="button" class="btn btn-outline-secondary" (click)="rafraichir()">
+                      <i class="fas fa-redo"></i> Réinitialiser
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Prix Articles Table -->
+    <div class="card card-outline card-info">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-table"></i> Liste des Prix Articles
+        </h3>
+        <div class="card-tools">
+          <div class="input-group input-group-sm" style="width: 300px;">
+            <input type="text" class="form-control" placeholder="Rechercher..."
+                   (keyup.enter)="onSearch(searchInput.value)" #searchInput>
+            <div class="input-group-append">
+              <button type="submit" class="btn btn-primary" (click)="onSearch(searchInput.value)">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body table-responsive p-0" style="max-height: 600px;">
+        <table class="table table-head-fixed table-hover text-nowrap">
+          <thead class="bg-light">
+            <tr>
+              <th>Référence</th>
+              <th>Libellé</th>
+              <th>Quantité</th>
+              <th>Qté restante</th>
+              <th>Estimation stock</th>
+              <th>Qté livrée</th>
+              <th>Qté magasin</th>
+              <th>Remise</th>
+              <th>TVA</th>
+              <th>Prix vente net</th>
+              <th>Tarif TTC</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of filteredPrixArticles" class="clickable-row">
+              <td><span class="badge badge-info">{{ item.pointVente.produit.reference }}</span></td>
+              <td>{{ item.pointVente.produit.libelle }}</td>
+              <td>{{ item.pointVente.entreeProduit + item.pointVente.stockInitial }}</td>
+              <td>
+                <span class="badge" 
+                      [ngClass]="item.pointVente.stockFinalTheorie > 10 ? 'badge-success' : 'badge-warning'">
+                  {{ item.pointVente.stockFinalTheorie }}
+                </span>
+              </td>
+              <td>{{ (item.pointVente.stockFinalTheorie * item.prixVenteNet) | currency:'XAF':'symbol':'1.2-2':'fr' }}</td>
+              <td>{{ item.pointVente.sortiProduit }}</td>
+              <td>{{ getQuantiteMagasin(item) }}</td>
+              <td>{{ item.remise }}%</td>
+              <td>{{ item.tva }}%</td>
+              <td><strong>{{ item.prixVenteNet | currency:'XAF':'symbol':'1.2-2':'fr' }}</strong></td>
+              <td>{{ item.prixVenteTTC | currency:'XAF':'symbol':'1.2-2':'fr' }}</td>
+            </tr>
+            <tr *ngIf="filteredPrixArticles.length === 0">
+              <td colspan="11" class="text-center text-muted">
+                <i class="fas fa-inbox fa-3x mb-3"></i>
+                <p>Aucun article trouvé</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="card-footer clearfix">
+        <div class="row align-items-center">
+          <div class="col-sm-12 col-md-5">
+            <div class="dataTables_info">
+              Affichage de <strong>{{ (currentPage * pageSize) + 1 }}</strong> à 
+              <strong>{{ Math.min((currentPage + 1) * pageSize, totalElements) }}</strong>
+              sur <strong>{{ totalElements }}</strong> entrées
+            </div>
+          </div>
+          <div class="col-sm-12 col-md-7">
+            <ul class="pagination pagination-sm m-0 float-right">
+              <li class="page-item" [class.disabled]="currentPage === 0">
+                <a class="page-link" (click)="onPageChange(currentPage - 1)" *ngIf="currentPage > 0">
+                  <i class="fas fa-chevron-left"></i> Précédent
+                </a>
+                <span class="page-link" *ngIf="currentPage === 0">
+                  <i class="fas fa-chevron-left"></i> Précédent
+                </span>
+              </li>
+
+              <li class="page-item" *ngFor="let page of getPageNumbers()"
+                  [class.active]="page === currentPage">
+                <a class="page-link" (click)="onPageChange(page)">{{ page + 1 }}</a>
+              </li>
+
+              <li class="page-item" [class.disabled]="currentPage === getTotalPages() - 1">
+                <a class="page-link" (click)="onPageChange(currentPage + 1)"
+                   *ngIf="currentPage < getTotalPages() - 1">
+                  Suivant <i class="fas fa-chevron-right"></i>
+                </a>
+                <span class="page-link" *ngIf="currentPage === getTotalPages() - 1">
+                  Suivant <i class="fas fa-chevron-right"></i>
+                </span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Page size selector -->
+        <div class="row mt-3">
+          <div class="col-md-3">
+            <select class="form-control form-control-sm" [ngModel]="pageSize"
+                    (ngModelChange)="onPageSizeChange($event)">
+              <option *ngFor="let size of pageSizeOptions" [value]="size">
+                {{ size }} par page
+              </option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal Ajout/Création Produit -->
+<div class="modal fade" [class.show]="showProduitModal" 
+     [style.display]="showProduitModal ? 'block' : 'none'"
+     tabindex="-1" role="dialog" *ngIf="showProduitModal">
+  <div class="modal-dialog modal-xl" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary">
+        <h4 class="modal-title">
+          <i class="fas fa-plus-circle"></i> 
+          {{ isCreatingNewProduct ? 'Créer un Nouveau Produit' : 'Ajouter Article' }}
+        </h4>
+        <button type="button" class="close text-white" (click)="closeModal()">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <form [formGroup]="produitForm">
+        <div class="modal-body">
+          <!-- Toggle between selection and creation -->
+          <div class="row mb-3" *ngIf="!isCreatingNewProduct">
+            <div class="col-12">
+              <div class="callout callout-info">
+                <p class="mb-2">
+                  <i class="fas fa-info-circle"></i> 
+                  Sélectionnez un article existant ou créez-en un nouveau
+                </p>
+                <button type="button" class="btn btn-sm btn-success" (click)="toggleCreateNewProduct()">
+                  <i class="fas fa-plus"></i> Créer un Nouveau Produit
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="row mb-3" *ngIf="isCreatingNewProduct">
+            <div class="col-12">
+              <div class="callout callout-warning">
+                <p class="mb-2">
+                  <i class="fas fa-exclamation-triangle"></i> 
+                  Mode création de nouveau produit
+                </p>
+                <button type="button" class="btn btn-sm btn-secondary" (click)="toggleCreateNewProduct()">
+                  <i class="fas fa-arrow-left"></i> Retour à la sélection
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sélection Article (mode normal) -->
+          <div class="row" *ngIf="!isCreatingNewProduct">
+            <div class="col-md-12 mb-3">
+              <label for="produitSelect">
+                <i class="fas fa-box"></i> Article *
+              </label>
+              <app-listes-produits
+                [articles]="produits"
+                placeholder="Tapez pour rechercher un article..."
+                (articleSelected)="onArticleSelected($event)">
+              </app-listes-produits>
+              
+              <div *ngIf="selectedArticle" class="mt-3">
+                <div class="alert alert-success alert-dismissible">
+                  <button type="button" class="close" (click)="selectedArticle = null">
+                    <span aria-hidden="true">&times;</span>
+                  </button>
+                  <h5><i class="icon fas fa-check"></i> Article sélectionné</h5>
+                  <strong>{{ selectedArticle.libelle }}</strong><br>
+                  <small *ngIf="selectedArticle.reference">Code: {{ selectedArticle.reference }}</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulaire de création/modification -->
+          <div class="row">
+            <!-- Référence et Libellé -->
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="reference">
+                  <i class="fas fa-hashtag"></i> Référence
+                  <span *ngIf="isCreatingNewProduct" class="text-danger">*</span>
+                </label>
+                <input type="text" class="form-control" id="reference" 
+                       formControlName="reference"
+                       [readonly]="!isCreatingNewProduct"
+                       [class.is-invalid]="produitForm.get('reference')?.invalid && produitForm.get('reference')?.touched"
+                       placeholder="REF-001">
+                <div class="invalid-feedback" *ngIf="produitForm.get('reference')?.invalid && produitForm.get('reference')?.touched">
+                  La référence est requise
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="libelle">
+                  <i class="fas fa-tag"></i> Libellé *
+                </label>
+                <input type="text" class="form-control" id="libelle" 
+                       formControlName="libelle"
+                       [class.is-invalid]="produitForm.get('libelle')?.invalid && produitForm.get('libelle')?.touched"
+                       placeholder="Nom du produit">
+                <div class="invalid-feedback" *ngIf="produitForm.get('libelle')?.invalid && produitForm.get('libelle')?.touched">
+                  Le libellé est requis
+                </div>
+              </div>
+            </div>
+
+            <!-- Catégorie -->
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="categories">
+                  <i class="fas fa-list"></i> Catégorie *
+                </label>
+                <select class="form-control" id="categories" formControlName="categories"
+                        [class.is-invalid]="produitForm.get('categories')?.invalid && produitForm.get('categories')?.touched">
+                  <option value="">Choisir une catégorie</option>
+                  <option *ngFor="let categorie of categories" [ngValue]="categorie">
+                    {{ categorie.libelle }}
+                  </option>
+                </select>
+                <div class="invalid-feedback" *ngIf="produitForm.get('categories')?.invalid && produitForm.get('categories')?.touched">
+                  La catégorie est requise
+                </div>
+              </div>
+            </div>
+
+            <!-- Fournisseur -->
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="depot">
+                  <i class="fas fa-truck"></i> Fournisseur *
+                </label>
+                <select class="form-control" id="depot" formControlName="depot"
+                        [class.is-invalid]="produitForm.get('depot')?.invalid && produitForm.get('depot')?.touched">
+                  <option value="">Sélectionner un fournisseur</option>
+                  <option *ngFor="let depot of depots" [ngValue]="depot">
+                    {{ depot.fournisseur?.nom }} - {{ depot.libelle }}
+                  </option>
+                </select>
+                <div class="invalid-feedback" *ngIf="produitForm.get('depot')?.invalid && produitForm.get('depot')?.touched">
+                  Le fournisseur est requis
+                </div>
+              </div>
+            </div>
+
+            <!-- Options -->
+            <div class="col-md-12">
+              <div class="card card-outline card-secondary">
+                <div class="card-header">
+                  <h3 class="card-title">
+                    <i class="fas fa-cog"></i> Options du produit
+                  </h3>
+                </div>
+                <div class="card-body">
+                  <div class="row">
+                    <div class="col-md-4">
+                      <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" 
+                               id="destinationDepot" formControlName="destinationDepot">
+                        <label class="custom-control-label" for="destinationDepot">
+                          <i class="fas fa-warehouse"></i> Dépôt destination
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="col-md-4">
+                      <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" 
+                               id="prixVenteModifiable" formControlName="prixVenteModifiable">
+                        <label class="custom-control-label" for="prixVenteModifiable">
+                          <i class="fas fa-edit"></i> Prix modifiable
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="col-md-4">
+                      <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" 
+                               id="pacquets" formControlName="pacquets">
+                        <label class="custom-control-label" for="pacquets">
+                          <i class="fas fa-box"></i> Vente par paquet
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="row mt-3" *ngIf="produitForm.get('pacquets')?.value">
+                    <div class="col-md-6">
+                      <div class="form-group">
+                        <label for="quantiteByPacquet">
+                          <i class="fas fa-boxes"></i> Quantité par paquet
+                        </label>
+                        <input type="number" class="form-control" 
+                               id="quantiteByPacquet" formControlName="quantiteByPacquet"
+                               min="1" step="1" placeholder="Ex: 12">
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer justify-content-between">
+          <button type="button" class="btn btn-default" (click)="closeModal()">
+            <i class="fas fa-times"></i> Annuler
+          </button>
+        <button type="button" 
+        class="btn btn-primary" 
+        (click)="chargerPrix()"
+        [disabled]="produitForm.invalid || isLoading || isProcessing"
+        [class.disabled]="isProcessing">
+  <span *ngIf="!isProcessing">
+    <i class="fas fa-check"></i> 
+    {{ isCreatingNewProduct ? 'Créer et Ajouter' : 'Valider' }}
+  </span>
+  <span *ngIf="isProcessing">
+    <i class="fas fa-spinner fa-spin"></i>
+    Traitement en cours...
+  </span>
+</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Backdrop -->
+<div class="modal-backdrop fade show" *ngIf="showProduitModal"></div>
+

@@ -1,0 +1,91 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Journal Ressources / Dépenses</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Element Ressource/Depense</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Filtres</h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3 form-group">
+            <label>Boutique *</label>
+            <select class="form-control" [(ngModel)]="boutiqueId" name="boutique">
+              <option [ngValue]="null">-- Sélectionner --</option>
+              <option *ngFor="let boutique of boutiques" [ngValue]="boutique.id">{{ boutique.nom }}</option>
+            </select>
+          </div>
+          <div class="col-md-3 form-group">
+            <label>Début</label>
+            <input type="date" class="form-control" [(ngModel)]="debut" name="debut">
+          </div>
+          <div class="col-md-3 form-group">
+            <label>Fin</label>
+            <input type="date" class="form-control" [(ngModel)]="fin" name="fin">
+          </div>
+          <div class="col-md-3 form-group d-flex align-items-end">
+            <button type="button" class="btn btn-primary btn-block" (click)="charger()">
+              <i class="fas fa-search"></i> Charger
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Journal</h3>
+        <div class="card-tools">
+          <span class="badge" [class.badge-success]="getSolde() >= 0" [class.badge-danger]="getSolde() < 0">
+            Solde : {{ getSolde() }}
+          </span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Libellé</th>
+                <th>Type</th>
+                <th>Montant</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of entries">
+                <td>{{ entry.date | date:'dd/MM/yyyy' }}</td>
+                <td>{{ entry.libelle }}</td>
+                <td>
+                  <span class="badge" [class.badge-success]="entry.type === 'Ressource'" [class.badge-danger]="entry.type === 'Charge'">
+                    {{ entry.type }}
+                  </span>
+                </td>
+                <td [class.text-success]="entry.montant >= 0" [class.text-danger]="entry.montant < 0">
+                  {{ entry.montant }}
+                </td>
+              </tr>
+              <tr *ngIf="entries.length === 0">
+                <td colspan="4" class="text-center">Aucune opération trouvée</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

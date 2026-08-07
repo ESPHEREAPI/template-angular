@@ -1,0 +1,186 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Photocopie</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Photocopie</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Filtres</h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 form-group">
+            <label for="boutique">Boutique *</label>
+            <select class="form-control" id="boutique" [(ngModel)]="boutiqueId" name="boutique">
+              <option [ngValue]="null">-- Sélectionner une boutique --</option>
+              <option *ngFor="let boutique of boutiques" [ngValue]="boutique.id">
+                {{ boutique.nom }} ({{ boutique.code }})
+              </option>
+            </select>
+          </div>
+          <div class="col-md-3 form-group">
+            <label for="annee">Année *</label>
+            <input type="number" class="form-control" id="annee" [(ngModel)]="annee" name="annee">
+          </div>
+          <div class="col-md-2 form-group d-flex align-items-end">
+            <button type="button" class="btn btn-primary btn-block" (click)="charger()">
+              <i class="fas fa-search"></i> Charger
+            </button>
+          </div>
+          <div class="col-md-3 form-group d-flex align-items-end justify-content-end">
+            <button type="button" class="btn btn-success" (click)="openModal()">
+              <i class="fas fa-plus"></i> Nouvelle Photocopie
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" *ngIf="summary">
+      <div class="col-md-3">
+        <div class="info-box">
+          <span class="info-box-icon bg-info"><i class="fas fa-money-bill"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Total Montant</span>
+            <span class="info-box-number">{{ summary.totalMontant }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="info-box">
+          <span class="info-box-icon bg-success"><i class="fas fa-list"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Nombre d'entrées</span>
+            <span class="info-box-number">{{ summary.nombreEntrees }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="info-box">
+          <span class="info-box-icon bg-warning"><i class="fas fa-chart-line"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Montant moyen</span>
+            <span class="info-box-number">{{ summary.montantMoyen }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="info-box">
+          <span class="info-box-icon bg-danger"><i class="fas fa-arrows-alt-v"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Min / Max</span>
+            <span class="info-box-number">{{ summary.montantMin }} / {{ summary.montantMax }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Liste des Photocopies</h3>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Libellé</th>
+                <th>Montant</th>
+                <th>Commentaire</th>
+                <th style="width: 120px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let photocopie of photocopies">
+                <td>{{ photocopie.dateReception | date:'dd/MM/yyyy' }}</td>
+                <td>{{ photocopie.libelle }}</td>
+                <td>{{ photocopie.montant }}</td>
+                <td>{{ photocopie.commentaire || '-' }}</td>
+                <td>
+                  <button class="btn btn-sm btn-info mr-1" (click)="openModal(photocopie)">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deletePhotocopie(photocopie.id!)">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="photocopies.length === 0">
+                <td colspan="5" class="text-center">Aucune photocopie trouvée</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card-footer clearfix" *ngIf="totalPages > 1">
+        <ul class="pagination pagination-sm m-0 float-right">
+          <li class="page-item" [class.disabled]="currentPage === 0">
+            <a class="page-link" (click)="changePage(currentPage - 1)">«</a>
+          </li>
+          <li class="page-item" *ngFor="let page of getPagesArray()" [class.active]="page === currentPage">
+            <a class="page-link" (click)="changePage(page)">{{ page + 1 }}</a>
+          </li>
+          <li class="page-item" [class.disabled]="currentPage >= totalPages - 1">
+            <a class="page-link" (click)="changePage(currentPage + 1)">»</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal -->
+<div class="modal fade" id="photocopieModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">{{ isEditMode ? 'Modifier' : 'Nouvelle' }} Photocopie</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="form-group">
+            <label for="libelle">Libellé *</label>
+            <input type="text" class="form-control" id="libelle"
+                   [(ngModel)]="selectedPhotocopie.libelle" name="libelle" required>
+          </div>
+          <div class="form-group">
+            <label for="montant">Montant *</label>
+            <input type="number" class="form-control" id="montant"
+                   [(ngModel)]="selectedPhotocopie.montant" name="montant" required>
+          </div>
+          <div class="form-group">
+            <label for="dateReception">Date</label>
+            <input type="date" class="form-control" id="dateReception"
+                   [(ngModel)]="selectedPhotocopie.dateReception" name="dateReception">
+          </div>
+          <div class="form-group">
+            <label for="commentaire">Commentaire</label>
+            <textarea class="form-control" id="commentaire"
+                      [(ngModel)]="selectedPhotocopie.commentaire" name="commentaire"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" (click)="savePhotocopie()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>

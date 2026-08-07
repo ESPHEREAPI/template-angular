@@ -15,7 +15,7 @@
         <img [src]="imagePath" class="img-circle elevation-2" alt="User Image">
       </div>
       <div class="info">
-        <a href="#" class="d-block">{{ user.firstName }} {{ user.lastName }}</a>
+        <a href="#" class="d-block">{{ user.firstName }} {{ user.lastname }}</a>
       </div>
     </div>
 
@@ -26,20 +26,20 @@
     <nav class="mt-2">
       <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
         <li class="nav-item" *ngFor="let item of menuItems">
-          <a [routerLink]="item.route" routerLinkActive="active" class="nav-link" *ngIf="item.children.length === 0">
+          <a [routerLink]="item.route" routerLinkActive="active" class="nav-link" *ngIf="item.children.length === 0  ">
             <i class="nav-icon {{item.icon}}"></i>
             <p>{{item.title}}</p>
           </a>
-          <a href="#" class="nav-link" *ngIf="item.children.length > 0">
+          <a href="#" class="nav-link" *ngIf="item.children.length > 0 && resultal(item.title)===true">
             <i class="nav-icon {{item.icon}}"></i>
             <p>
               {{item.title}}
               <i class="right fas fa-angle-left"></i>
             </p>
           </a>
-          <ul class="nav nav-treeview" *ngIf="item.children.length > 0">
+          <ul class="nav nav-treeview" *ngIf="item.children.length > 0 ">
             <li class="nav-item" *ngFor="let child of item.children">
-              <a [routerLink]="child.route" routerLinkActive="active" class="nav-link">
+              <a [routerLink]="child.route" routerLinkActive="active" class="nav-link"  *ngIf="child.alwaysVisible === true || resultalMenu(child.title, item.title)===true" >
                 <i class="{{child.icon}} nav-icon"></i>
                 <p>{{child.title}}</p>
               </a>

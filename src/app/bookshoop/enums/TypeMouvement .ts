@@ -1,0 +1,9 @@
+export enum TypeMouvement {
+  ENTREE = 'ENTREE',
+  SORTIE = 'SORTIE',
+  AJUSTEMENT = 'AJUSTEMENT',
+  INVENTAIRE = 'INVENTAIRE',
+  TRANSFERT = 'TRANSFERT',
+  PERTE = 'PERTE',
+  RETOUR = 'RETOUR'
+}

@@ -1,0 +1,442 @@
+<!-- marge-vente.component.html -->
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">Gestion des Marges de Vente</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Marges de Vente</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+
+    <!-- Boutons d'action -->
+    <div class="card card-primary">
+      <div class="card-header">
+        <h3 class="card-title">Actions</h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-6">
+            <button type="button" class="btn btn-success mr-2" [disabled]="!computedCanGenerate || isLoading()"
+              (click)="onDateChange()">
+              <i class="fas fa-cog" [class.fa-spin]="isLoading()"></i>
+              {{ isLoading() ? 'Génération...' : 'Générer' }}
+            </button>
+
+            <button type="button" class="btn btn-primary mr-2" [disabled]="!computedCanEdit || isLoading()"
+              (click)="editerMarge(selectedMarge()!)">
+              <i class="fas fa-edit"></i> Éditer
+            </button>
+
+            <button type="button" class="btn btn-info mr-2" [disabled]="!computedCanPrint" (click)="imprimerRapport()">
+              <i class="fas fa-print"></i> Imprimer
+            </button>
+          </div>
+          <div class="col-md-6 text-right">
+            <button type="button" class="btn btn-secondary" (click)="rafraichir()">
+              <i class="fas fa-sync-alt"></i> Rafraîchir
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filtres -->
+    <div class="card card-info">
+      <div class="card-header">
+        <h3 class="card-title">Filtres</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <!-- Type de marge -->
+        <div class="form-group">
+          <label class="form-label">Type de marge</label>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="position" id="margeJour" [value]="1"
+              [checked]="position() === 1" (change)="position.set(1); onPositionChange()">
+            <label class="form-check-label" for="margeJour">
+              Marge par jour
+            </label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="position" id="margeMois" [value]="2"
+              [checked]="position() === 2" (change)="position.set(2); onPositionChange()">
+            <label class="form-check-label" for="margeMois">
+              Marge par mois
+            </label>
+          </div>
+        </div>
+
+        <!-- Formulaire de filtres -->
+        <form [formGroup]="margeVenteForm" class="row">
+          <div class="col-md-3">
+            <div class="form-group">
+              <label for="annee">Année *</label>
+              <select id="annee" class="form-control" formControlName="annee">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let annee of annees()" [ngValue]="annee">
+                  {{annee.id}}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="col-md-3" *ngIf="computedIsMargeJournalier">
+            <div class="form-group">
+              <label for="date">Date *</label>
+              <select id="date" class="form-control" formControlName="date" (change)="onDateChange()">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let date of datesByMois()" [ngValue]="date">
+                  {{date}}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="col-md-3" *ngIf="computedIsMargeMensuel">
+            <div class="form-group">
+              <label for="debut">Date Début *</label>
+              <select id="debut" class="form-control" formControlName="debut">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let date of datesByMois()" [ngValue]="date">
+                  {{date}}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="col-md-3" *ngIf="computedIsMargeMensuel">
+            <div class="form-group">
+              <label for="fin">Date Fin *</label>
+              <select id="fin" class="form-control" formControlName="fin" (change)="onDateChange()">
+                <option value="">Sélectionner...</option>
+                <option *ngFor="let date of datesByMois()" [ngValue]="date">
+                  {{date}}
+                </option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Statistiques -->
+    <div class="row">
+      <div class="col-lg-3 col-6">
+        <div class="small-box bg-info">
+          <div class="inner">
+            <h3>{{formatNumber(stats().totalCaisse)}} F</h3>
+            <p>Total Vente Net</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-shopping-cart"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-6">
+        <div class="small-box bg-success">
+          <div class="inner">
+            <h3>{{formatNumber(stats().totalAchat)}} F</h3>
+            <p>Total Achat</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-dollar-sign"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning">
+          <div class="inner">
+            <h3>{{formatNumber(stats().remise)}} F</h3>
+            <p>Total Remise</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-percent"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger">
+          <div class="inner">
+            <h3>{{formatNumber(stats().totalMarge)}} F</h3>
+            <p>Total Marge</p>
+          </div>
+          <div class="icon">
+            <i class="fas fa-chart-line"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tableau des résultats -->
+    <div class="card" *ngIf="margesVente().length > 0">
+      <div class="card-header">
+        <h3 class="card-title">
+          Marges de Vente
+          <span class="badge badge-secondary ml-2" *ngIf="computedIsMargeJournalier">Journalier</span>
+          <span class="badge badge-secondary ml-2" *ngIf="computedIsMargeMensuel">Mensuel</span>
+        </h3>
+        <div class="card-tools">
+          <span class="badge badge-info">Total: {{paginationConfig().totalRecords}}</span>
+        </div>
+      </div>
+
+      <!-- Contrôles de pagination supérieurs -->
+      <div class="card-body p-2">
+        <div class="row align-items-center">
+          <div class="col-sm-6">
+            <div class="dataTables_length">
+              <label class="d-inline-flex align-items-center">
+                Afficher
+                <select class="form-control form-control-sm mx-2" style="width: auto;"
+                  [value]="paginationConfig().pageSize" (change)="onPageSizeChange($event)">
+                  <option *ngFor="let size of paginationConfig().pageSizeOptions" [value]="size">
+                    {{size}}
+                  </option>
+                </select>
+                entrées
+              </label>
+            </div>
+          </div>
+          <div class="col-sm-6">
+            <div class="dataTables_info text-right">
+              <ng-container *ngIf="paginationInfo.total > 0; else noData">
+                Affichage de {{ paginationInfo.start }} à {{ paginationInfo.end }} sur {{ paginationInfo.total }}
+                entrées
+              </ng-container>
+              <ng-template #noData>
+                Aucun enregistrement à afficher
+              </ng-template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-body table-responsive p-0">
+        <table class="table table-hover text-nowrap">
+          <thead>
+            <tr>
+              <th *ngIf="computedIsMargeJournalier" style="width: 80px;">Actions</th>
+              <th class="sortable" (click)="onSort('libelle')">
+                Article
+                <i [class]="getSortIcon('libelle')"></i>
+              </th>
+              <th class="sortable" (click)="onSort('quantite')">
+                Quantité
+                <i [class]="getSortIcon('quantite')"></i>
+              </th>
+              <th *ngIf="computedIsMargeJournalier" class="sortable" (click)="onSort('prixVente')">
+                Prix Vente Net
+                <i [class]="getSortIcon('prixVente')"></i>
+              </th>
+              <th class="sortable" (click)="onSort('montant')">
+                Montant Vente Net
+                <i [class]="getSortIcon('montant')"></i>
+              </th>
+              <th *ngIf="computedIsMargeJournalier" class="sortable" (click)="onSort('achat')">
+                Prix Achat
+                <i [class]="getSortIcon('achat')"></i>
+              </th>
+              <th class="sortable" (click)="onSort('montanAchat')">
+                Montant Achat
+                <i [class]="getSortIcon('montanAchat')"></i>
+              </th>
+              <th class="sortable" (click)="onSort('marge')">
+                Marge
+                <i [class]="getSortIcon('marge')"></i>
+              </th>
+              <th>%</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let marge of paginatedMarges(); let i = index" [class]="getMargeClass(marge)"
+              (click)="selectedMarge.set(marge)" [class.table-active]="selectedMarge() === marge">
+
+              <td *ngIf="computedIsMargeJournalier">
+                <button type="button" class="btn btn-sm btn-primary" [disabled]="!computedCanEdit"
+                  (click)="$event.stopPropagation(); editerMarge(marge)">
+                  <i class="fas fa-edit"></i>
+                </button>
+              </td>
+
+              <td>{{marge.libelle}}</td>
+              <td class="text-right">{{formatNumber(marge.quantite)}}</td>
+
+              <td *ngIf="computedIsMargeJournalier" class="text-right">
+                {{formatNumber(marge.prixVente)}} F
+              </td>
+
+              <td class="text-right">{{formatNumber(marge.montant)}} F</td>
+
+              <td *ngIf="computedIsMargeJournalier" class="text-right">
+                {{formatNumber(marge.achat)}} F
+              </td>
+
+              <td class="text-right">{{formatNumber(marge.montanAchat)}} F</td>
+
+              <td class="text-right" [class.text-danger]="marge.marge < 0">
+                {{formatNumber(marge.marge)}} F
+              </td>
+
+              <td class="text-right" [class.text-danger]="marge.marge < 0">
+                {{marge.montant > 0 ? formatNumber((marge.marge / marge.montant) * 100) : 0}}%
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Pagination -->
+      <div class="card-footer">
+        <div class="row">
+          <div class="col-sm-12 col-md-5">
+            <div class="dataTables_info">
+              <ng-container *ngIf="paginationInfoFooter.total > 0; else noData">
+                Affichage de {{ paginationInfoFooter.start }}
+                à {{ paginationInfoFooter.end }}
+                sur {{ paginationInfoFooter.total }} entrées
+              </ng-container>
+              <ng-template #noData>
+                Aucun enregistrement à afficher
+              </ng-template>
+            </div>
+          </div>
+          <div class="col-sm-12 col-md-7">
+            <div class="dataTables_paginate paging_simple_numbers">
+              <ul class="pagination">
+                <li class="paginate_button page-item previous" [class.disabled]="paginationConfig().currentPage === 1">
+                  <a class="page-link" (click)="onPageChange(paginationConfig().currentPage - 1)"
+                    [class.disabled]="paginationConfig().currentPage === 1">
+                    Précédent
+                  </a>
+                </li>
+
+                <li *ngFor="let page of paginationPages()" class="paginate_button page-item"
+                  [class.active]="page === paginationConfig().currentPage">
+                  <a class="page-link" (click)="onPageChange(page)">{{page}}</a>
+                </li>
+
+                <li class="paginate_button page-item next"
+                  [class.disabled]="paginationConfig().currentPage === paginationConfig().totalPages">
+                  <a class="page-link" (click)="onPageChange(paginationConfig().currentPage + 1)"
+                    [class.disabled]="paginationConfig().currentPage === paginationConfig().totalPages">
+                    Suivant
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message si aucune donnée -->
+    <div class="card" *ngIf="!isLoading() && margesVente().length === 0 && margeVenteForm.valid">
+      <div class="card-body text-center">
+        <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
+        <h4 class="text-muted">Aucune donnée disponible</h4>
+        <p class="text-muted">Aucune marge de vente trouvée pour les critères sélectionnés.</p>
+      </div>
+    </div>
+
+    <!-- Modal d'édition -->
+    <div class="modal fade" [class.show]="showEditModal()" [style.display]="showEditModal() ? 'block' : 'none'"
+      tabindex="-1" role="dialog">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Éditer la marge</h5>
+            <button type="button" class="close" (click)="annulerEdition()">
+              <span>&times;</span>
+            </button>
+          </div>
+          <div class="modal-body">
+            <form [formGroup]="editForm" *ngIf="selectedMarge()">
+              <div class="form-group">
+                <label>Article</label>
+                <input type="text" class="form-control" [value]="selectedMarge()?.libelle" readonly>
+              </div>
+
+              <div class="form-group">
+                <label>Quantité</label>
+                <input type="number" class="form-control" [value]="selectedMarge()?.quantite" readonly>
+              </div>
+
+              <div class="form-group">
+                <label for="achat">Prix Achat *</label>
+                <input type="number" id="achat" class="form-control" formControlName="achat"
+                  [class.is-invalid]="editForm.get('achat')?.invalid && editForm.get('achat')?.touched">
+                <div class="invalid-feedback" *ngIf="editForm.get('achat')?.invalid && editForm.get('achat')?.touched">
+                  Le prix d'achat est requis et doit être positif.
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="prixVente">Prix Vente Net *</label>
+                <input type="number" id="prixVente" class="form-control" formControlName="prixVente"
+                  [class.is-invalid]="editForm.get('prixVente')?.invalid && editForm.get('prixVente')?.touched">
+                <div class="invalid-feedback"
+                  *ngIf="editForm.get('prixVente')?.invalid && editForm.get('prixVente')?.touched">
+                  Le prix de vente est requis et doit être positif.
+                </div>
+              </div>
+
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Montant Achat</label>
+                    <input type="text" class="form-control"
+                      [value]="formatNumber((editForm.get('achat')?.value || 0) * (selectedMarge()?.quantite || 0)) + ' F'"
+                      readonly>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label>Montant Vente</label>
+                    <input type="text" class="form-control"
+                      [value]="formatNumber((editForm.get('prixVente')?.value || 0) * (selectedMarge()?.quantite || 0)) + ' F'"
+                      readonly>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label>Marge Calculée</label>
+                <input type="text" class="form-control"
+                  [value]="formatNumber(((editForm.get('prixVente')?.value || 0) - (editForm.get('achat')?.value || 0)) * (selectedMarge()?.quantite || 0)) + ' F'"
+                  [class.text-danger]="((editForm.get('prixVente')?.value || 0) - (editForm.get('achat')?.value || 0)) < 0"
+                  readonly>
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" (click)="annulerEdition()">
+              Annuler
+            </button>
+            <button type="button" class="btn btn-primary" [disabled]="!editForm.valid" (click)="validerEdition()">
+              Valider
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Backdrop du modal -->
+    <div class="modal-backdrop fade" [class.show]="showEditModal()" *ngIf="showEditModal()">
+    </div>
+
+  </div>
+</section>

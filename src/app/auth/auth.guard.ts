@@ -14,12 +14,21 @@ export class AuthGuard implements CanActivate {
   ) { }
 
   canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
-    if (this.authService.isLoggedIn()) {
-      return true;
-    }
+    const publicPaths = ['/caddy', '/e-com', '/order', '/liste-order'];
 
-    // Non connecté, rediriger vers la page de connexion avec l'URL de retour
-    this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
-    return false;
+  if (publicPaths.includes(state.url)) {
+    return true;
+  }
+
+  if (this.authService.isLoggedIn()) {
+    if (this.authService.currentUserValue?.mustChangePassword) {
+      this.router.navigateByUrl('change-password');
+      return false;
+    }
+    return true;
+  }
+
+  this.router.navigate(['/login'], { queryParams: { returnUrl: state.url } });
+  return false;
   }
 }
