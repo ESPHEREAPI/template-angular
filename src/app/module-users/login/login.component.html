@@ -1,102 +1,76 @@
-<!-- login.component.html - Version avec dialogue de sélection de boutique -->
-<!DOCTYPE html>
-<html>
+<!-- Dialogue de sélection de boutique -->
+<app-boutique-selection-dialog></app-boutique-selection-dialog>
 
-<body style="background-color: aliceblue">
+<div class="login-page" *ngIf="loginService.isConnect()==false">
+    <p-toast></p-toast>
 
-    <!-- Dialogue de sélection de boutique -->
-    <app-boutique-selection-dialog></app-boutique-selection-dialog>
+    <div class="login-box">
+        <div class="login-brand">
+            <img src="../logo.png" alt="JNDTECH Logo" class="brand-image">
+            <span class="brand-title"><b>EASYCOM-PRO</b> Gestion Commercial</span>
+        </div>
 
-    <div class="content-wrapper" *ngIf="loginService.isConnect()==false">
+        <div class="login-card">
+            <p class="login-box-msg">Veuillez saisir votre login et votre mot de passe</p>
 
-        <br><br>
-
-        <div class="content">
-            <p-toast></p-toast>
-
-            <div class="hold-transition">
-                <div class="container col-sm-4">
-                    <div class="login-box">
-
-                        <div class="container">
-                            <a href="#" class="navbar-brand">
-                                <img src="../logo.png" alt="JNDTECH Logo"
-                                    class="brand-image img-circle elevation-3" style="opacity: .8">
-                                <b class="login-logo">EASYCOM-PRO</b>Gestion Commercial
-                            </a>
-                        </div>
-
-                        <div class="card card-primary card-outline">
-                            <div class="card-body login-card-body card-primary">
-                                <p class="login-box-msg">Veuillez saisir votre login et votre mot de passe</p>
-                                
-                                <form #f="ngForm" accept-charset="UTF-8" role="form" (ngSubmit)="onLogin(f.value)">
-                                    <!-- Champ Username -->
-                                    <div class="input-group mb-3">
-                                        <input 
-                                            type="text" 
-                                            class="form-control" 
-                                            placeholder="Login" 
-                                            name="username" 
-                                            ngModel
-                                            required>
-                                        <div class="input-group-append">
-                                            <div class="input-group-text">
-                                                <span class="fas fa-envelope"></span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Champ Password -->
-                                    <div class="input-group mb-3">
-                                        <input 
-                                            type="password" 
-                                            class="form-control" 
-                                            placeholder="Password" 
-                                            name="password" 
-                                            ngModel
-                                            required>
-                                        <div class="input-group-append">
-                                            <div class="input-group-text">
-                                                <span class="fas fa-lock"></span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <!-- Options et bouton -->
-                                    <div class="row">
-                                        <div class="col-8">
-                                            <div class="icheck-primary">
-                                                <input 
-                                                    type="checkbox" 
-                                                    id="remember"
-                                                    name="remember" 
-                                                    ngModel>
-                                                <label for="remember">
-                                                    Remember Me
-                                                </label>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-4">
-                                            <button 
-                                                type="submit" 
-                                                class="btn btn-primary btn-block"
-                                                [disabled]="!f.valid">
-                                                Sign In
-                                            </button>
-                                        </div>
-                                    </div>
-                                </form>
-
-                            </div>
+            <form #f="ngForm" accept-charset="UTF-8" role="form" (ngSubmit)="onLogin(f.value)">
+                <!-- Champ Username -->
+                <div class="input-group mb-3">
+                    <input
+                        type="text"
+                        class="form-control"
+                        placeholder="Login"
+                        name="username"
+                        ngModel
+                        required>
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-envelope"></span>
                         </div>
                     </div>
                 </div>
-            </div>
+
+                <!-- Champ Password -->
+                <div class="input-group mb-3">
+                    <input
+                        type="password"
+                        class="form-control"
+                        placeholder="Password"
+                        name="password"
+                        ngModel
+                        required>
+                    <div class="input-group-append">
+                        <div class="input-group-text">
+                            <span class="fas fa-lock"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Options et bouton -->
+                <div class="row align-items-center">
+                    <div class="col-8">
+                        <div class="icheck-primary">
+                            <input
+                                type="checkbox"
+                                id="remember"
+                                name="remember"
+                                ngModel>
+                            <label for="remember">
+                                Remember Me
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="col-4">
+                        <button
+                            type="submit"
+                            class="btn btn-primary btn-block"
+                            [disabled]="!f.valid">
+                            Sign In
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
-
     </div>
-
-</body>
-</html>
+</div>
