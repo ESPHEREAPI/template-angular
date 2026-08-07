@@ -6,6 +6,7 @@ import { Compagnie } from '../../model/compagnie';
 import { CreateCompagnieRequest } from '../../model/create-compagnie-request';
 import { TypeCommerce, TYPE_COMMERCE_LABELS } from '../../model/type-commerce';
 import { CompagnieService } from '../../service/compagnie.service';
+import { copyToClipboard } from '../../../shared/clipboard.util';
 
 declare var $: any;
 
@@ -113,10 +114,13 @@ export class CompagnieComponent implements OnInit {
   }
 
   copyToClipboard(value: string): void {
-    navigator.clipboard.writeText(value).then(
-      () => this.toastr.success('Copié dans le presse-papiers.'),
-      () => this.toastr.error('Impossible de copier automatiquement, sélectionnez et copiez manuellement.')
-    );
+    copyToClipboard(value).then(succes => {
+      if (succes) {
+        this.toastr.success('Copié dans le presse-papiers.');
+      } else {
+        this.toastr.error('Impossible de copier automatiquement, sélectionnez et copiez manuellement.');
+      }
+    });
   }
 
   private showCredentials(username: string, generatedPassword: string | undefined): void {

@@ -9,6 +9,7 @@ import { LicenceSettings } from '../../model/licence-settings';
 import { CompagnieService } from '../../service/compagnie.service';
 import { LicenceService } from '../../service/licence.service';
 import { AuthService } from '../../../auth/auth.service';
+import { copyToClipboard as copierDansPressePapiers } from '../../../shared/clipboard.util';
 
 declare var $: any;
 
@@ -221,10 +222,13 @@ export class LicenceComponent implements OnInit {
 
   copierCle(cle: string | null | undefined): void {
     if (!cle) { return; }
-    navigator.clipboard.writeText(cle).then(
-      () => this.toastr.success('Cle copiee dans le presse-papiers.'),
-      () => this.toastr.error('Copie automatique impossible - selectionnez le texte et copiez-le manuellement.')
-    );
+    copierDansPressePapiers(cle).then(succes => {
+      if (succes) {
+        this.toastr.success('Cle copiee dans le presse-papiers.');
+      } else {
+        this.toastr.error('Copie automatique impossible - selectionnez le texte et copiez-le manuellement.');
+      }
+    });
   }
 
   fermerCleGeneree(): void {
