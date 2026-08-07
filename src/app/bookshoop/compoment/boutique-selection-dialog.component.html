@@ -8,48 +8,99 @@
       header="Sélection de la boutique">
       
       <div class="dialog-content">
-        <p class="mb-3">
-          <i class="pi pi-info-circle"></i>
-          Veuillez sélectionner la boutique sur laquelle vous souhaitez travailler :
-        </p>
-        
-        <div class="field">
-          <label for="boutique" class="block mb-2">Boutique *</label>
-          <p-dropdown 
-            id="boutique"
-            [(ngModel)]="selectedBoutique" 
-            [options]="boutiques" 
-            optionLabel="nom"
-            placeholder="Sélectionnez une boutique"
-            [style]="{'width':'100%'}"
-            [filter]="true"
-            filterBy="nom"
-            [showClear]="false"
-            appendTo="body">
-            
-            <ng-template pTemplate="selectedItem">
-              <div *ngIf="selectedBoutique">
-                <i class="pi pi-shopping-cart mr-2"></i>
-                <span>{{ selectedBoutique.nom }}</span>
-              </div>
-            </ng-template>
-            
-            <ng-template let-boutique pTemplate="item">
-              <div class="flex align-items-center">
-                <i class="pi pi-shopping-cart mr-2"></i>
-                <div>
-                  <div>{{ boutique.nom }}</div>
-                  <small class="text-muted" *ngIf="boutique.adresse">{{ boutique.adresse }}</small>
-                </div>
-              </div>
-            </ng-template>
-          </p-dropdown>
-        </div>
-
         <div *ngIf="loading" class="text-center mt-3">
           <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
           <p>Chargement des boutiques...</p>
         </div>
+
+        <ng-container *ngIf="!loading && !creationMode">
+          <p class="mb-3">
+            <i class="pi pi-info-circle"></i>
+            Veuillez sélectionner la boutique sur laquelle vous souhaitez travailler :
+          </p>
+
+          <div class="field">
+            <label for="boutique" class="block mb-2">Boutique *</label>
+            <p-dropdown
+              id="boutique"
+              [(ngModel)]="selectedBoutique"
+              [options]="boutiques"
+              optionLabel="nom"
+              placeholder="Sélectionnez une boutique"
+              [style]="{'width':'100%'}"
+              [filter]="true"
+              filterBy="nom"
+              [showClear]="false"
+              appendTo="body">
+
+              <ng-template pTemplate="selectedItem">
+                <div *ngIf="selectedBoutique">
+                  <i class="pi pi-shopping-cart mr-2"></i>
+                  <span>{{ selectedBoutique.nom }}</span>
+                </div>
+              </ng-template>
+
+              <ng-template let-boutique pTemplate="item">
+                <div class="flex align-items-center">
+                  <i class="pi pi-shopping-cart mr-2"></i>
+                  <div>
+                    <div>{{ boutique.nom }}</div>
+                    <small class="text-muted" *ngIf="boutique.adresse">{{ boutique.adresse }}</small>
+                  </div>
+                </div>
+              </ng-template>
+            </p-dropdown>
+          </div>
+
+          <button type="button" class="btn btn-link p-0 mt-2" (click)="ouvrirCreation()">
+            <i class="pi pi-plus mr-1"></i>Créer une nouvelle boutique
+          </button>
+        </ng-container>
+
+        <ng-container *ngIf="!loading && creationMode">
+          <p class="mb-3" *ngIf="boutiques.length === 0">
+            <i class="pi pi-info-circle"></i>
+            Aucune boutique n'existe encore pour votre compagnie. Créez la première pour commencer à travailler :
+          </p>
+          <p class="mb-3" *ngIf="boutiques.length > 0">
+            <i class="pi pi-info-circle"></i>
+            Créer une nouvelle boutique :
+          </p>
+
+          <div class="field mb-2">
+            <label for="nb-code" class="block mb-1">Code *</label>
+            <input id="nb-code" type="text" class="form-control" [(ngModel)]="nouvelleBoutique.code" placeholder="Ex: BTQ001">
+          </div>
+          <div class="field mb-2">
+            <label for="nb-nom" class="block mb-1">Nom *</label>
+            <input id="nb-nom" type="text" class="form-control" [(ngModel)]="nouvelleBoutique.nom" placeholder="Ex: Boutique Principale">
+          </div>
+          <div class="field mb-2">
+            <label for="nb-quartier" class="block mb-1">Quartier</label>
+            <input id="nb-quartier" type="text" class="form-control" [(ngModel)]="nouvelleBoutique.quartier">
+          </div>
+
+          <div class="d-flex gap-2 mt-3">
+            <button
+              pButton
+              type="button"
+              label="Créer"
+              icon="pi pi-check"
+              class="p-button-primary"
+              [disabled]="!nouvelleBoutique.code || !nouvelleBoutique.nom || creating"
+              (click)="creerBoutique()">
+            </button>
+            <button
+              *ngIf="boutiques.length > 0"
+              pButton
+              type="button"
+              label="Annuler"
+              class="p-button-text"
+              [disabled]="creating"
+              (click)="annulerCreation()">
+            </button>
+          </div>
+        </ng-container>
 
         <div *ngIf="error" class="p-message p-message-error mt-3">
           <i class="pi pi-times-circle"></i>
@@ -58,10 +109,11 @@
       </div>
 
       <ng-template pTemplate="footer">
-        <button 
-          pButton 
-          type="button" 
-          label="Valider" 
+        <button
+          *ngIf="!creationMode"
+          pButton
+          type="button"
+          label="Valider"
           icon="pi pi-check"
           class="p-button-primary"
           [disabled]="!selectedBoutique || loading"

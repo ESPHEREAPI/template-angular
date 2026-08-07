@@ -26,7 +26,13 @@ visible: boolean = false;
   selectedBoutique: Boutique | null = null;
   loading: boolean = false;
   error: string = '';
-  
+
+  // Creation d'une premiere boutique (compte tout juste cree, aucune
+  // boutique existante - voir loadBoutiques).
+  creationMode: boolean = false;
+  creating: boolean = false;
+  nouvelleBoutique: Boutique = { code: '', nom: '' };
+
   // Callback à exécuter lors de la confirmation
   private onConfirmCallback: ((boutique: Boutique) => void) | null = null;
 
@@ -60,12 +66,17 @@ visible: boolean = false;
       next: (data: Boutique[]) => {
         this.boutiques = data;
         this.loading = false;
-        
+
         // Si une seule boutique, la sélectionner automatiquement
         if (this.boutiques.length === 1) {
           this.selectedBoutique = this.boutiques[0];
         }
-        
+
+        // Aucune boutique existante (compte tout juste cree) - proposer
+        // directement la creation plutot que de laisser un dropdown vide
+        // sans issue.
+        this.creationMode = this.boutiques.length === 0;
+
         console.log('[BoutiqueDialog] Boutiques chargées:', this.boutiques.length);
       },
       error: (err) => {
@@ -77,6 +88,51 @@ visible: boolean = false;
           summary: 'Erreur',
           detail: 'Impossible de charger les boutiques'
         });
+      }
+    });
+  }
+
+  /**
+   * Bascule vers le formulaire de creation d'une premiere boutique.
+   */
+  ouvrirCreation(): void {
+    this.creationMode = true;
+    this.error = '';
+    this.nouvelleBoutique = { code: '', nom: '' };
+  }
+
+  annulerCreation(): void {
+    this.creationMode = false;
+    this.error = '';
+  }
+
+  /**
+   * Cree la boutique saisie puis la selectionne automatiquement - evite un
+   * aller-retour supplementaire pour l'admin qui vient de la creer.
+   */
+  creerBoutique(): void {
+    if (!this.nouvelleBoutique.code || !this.nouvelleBoutique.nom) {
+      return;
+    }
+    this.creating = true;
+    this.error = '';
+
+    this.boutiqueService.create(this.nouvelleBoutique).subscribe({
+      next: (boutique) => {
+        this.creating = false;
+        this.boutiques.push(boutique);
+        this.selectedBoutique = boutique;
+        this.creationMode = false;
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Boutique créée',
+          detail: `"${boutique.nom}" a été créée avec succès.`
+        });
+      },
+      error: (err) => {
+        this.creating = false;
+        this.error = err?.error?.message || 'Erreur lors de la création de la boutique.';
+        console.error('[BoutiqueDialog] Erreur de création:', err);
       }
     });
   }
