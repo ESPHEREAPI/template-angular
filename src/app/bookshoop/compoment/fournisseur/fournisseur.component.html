@@ -51,6 +51,7 @@
                 <th>Ville</th>
                 <th>Téléphone</th>
                 <th>Email</th>
+                <th>Portée</th>
                 <th style="width: 150px">Actions</th>
               </tr>
             </thead>
@@ -62,6 +63,10 @@
                 <td>{{ fournisseur.ville || '-' }}</td>
                 <td>{{ fournisseur.tel || '-' }}</td>
                 <td>{{ fournisseur.email || '-' }}</td>
+                <td>
+                  <span class="badge badge-success" *ngIf="fournisseur.disponiblePartout">Partout</span>
+                  <span class="badge badge-light" *ngIf="!fournisseur.disponiblePartout">Dépôts associés</span>
+                </td>
                 <td>
                   <button class="btn btn-sm btn-info mr-1" (click)="openModal(fournisseur)" title="Modifier">
                     <i class="fas fa-edit"></i>
@@ -75,7 +80,7 @@
                 </td>
               </tr>
               <tr *ngIf="fournisseurs.length === 0">
-                <td colspan="7" class="text-center">Aucun fournisseur trouvé</td>
+                <td colspan="8" class="text-center">Aucun fournisseur trouvé</td>
               </tr>
             </tbody>
           </table>
@@ -175,6 +180,15 @@
               <label for="indicatifPays">Indicatif pays</label>
               <input type="text" class="form-control" id="indicatifPays"
                      [(ngModel)]="selectedFournisseur.indicatifPays" name="indicatifPays">
+            </div>
+          </div>
+          <div class="form-group">
+            <div class="custom-control custom-switch">
+              <input type="checkbox" class="custom-control-input" id="disponiblePartout"
+                     [(ngModel)]="selectedFournisseur.disponiblePartout" name="disponiblePartout">
+              <label class="custom-control-label" for="disponiblePartout">
+                Disponible partout (livre l'ensemble des magasins de la compagnie, sans association dédiée)
+              </label>
             </div>
           </div>
         </form>

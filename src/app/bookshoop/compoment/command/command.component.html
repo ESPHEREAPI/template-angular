@@ -470,6 +470,33 @@
               </div>
             </div>
 
+            <!-- Magasin destination -->
+            <div class="col-md-6">
+              <div class="form-group">
+                <label for="magasinDestination">
+                  <i class="fas fa-warehouse"></i> Magasin destination *
+                </label>
+                <select class="form-control" id="magasinDestination" formControlName="magasinDestination"
+                        [class.is-invalid]="produitForm.get('magasinDestination')?.invalid && produitForm.get('magasinDestination')?.touched">
+                  <option [ngValue]="null">Sélectionner un magasin</option>
+                  <option *ngFor="let magasin of magasins" [ngValue]="magasin">
+                    {{ magasin.libelle }} — {{ magasin.boutiqueId ? ('Point de Vente : ' + magasin.boutiqueId.nom) : 'Dépôt Central' }}
+                  </option>
+                </select>
+                <div class="invalid-feedback" *ngIf="produitForm.get('magasinDestination')?.invalid && produitForm.get('magasinDestination')?.touched">
+                  Le magasin destination est requis
+                </div>
+                <small class="form-text text-muted" *ngIf="produitForm.get('magasinDestination')?.value">
+                  <span *ngIf="produitForm.get('magasinDestination')?.value?.boutiqueId">
+                    La reception sera immediatement disponible à la vente dans cette boutique.
+                  </span>
+                  <span *ngIf="!produitForm.get('magasinDestination')?.value?.boutiqueId">
+                    Le stock restera en dépôt, à distribuer plus tard par transfert.
+                  </span>
+                </small>
+              </div>
+            </div>
+
             <!-- Fournisseur -->
             <div class="col-md-6">
               <div class="form-group">
@@ -477,15 +504,19 @@
                   <i class="fas fa-truck"></i> Fournisseur *
                 </label>
                 <select class="form-control" id="depot" formControlName="depot"
+                        [disabled]="!produitForm.get('magasinDestination')?.value"
                         [class.is-invalid]="produitForm.get('depot')?.invalid && produitForm.get('depot')?.touched">
                   <option value="">Sélectionner un fournisseur</option>
                   <option *ngFor="let depot of depots" [ngValue]="depot">
-                    {{ depot.fournisseur?.nom }} - {{ depot.libelle }}
+                    {{ depot.fournisseur?.nom }}
                   </option>
                 </select>
                 <div class="invalid-feedback" *ngIf="produitForm.get('depot')?.invalid && produitForm.get('depot')?.touched">
                   Le fournisseur est requis
                 </div>
+                <small class="form-text text-muted" *ngIf="produitForm.get('magasinDestination')?.value && depots.length === 0">
+                  Aucun fournisseur associé à ce magasin - allez dans Stock &gt; Fournisseur pour en associer un.
+                </small>
               </div>
             </div>
 
@@ -499,19 +530,9 @@
                 </div>
                 <div class="card-body">
                   <div class="row">
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                       <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input" 
-                               id="destinationDepot" formControlName="destinationDepot">
-                        <label class="custom-control-label" for="destinationDepot">
-                          <i class="fas fa-warehouse"></i> Dépôt destination
-                        </label>
-                      </div>
-                    </div>
-
-                    <div class="col-md-4">
-                      <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input" 
+                        <input type="checkbox" class="custom-control-input"
                                id="prixVenteModifiable" formControlName="prixVenteModifiable">
                         <label class="custom-control-label" for="prixVenteModifiable">
                           <i class="fas fa-edit"></i> Prix modifiable
@@ -519,9 +540,9 @@
                       </div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                       <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input" 
+                        <input type="checkbox" class="custom-control-input"
                                id="pacquets" formControlName="pacquets">
                         <label class="custom-control-label" for="pacquets">
                           <i class="fas fa-box"></i> Vente par paquet

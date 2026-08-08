@@ -57,7 +57,8 @@ export class FournisseurComponent implements OnInit {
       ville: '',
       quartier: '',
       region: '',
-      indicatifPays: ''
+      indicatifPays: '',
+      disponiblePartout: false
     };
   }
 

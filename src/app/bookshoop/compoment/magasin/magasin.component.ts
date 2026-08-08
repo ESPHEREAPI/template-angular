@@ -87,16 +87,24 @@ export class MagasinComponent implements OnInit {
   openModal(magasin?: Magasin): void {
     if (magasin) {
       this.isEditMode = true;
-      this.selectedMagasin = { 
+      this.selectedMagasin = {
         ...magasin,
         villeid: magasin.ville,
-        boutiqueId: magasin.boutique
+        boutiqueId: magasin.boutique,
+        typeMagasin: magasin.typeMagasin || (magasin.boutique ? 'POINT_DE_VENTE' : 'DEPOT_CENTRAL')
       };
     } else {
       this.isEditMode = false;
-      this.selectedMagasin = { code: '', libelle: '' };
+      this.selectedMagasin = { code: '', libelle: '', typeMagasin: 'POINT_DE_VENTE' };
     }
     $('#magasinModal').modal('show');
+  }
+
+  /** Un depot central n'a jamais de boutique - on efface la selection si l'utilisateur bascule le type. */
+  onTypeMagasinChange(): void {
+    if (this.selectedMagasin.typeMagasin === 'DEPOT_CENTRAL') {
+      this.selectedMagasin.boutiqueId = undefined;
+    }
   }
 
   saveMagasin(): void {
@@ -110,7 +118,7 @@ export class MagasinComponent implements OnInit {
           },
           error: (error) => {
             console.error('Erreur lors de la modification', error);
-            this.showToast('Erreur de modification', 'error');
+            this.showToast(error?.error?.message || 'Erreur de modification', 'error');
           }
         });
     } else {
@@ -123,7 +131,7 @@ export class MagasinComponent implements OnInit {
           },
           error: (error) => {
             console.error('Erreur lors de la création', error);
-            this.showToast('Erreur de création', 'error');
+            this.showToast(error?.error?.message || 'Erreur de création', 'error');
           }
         });
     }

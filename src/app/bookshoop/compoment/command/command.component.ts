@@ -6,6 +6,9 @@ import { PrixArticles } from '../../model/prix-articles';
 import { Produit } from '../../model/produit';
 import { Categorie } from '../../model/categorie';
 import { Depot } from '../../model/depot';
+import { Magasin } from '../../model/Magasin';
+import { MagasinService } from '../../service/Magasin.service';
+import { MagasinFournisseurService } from '../../service/MagasinFournisseur.service';
 import { CommandeService } from '../../service/commande.service';
 import { ProduitService } from '../../service/produit.service';
 import { PrixArticlesService } from '../../service/prix-articles.service';
@@ -57,6 +60,10 @@ export class CommandComponent implements OnInit, OnDestroy {
   selectedArticle: Produit | null = null;
   categories: Categorie[] = [];
   depots: Depot[] = [];
+  // Magasins de la compagnie (points de vente + depots) - le choix du
+  // magasin destination determine seul la liste des fournisseurs proposes,
+  // plus besoin de la case a cocher "Depot destination".
+  magasins: Magasin[] = [];
 
   // UI State
   isLoading = false;
@@ -89,6 +96,8 @@ export class CommandComponent implements OnInit, OnDestroy {
     private referenceDataService: ReferenceDataService,
     private notificationService: NotificationService,
     private userService: UserService,
+    private magasinService: MagasinService,
+    private magasinFournisseurService: MagasinFournisseurService,
     private cdr: ChangeDetectorRef ,// ✅ AJOUT DU ChangeDetectorRef,
     private autService:AuthService
   ) {
@@ -154,11 +163,11 @@ export class CommandComponent implements OnInit, OnDestroy {
       reference: [''],
       libelle: ['', Validators.required],
       categories: [null, Validators.required],
+      magasinDestination: [null, Validators.required],
       depot: [null, Validators.required],
       prixVenteModifiable: [false],
       pacquets: [false],
-      quantiteByPacquet: [1],
-      destinationDepot: [false]
+      quantiteByPacquet: [1]
     });
   }
 
@@ -176,8 +185,8 @@ export class CommandComponent implements OnInit, OnDestroy {
         error: (error) => this.handleError('Erreur lors du chargement des catégories', error)
       });
 
-    // Load depots
-    this.loadDepots();
+    // Load magasins (destination) - remplace l'ancien chargement direct des depots
+    this.loadMagasins();
 
     // ✅ Load products
     console.log('🔄 Chargement initial des produits...');
@@ -222,16 +231,18 @@ export class CommandComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Destination depot subscription
-    this.produitForm.get('destinationDepot')?.valueChanges
+    // Magasin destination subscription - determine seul la liste des
+    // fournisseurs proposes (associations dediees + fournisseurs
+    // "disponible partout"), plus de case a cocher separee a synchroniser.
+    this.produitForm.get('magasinDestination')?.valueChanges
       .pipe(takeUntil(this.destroy$))
-      .subscribe((isDestinationDepotActive) => {
-        if (isDestinationDepotActive) {
-          this.loadDepotsStockage();
-        } else {
-          this.loadDepots();
-        }
+      .subscribe((magasin: Magasin | null) => {
         this.produitForm.get('depot')?.setValue(null);
+        if (magasin?.id) {
+          this.loadFournisseursPourMagasin(magasin);
+        } else {
+          this.depots = [];
+        }
       });
 
     // Depot selection subscription for stock calculation
@@ -259,28 +270,37 @@ export class CommandComponent implements OnInit, OnDestroy {
 
   // ==================== DATA LOADING ====================
 
-  loadDepots(): void {
-    this.referenceDataService.getDepots(this.boutiqueid)
+  /** Tous les magasins de la compagnie (points de vente + depots), pour le choix de la destination. */
+  loadMagasins(): void {
+    this.magasinService.getAll(0, 1000)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (depots) => {
-          this.depots = depots.filter(d => d.boutique != null);
-          console.log("depot charger",depots);
-          this.showAlert('Dépôts chargés', 'success');
-        },
-        error: (error) => this.handleError('Erreur lors du chargement des dépôts', error)
+        next: (response) => this.magasins = response.content,
+        error: (error) => this.handleError('Erreur lors du chargement des magasins', error)
       });
   }
 
-  loadDepotsStockage(): void {
-    this.referenceDataService.getDepots(this.boutiqueid)
+  /**
+   * Fournisseurs disponibles pour le magasin choisi (associations dediees +
+   * fournisseurs "disponible partout"). Reconstruit des paires Depot
+   * (magasin + fournisseur) pour rester compatible avec le formulaire et la
+   * soumission existants (depot.id / depot.fournisseur.id).
+   */
+  loadFournisseursPourMagasin(magasin: Magasin): void {
+    this.magasinFournisseurService.getDisponiblesPourMagasin(magasin.id!)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (depots) => {
-          this.depots = depots.filter(d => d.boutique == null);
-          this.showAlert('Dépôts de stockage chargés', 'success');
+        next: (fournisseurs) => {
+          this.depots = fournisseurs.map(f => ({
+            id: magasin.id!,
+            code: magasin.code,
+            libelle: magasin.libelle,
+            boutique: magasin.boutique ?? null,
+            fournisseur: f,
+            actif: true
+          }));
         },
-        error: (error) => this.handleError('Erreur lors du chargement des dépôts de stockage', error)
+        error: (error) => this.handleError('Erreur lors du chargement des fournisseurs', error)
       });
   }
 
@@ -734,9 +754,9 @@ private loadPricesAndAddToCommand(produit: Produit): void {
     this.produitForm.patchValue({
       prixVenteModifiable: false,
       pacquets: false,
-      quantiteByPacquet: 1,
-      destinationDepot: false
+      quantiteByPacquet: 1
     });
+    this.depots = [];
     this.selectedProduit = null;
     this.selectedArticle = null;
     this.currentStock = 0;

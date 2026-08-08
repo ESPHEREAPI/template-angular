@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { MagasinFournisseur, MagasinFournisseurRequest } from '../model/magasin-fournisseur';
+import { Fournisseur } from '../model/fournisseur';
 
 @Injectable({
   providedIn: 'root'
@@ -14,6 +15,11 @@ export class MagasinFournisseurService {
 
   getByFournisseur(fournisseurId: number): Observable<MagasinFournisseur[]> {
     return this.http.get<MagasinFournisseur[]>(`${this.apiUrl}/fournisseur/${fournisseurId}`);
+  }
+
+  /** Fournisseurs disponibles pour approvisionner ce magasin : associations dediees + "disponible partout". */
+  getDisponiblesPourMagasin(depotId: number): Observable<Fournisseur[]> {
+    return this.http.get<Fournisseur[]>(`${this.apiUrl}/disponibles/${depotId}`);
   }
 
   create(request: MagasinFournisseurRequest): Observable<any> {

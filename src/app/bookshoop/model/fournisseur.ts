@@ -11,4 +11,5 @@ export interface Fournisseur {
   quartier?: string;
   region?: string;
   indicatifPays?: string;
+  disponiblePartout?: boolean;
 }
