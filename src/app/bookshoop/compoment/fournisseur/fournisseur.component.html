@@ -63,10 +63,13 @@
                 <td>{{ fournisseur.tel || '-' }}</td>
                 <td>{{ fournisseur.email || '-' }}</td>
                 <td>
-                  <button class="btn btn-sm btn-info mr-1" (click)="openModal(fournisseur)">
+                  <button class="btn btn-sm btn-info mr-1" (click)="openModal(fournisseur)" title="Modifier">
                     <i class="fas fa-edit"></i>
                   </button>
-                  <button class="btn btn-sm btn-danger" (click)="deleteFournisseur(fournisseur.id!)">
+                  <button class="btn btn-sm btn-warning mr-1" (click)="openDepotsModal(fournisseur)" title="Dépôts associés">
+                    <i class="fas fa-warehouse"></i>
+                  </button>
+                  <button class="btn btn-sm btn-danger" (click)="deleteFournisseur(fournisseur.id!)" title="Supprimer">
                     <i class="fas fa-trash"></i>
                   </button>
                 </td>
@@ -179,6 +182,69 @@
       <div class="modal-footer justify-content-between">
         <button type="button" class="btn btn-default" data-dismiss="modal">Annuler</button>
         <button type="button" class="btn btn-primary" (click)="saveFournisseur()">Enregistrer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Depots associes -->
+<div class="modal fade" id="depotsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Dépôts associés — {{ depotsFournisseur?.nom }}</h4>
+        <button type="button" class="close" data-dismiss="modal">
+          <span>&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="text-muted">
+          Les dépôts associés déterminent où ce fournisseur peut livrer/approvisionner
+          (utilisé lors de l'ajout d'un article en commande fournisseur).
+        </p>
+
+        <table class="table table-sm table-bordered mb-3">
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Dépôt</th>
+              <th>Boutique</th>
+              <th style="width: 60px"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let assoc of associations">
+              <td>{{ assoc.magasinCode }}</td>
+              <td>{{ assoc.magasinLibelle }}</td>
+              <td>{{ assoc.boutiqueNom || '—' }}</td>
+              <td>
+                <button class="btn btn-xs btn-danger" (click)="retirerAssociation(assoc)" title="Retirer">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="associations.length === 0">
+              <td colspan="4" class="text-center text-muted">Aucun dépôt associé pour l'instant</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="input-group">
+          <select class="form-control" [(ngModel)]="nouveauDepotId" name="nouveauDepot">
+            <option [ngValue]="null">-- Sélectionner un dépôt --</option>
+            <option *ngFor="let magasin of magasinsDisponibles()" [ngValue]="magasin.id">
+              {{ magasin.code }} - {{ magasin.libelle }}{{ magasin.boutique ? ' (' + magasin.boutique.nom + ')' : '' }}
+            </option>
+          </select>
+          <div class="input-group-append">
+            <button class="btn btn-success" type="button" [disabled]="!nouveauDepotId" (click)="ajouterAssociation()">
+              <i class="fas fa-plus"></i> Associer
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Fermer</button>
       </div>
     </div>
   </div>

@@ -3,6 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Fournisseur } from '../../model/fournisseur';
 import { FournisseurService } from '../../service/Fournisseur.service';
+import { Magasin } from '../../model/Magasin';
+import { MagasinService } from '../../service/Magasin.service';
+import { MagasinFournisseur } from '../../model/magasin-fournisseur';
+import { MagasinFournisseurService } from '../../service/MagasinFournisseur.service';
 
 declare var $: any;
 
@@ -25,7 +29,17 @@ export class FournisseurComponent implements OnInit {
   totalElements = 0;
   totalPages = 0;
 
-  constructor(private fournisseurService: FournisseurService) {}
+  // Depots associes (modal "Depots")
+  depotsFournisseur: Fournisseur | null = null;
+  magasins: Magasin[] = [];
+  associations: MagasinFournisseur[] = [];
+  nouveauDepotId: number | null = null;
+
+  constructor(
+    private fournisseurService: FournisseurService,
+    private magasinService: MagasinService,
+    private magasinFournisseurService: MagasinFournisseurService
+  ) {}
 
   ngOnInit(): void {
     this.loadFournisseurs();
@@ -131,6 +145,69 @@ export class FournisseurComponent implements OnInit {
 
   getPagesArray(): number[] {
     return Array(this.totalPages).fill(0).map((x, i) => i);
+  }
+
+  // ==================== Depots associes ====================
+
+  openDepotsModal(fournisseur: Fournisseur): void {
+    this.depotsFournisseur = fournisseur;
+    this.nouveauDepotId = null;
+    this.loadAssociations();
+    if (this.magasins.length === 0) {
+      this.magasinService.getAll(0, 1000).subscribe({
+        next: (response) => this.magasins = response.content,
+        error: (error) => console.error('Erreur lors du chargement des magasins', error)
+      });
+    }
+    $('#depotsModal').modal('show');
+  }
+
+  loadAssociations(): void {
+    if (!this.depotsFournisseur?.id) { return; }
+    this.magasinFournisseurService.getByFournisseur(this.depotsFournisseur.id).subscribe({
+      next: (data) => this.associations = data,
+      error: (error) => {
+        console.error('Erreur lors du chargement des associations', error);
+        this.showToast('Erreur de chargement des dépôts associés', 'error');
+      }
+    });
+  }
+
+  magasinsDisponibles(): Magasin[] {
+    const associesIds = this.associations.map(a => a.depotId);
+    return this.magasins.filter(m => !associesIds.includes(m.id!));
+  }
+
+  ajouterAssociation(): void {
+    if (!this.nouveauDepotId || !this.depotsFournisseur?.id) { return; }
+    this.magasinFournisseurService.create({
+      depotId: this.nouveauDepotId,
+      fournisseurId: this.depotsFournisseur.id
+    }).subscribe({
+      next: () => {
+        this.nouveauDepotId = null;
+        this.loadAssociations();
+        this.showToast('Dépôt associé avec succès', 'success');
+      },
+      error: (error) => {
+        console.error('Erreur lors de l\'association', error);
+        this.showToast(error?.error?.message || 'Erreur lors de l\'association', 'error');
+      }
+    });
+  }
+
+  retirerAssociation(association: MagasinFournisseur): void {
+    if (!confirm('Retirer ce dépôt de la liste des fournisseurs associés ?')) { return; }
+    this.magasinFournisseurService.delete(association.depotId, association.fournisseurId).subscribe({
+      next: () => {
+        this.loadAssociations();
+        this.showToast('Association retirée', 'success');
+      },
+      error: (error) => {
+        console.error('Erreur lors du retrait', error);
+        this.showToast('Erreur lors du retrait de l\'association', 'error');
+      }
+    });
   }
 
   showToast(message: string, type: string): void {
