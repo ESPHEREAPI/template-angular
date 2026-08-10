@@ -87,9 +87,11 @@
       <div class="modal-body">
         <form>
           <div class="form-group">
-            <label for="codeBon">Code *</label>
+            <label for="codeBon">Code {{ isEditMode ? '*' : '' }}</label>
             <input type="text" class="form-control" id="codeBon"
-                   [(ngModel)]="selectedBonAchat.codeBon" name="codeBon" required>
+                   [(ngModel)]="selectedBonAchat.codeBon" name="codeBon"
+                   [required]="isEditMode"
+                   [placeholder]="isEditMode ? '' : 'Laisser vide pour génération automatique'">
           </div>
           <div class="row">
             <div class="col-md-6 form-group">
