@@ -28,6 +28,11 @@ export class BonAchatService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
+  // Verification en caisse avant paiement (lecture seule - ne consomme rien).
+  verifierCode(code: string): Observable<BonAchat> {
+    return this.http.get<BonAchat>(`${this.apiUrl}/verifier/${code}`);
+  }
+
   // Emission rapide depuis la caisse : convertit un reliquat de monnaie
   // (rendu impossible faute de piece/billet) en bon d'achat. Le code et la
   // date d'expiration sont generes cote serveur.

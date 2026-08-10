@@ -1389,14 +1389,31 @@ modifierQuantite(item: CaisseItem, qty: number): void {
     this.montantRecu = 0;
     this.monnaieRendue = 0;
     this.montantTotalApaye = this.montantTotal - this.montantRemise;
-    // Une seule ligne pre-remplie sur le montant total : le cas courant
-    // (un seul mode de paiement) reste a un clic. Le caissier peut ajouter
-    // d'autres lignes pour un paiement mixte (espece+telephone+bon d'achat).
-    this.lignesPaiement = [{
-      typePaiement: this.typePaiementSelectionne,
-      montant: this.montantTotalApaye,
-      reference: ''
-    }];
+
+    if (this.bonAchatValide && this.montantBonAchat > 0) {
+      // Un bon d'achat verifie sur l'ecran principal devient la premiere
+      // ligne de paiement ; le reste (s'il y en a) suit sur le mode choisi.
+      this.lignesPaiement = [
+        { typePaiement: 'BON_ACHAT', montant: this.montantBonAchat, reference: this.bonAchatCode }
+      ];
+      if (this.resteApresBonAchat > 0) {
+        this.lignesPaiement.push({
+          typePaiement: this.typePaiementSelectionne,
+          montant: this.resteApresBonAchat,
+          reference: ''
+        });
+      }
+    } else {
+      // Une seule ligne pre-remplie sur le montant total : le cas courant
+      // (un seul mode de paiement) reste a un clic. Le caissier peut ajouter
+      // d'autres lignes pour un paiement mixte (espece+telephone+bon d'achat).
+      this.lignesPaiement = [{
+        typePaiement: this.typePaiementSelectionne,
+        montant: this.montantTotalApaye,
+        reference: ''
+      }];
+    }
+
     this.bonAchatRenduNom = '';
     this.bonAchatRenduTelephone = '';
     this.bonAchatEmis = null;
@@ -1621,14 +1638,31 @@ modifierQuantite(item: CaisseItem, qty: number): void {
     this.showClientModal = false;
   }
 
+  // Montant reellement du affiche a l'ecran (reproduit la condition du
+  // template : Total à payer = montantTotalApaye seulement si une remise
+  // est appliquee, sinon montantTotal).
+  private montantDuAffiche(): number {
+    const remise = this.venteForm.get('remise')?.value || 0;
+    return remise > 0 ? this.montantTotalApaye : this.montantTotal;
+  }
+
   verifierBonAchat(): void {
     if (!this.bonAchatCode) return;
-    
-    setTimeout(() => {
-      this.bonAchatValide = true;
-      this.montantBonAchat = Math.min(1000, this.montantTotal);
-      this.resteApresBonAchat = Math.max(0, this.montantTotal - this.montantBonAchat);
-    }, 500);
+    this.bonAchatValide = false;
+
+    this.bonAchatService.verifierCode(this.bonAchatCode.trim()).subscribe({
+      next: (bon) => {
+        const disponible = bon.montantTotal - (bon.montantUtilise ?? 0);
+        const montantDu = this.montantDuAffiche();
+        this.montantBonAchat = Math.min(disponible, montantDu);
+        this.resteApresBonAchat = Math.max(0, montantDu - this.montantBonAchat);
+        this.bonAchatValide = true;
+      },
+      error: (err) => {
+        this.bonAchatValide = false;
+        this.notificationService.error(err.error?.message || 'Bon d\'achat invalide ou introuvable');
+      }
+    });
   }
 
   // ==================== UTILITAIRES ====================
