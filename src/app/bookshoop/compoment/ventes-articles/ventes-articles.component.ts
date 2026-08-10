@@ -245,46 +245,17 @@ export class VentesArticlesComponent {
     this.barcodeService.getProduitsAutoComplet(this.user.boutiqueid?? 0)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (produits) => this.articles = produits,
+        next: (produits) => {
+          this.articles = produits;
+          // Doit etre mis a jour ICI, dans le callback async, sinon cette
+          // ligne s'executait avant meme que la reponse serveur n'arrive et
+          // la liste affichee/recherchee (filteredArticles) restait figee
+          // sur l'ancien chargement - un article fraichement approvisionne
+          // ne se voyait alors qu'apres un rechargement complet de la page.
+          this.filteredArticles = [...this.articles];
+        },
         error: (error) => this.handleError('Erreur lors du chargement des produits', error)
       });
-    // Simuler un appel API
-    /**  this.articles = [
-        {
-          id: 1,
-          libelle: 'Article Test 1',
-          reference: 'ART001',
-          prixVenteTTC: 1500,
-          stockFinal: 10,
-          prixVenteModifiable: false,
-          pacquets:false,
-          quantiteByPacquet:0,
-          quantitePrete:0,
-          quantiteLivree:0,
-          prixVenteNet:1500,
-          deletes:false,
-          remise:0,
-          tva:0
-  
-        },
-        {
-          id: 2,
-          libelle: 'Article Test 2',
-          reference: 'ART002',
-          prixVenteTTC: 2500,
-          stockFinal: 5,
-          prixVenteModifiable: true,
-          pacquets:false,
-          quantiteByPacquet:0,
-          quantitePrete:0,
-          quantiteLivree:0,
-          prixVenteNet:1500,
-          deletes:false,
-          remise:0,
-          tva:0
-        }
-      ];*/
-    this.filteredArticles = [...this.articles];
   }
   public getstockProduit(article: Produit) {
     let qte;
@@ -563,10 +534,13 @@ export class VentesArticlesComponent {
 
   // Modal methods
   openArticleModal(): void {
-
     this.showArticleModal = true;
-
     this.filteredArticles = [...this.articles];
+    // Recharge depuis le serveur a chaque ouverture (pas seulement au
+    // chargement initial de la page) - sinon un article approvisionne
+    // pendant que la caisse est deja ouverte reste invisible tant que la
+    // page n'est pas rechargee manuellement.
+    this.chargerArticles();
   }
 
   openPaiementModal(type: string): void {

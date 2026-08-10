@@ -1377,11 +1377,16 @@ modifierQuantite(item: CaisseItem, qty: number): void {
 
   // ==================== MODALS ====================
   openArticleModal(): void {
-    if(this.articles.length===0){
-      this.chargerArticlesDepuisServeur();
-    }
     this.showArticleModal = true;
     this.filteredArticles = [...this.articles];
+    // Recharge depuis le serveur a chaque ouverture (pas seulement quand la
+    // liste est vide) - sinon un article approvisionne pendant que la
+    // caisse est deja ouverte reste invisible tant que la page n'est pas
+    // rechargee manuellement. Ignore silencieusement si hors-ligne (le
+    // cache deja affiche reste utilisable).
+    if (!this.isOfflineMode) {
+      this.chargerArticlesDepuisServeur();
+    }
   }
 
   openPaiementModal(type: string): void {
