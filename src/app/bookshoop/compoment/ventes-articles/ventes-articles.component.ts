@@ -1160,9 +1160,17 @@ refreshApplication(): void {
       // Ouverture synchrone au clic - sinon le navigateur bloque le popup
       // une fois que le blob (recupere de facon asynchrone) est pret.
       const fenetre = window.open('', '_blank');
-      this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe(blob => {
-        const file = new Blob([blob], { type: 'text/plain;charset=utf-8' });
-        this.printService.imprimerAvecPrevisualisation(file, fenetre);
+      this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe({
+        next: (blob) => {
+          const file = new Blob([blob], { type: 'text/plain;charset=utf-8' });
+          this.printService.imprimerAvecPrevisualisation(file, fenetre);
+        },
+        // Sans ce handler, un echec cote serveur laissait l'onglet ouvert
+        // vide (about:blank) sans aucune explication pour le caissier.
+        error: (err) => {
+          fenetre?.close();
+          this.handleError('Erreur lors de la génération du ticket', err);
+        }
       });
     }
     /* *this.barcodeService.downloadTicketVente(this.venteid).subscribe(blob => {
@@ -1179,7 +1187,9 @@ refreshApplication(): void {
       }*/
     if (this.venteid) {
 
-      this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe(blob => {
+      this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe({
+      error: (err) => this.handleError('Erreur lors de la génération du ticket', err),
+      next: (blob) => {
 
         /**  const url = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
@@ -1198,6 +1208,7 @@ refreshApplication(): void {
 
         // ✅ Libérer l'URL
         window.URL.revokeObjectURL(url);
+      }
       });
     }
   }

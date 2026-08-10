@@ -461,7 +461,13 @@
      le bas du formulaire, obligeant a dezoomer pour tout voir. */
   height: 100vh;
   background-color: #f8f9fa;
-  overflow: hidden;
+  /* Filet de securite final : sur un tres petit ecran (mobile), le contenu
+     du bas (header + onglets + panier + totaux) peut legitimement depasser
+     un seul ecran meme une fois tout empile verticalement - "overflow:
+     hidden" le rognait alors silencieusement. Ici on defile la PAGE plutot
+     que de couper quoi que ce soit, quelle que soit la taille d'ecran. */
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
 }
