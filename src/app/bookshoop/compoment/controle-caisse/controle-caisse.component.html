@@ -159,7 +159,7 @@
                 <td>{{ vente.userinsert }}</td>
                 <td>
                   <select class="form-control form-control-sm" [(ngModel)]="vente.statut"
-                    (change)="modifierStatut(vente, $event)" [class]="getStatutClass(vente.statut)" [disabled]="resultat_statut">
+                    (change)="modifierStatut(vente, $event)" [class]="getStatutClass(vente.statut)" [disabled]="vente.statut === 'ANNULEE'">
                     <option *ngFor="let statut of statutOptions" [value]="statut">
                       {{ statut }}
                     </option>

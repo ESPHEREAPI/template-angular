@@ -83,7 +83,16 @@ getAllAnneesCaisse(): Observable<Annee[]> {
     }
      params = params.set('boutiqueid', boutiqueid);
 
-    return this.http.get<Vente[]>(`${this.apiUrl}/${datevente}/historique`, { params });
+    // Formatage explicite en yyyy-MM-dd - le backend (SimpleDateFormat) ne
+    // garantit pas d'accepter un autre format, ne pas se fier a la
+    // serialisation JSON par defaut d'un objet Date.
+    const d = new Date(datevente);
+    const anneeStr = d.getFullYear();
+    const moisStr = String(d.getMonth() + 1).padStart(2, '0');
+    const jourStr = String(d.getDate()).padStart(2, '0');
+    const dateFormatee = `${anneeStr}-${moisStr}-${jourStr}`;
+
+    return this.http.get<Vente[]>(`${this.apiUrl}/${dateFormatee}/historique`, { params });
   }
 
   // Récupérer le mode de paiement d'un ticket

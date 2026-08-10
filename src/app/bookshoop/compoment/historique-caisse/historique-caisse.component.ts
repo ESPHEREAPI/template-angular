@@ -123,7 +123,7 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
   }
 
   private loadInitialData(profil: string): void {
-    const isCaisse = profil === 'CAISSE';
+    const isCaisse = profil === 'CAISSIER';
     this.isCaisse = isCaisse;
     this.vendeur = isCaisse ? this.userSession.usersDTO.userName : '';
 
@@ -247,14 +247,11 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
     // Optionnel : activer cette ligne si nécessaire
     // if (!this.isFilterValid()) return;
 
-    // ❌ Cette vérification bloque à tort si vendeur est null ou objet
-    if (!this.usercaisse && this.vendeur === '') {
-      console.warn("Aucun vendeur sélectionné alors que des caissiers sont disponibles.");
-      return;
-    }
-    if (this.vendeur === '' && this.usercaisse.userName) {
-      this.vendeur = this.usercaisse.userName
-
+    // Un vendeur vide est un cas valide : vue "toute la boutique" pour un
+    // admin/gerant n'ayant choisi aucun caissier precis dans la liste - le
+    // backend l'interprete desormais correctement (voir HistoriqueCaisseService).
+    if (this.usercaisse?.userName) {
+      this.vendeur = this.usercaisse.userName;
     }
 
     this.loading = true;
@@ -291,43 +288,30 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
        this.montantCodeMarchantOrange=0;
        this.montantCodeMarchantMtn=0;
     const anneeId = this.filter.annee?.id ?? 0;
-    //if (this.vendeur === '' && this.usercaisse.userName) {
-      console.log(this.vendeur);
-      this.vendeur = this.usercaisse.userName
-
-    //}
-    this.caisseService
-      .getDates(this.vendeur, anneeId)
-      .subscribe({
-        next: (dates) => {
-          console.log("Dates reçues :", dates);
-          this.dateByAnnee = dates;
-        },
-        error: (err) => console.error(err)
-      });
+    // Retour a "-- Sélectionner --" (usercaisse null) = vue "toute la
+    // boutique" - recharge les dates via l'endpoint boutique entiere (pas
+    // /dates/{vendeur} qui exige un vendeur non vide dans l'URL).
+    this.vendeur = this.usercaisse?.userName ?? '';
+    const dates$ = this.usercaisse
+      ? this.caisseService.getDates(this.vendeur, anneeId)
+      : this.caisseService.getAllDateCaisse(anneeId);
+    dates$.subscribe({
+      next: (dates) => {
+        console.log("Dates reçues :", dates);
+        this.dateByAnnee = dates;
+      },
+      error: (err) => console.error(err)
+    });
   }
 
 
-  // Imprimer le détail
+  // Imprimer le détail - impression navigateur directe du recapitulatif deja
+  // affiche (aucun endpoint backend de generation PDF n'existe pour cet ecran).
   imprimerDetail(): void {
-    if (!this.isFilterValid()) {
+    if (this.ventes.length === 0) {
       return;
     }
-
-    this.printing = true;
-    this.caisseService.printDetail(this.filter)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (blob) => {
-          const url = window.URL.createObjectURL(blob);
-          window.open(url, '_blank');
-          this.printing = false;
-        },
-        error: (error) => {
-          console.error('Erreur lors de l\'impression:', error);
-          this.printing = false;
-        }
-      });
+    window.print();
   }
 
   // Charger les modes de paiement pour tous les tickets

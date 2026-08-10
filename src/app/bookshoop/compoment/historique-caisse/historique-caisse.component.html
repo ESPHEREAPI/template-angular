@@ -45,10 +45,10 @@
               <button 
                 type="button" 
                 class="btn btn-secondary"
-                [disabled]="printing || !historiqueCaisse"
+                [disabled]="ventes.length === 0"
                 (click)="imprimerDetail()">
-                <i class="fas fa-print mr-1" [class.fa-spin]="printing"></i>
-                {{ printing ? 'Impression...' : 'Imprimer' }}
+                <i class="fas fa-print mr-1"></i>
+                Imprimer
               </button>
             </div>
           </div>

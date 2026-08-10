@@ -119,7 +119,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
   }
 
   public isAdmin() {
-    if (this.profil === 'CAISSE') {
+    if (this.profil === 'CAISSIER') {
       return false;
     }
     return true;
@@ -538,7 +538,7 @@ export class ProductsComponent implements OnInit, OnDestroy {
 
   // Gestion des photos (Admin)
   onEditPhoto(product: Product): void {
-    if (this.profil === 'CAISSE') {
+    if (this.profil === 'CAISSIER') {
       return;
     }
 

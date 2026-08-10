@@ -30,7 +30,6 @@ export class ControleCaisseComponent implements OnInit {
   caissiers: User[] = [];
   searchTerm = '';
   ventesFiltrees: Vente[] = [];
-  resultat_statut: boolean = false;
   username!: string;
 
   constructor(
@@ -152,12 +151,13 @@ export class ControleCaisseComponent implements OnInit {
 
   modifierStatut(vente: Vente, event: Event) {
     const nouveauStatut = (event.target as HTMLSelectElement).value;
-    console.log("ancien statut", vente.statut);
-    console.log("nouveau statut", nouveauStatut);
     if (!vente.id) return;
-    console.log("vente modifiee", vente.items);
-    console.log("username", this.username);
-    
+
+    // [(ngModel)] a deja mis a jour vente.statut de facon optimiste des
+    // l'evenement natif "change" - il faut le restaurer explicitement en
+    // cas d'echec backend, sinon le select affiche un statut jamais persiste.
+    const ancienStatut = vente.statut;
+
     this.venteService.updateStatut(vente.id, nouveauStatut).subscribe({
       next: (updated) => {
         vente.statut = updated.statut;
@@ -165,6 +165,7 @@ export class ControleCaisseComponent implements OnInit {
       },
       error: (err) => {
         console.error("Erreur complète :", err);
+        vente.statut = ancienStatut;
         let msg = "Erreur lors de la modification du statut.";
         if (err.error && err.error.message) {
           msg = `${msg}\n\nMessage: ${err.error.message}\nStatus: ${err.status}`;
@@ -196,19 +197,19 @@ export class ControleCaisseComponent implements OnInit {
     return pages;
   }
 
+  // Pure : pas d'effet de bord ici. Etait auparavant ecrite sur un champ
+  // partage (resultat_statut) reevalue a chaque ligne du *ngFor, ce qui
+  // faisait dependre le [disabled] de chaque select de l'ordre d'evaluation
+  // d'Angular plutot que du statut reel de sa propre ligne.
   getStatutClass(statut: string): string {
     switch (statut) {
       case 'TERMINEE':
-        this.resultat_statut = false;
         return 'text-success';
       case 'ANNULEE':
-        this.resultat_statut = true;
         return 'text-danger';
       case 'EN_COURS':
-        this.resultat_statut = false;
         return 'text-warning';
       default:
-        this.resultat_statut = false;
         return 'text-secondary';
     }
   }
