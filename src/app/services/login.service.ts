@@ -53,13 +53,13 @@ export class LoginService {
   }
   public saveAuthenticateduser() {
     if (this.isAuthenticated) {
-      localStorage.setItem('authToken', btoa(JSON.stringify(this.token)));
+      localStorage.setItem('authToken_esacompro', btoa(JSON.stringify(this.token)));
 
     }
   }
   public loadAuthentificathedUserFromlocalStorage() {
 
-    let token = localStorage.getItem('authToken');
+    let token = localStorage.getItem('authToken_esacompro');
     if (token) {
       let user =  JSON.parse(atob(token));
       //this.userAuthenticated = { username: user.username, roles: user.roles };
@@ -77,7 +77,7 @@ export class LoginService {
 
   public removeTokenfromLocalStorage() {
 
-    localStorage.removeItem('authToken');
+    localStorage.removeItem('authToken_esacompro');
     this.isAuthenticated = false;
     this.token = undefined;
     this.userAuthenticated = undefined;

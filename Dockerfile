@@ -16,8 +16,10 @@ RUN npm ci --legacy-peer-deps
 # Copier le code source
 COPY . .
 
-# Build de production
-RUN npm run build -- --configuration=production
+# Build de production - base-href /esacom-pro/ pour cohabiter avec
+# d'autres projets sur le meme port (chacun sous son propre prefixe de
+# chemin, voir nginx.conf)
+RUN npm run build -- --configuration=production --base-href=/esacom-pro/
 
 # Stage 2: Nginx
 FROM nginx:alpine

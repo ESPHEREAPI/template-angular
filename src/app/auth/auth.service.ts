@@ -108,12 +108,12 @@ export class AuthService {
 
   logout(): Observable<any> {
     localStorage.removeItem('currentUser');
-    localStorage.removeItem('authToken');
+    localStorage.removeItem('authToken_esacompro');
     this.currentUserSubject.next(null);
     return this.http.post<any>(`${this.apiUrl}/auth/logout`, {}).pipe(
       tap(() => {
         localStorage.removeItem('currentUser');
-        localStorage.removeItem('authToken');
+        localStorage.removeItem('authToken_esacompro');
         this.currentUserSubject.next(null);
       }),
     );
@@ -177,7 +177,7 @@ export class AuthService {
   // ✅ Méthode pour nettoyer les données d'authentification
   private clearAuthData(): void {
     localStorage.removeItem('currentUser');
-    localStorage.removeItem('authToken');
+    localStorage.removeItem('authToken_esacompro');
     this.currentUserSubject.next(null);
   }
 
@@ -220,7 +220,7 @@ export class AuthService {
         username: this.loginInfos?.userName,
         roles: userSession.usersDTO.profil?.code
       };
-      localStorage.setItem('authToken', btoa(JSON.stringify(this.token)));
+      localStorage.setItem('authToken_esacompro', btoa(JSON.stringify(this.token)));
       localStorage.setItem('currentUser', JSON.stringify(userSession));
       console.log('[AuthService] User data saved to localStorage');
     } catch (error) {
@@ -246,7 +246,7 @@ export class AuthService {
       console.error('[AuthService] Error loading user from storage:', error);
       // En cas d'erreur, nettoyer le storage corrompu
       localStorage.removeItem('currentUser');
-      localStorage.removeItem('authToken');
+      localStorage.removeItem('authToken_esacompro');
       return null;
     }
   }

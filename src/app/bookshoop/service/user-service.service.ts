@@ -145,7 +145,7 @@ console.log(user)
   }
 
   getUserConnected(): any {
-    let token = localStorage.getItem('authToken');
+    let token = localStorage.getItem('authToken_esacompro');
     if (token) {
       let user = JSON.parse(atob(token));
       //console.log(user);
