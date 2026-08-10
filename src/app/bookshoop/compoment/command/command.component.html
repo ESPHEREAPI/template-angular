@@ -231,14 +231,14 @@
         <h3 class="card-title">
           <i class="fas fa-table"></i> Liste des Prix Articles
         </h3>
-        <div class="card-tools d-flex">
-          <select class="form-control form-control-sm mr-2" style="width: 220px;"
+        <div class="card-tools d-flex flex-wrap" style="gap: 0.5rem;">
+          <select class="form-control form-control-sm mr-2" style="width: 220px; max-width: 100%;"
                   [ngModel]="selectedMagasinId" (ngModelChange)="onMagasinFilterChange($event)">
             <option *ngFor="let m of magasins" [ngValue]="m.id">
               {{ m.libelle }} ({{ m.typeMagasin === 'DEPOT_CENTRAL' ? 'Dépôt' : 'Point de vente' }})
             </option>
           </select>
-          <div class="input-group input-group-sm" style="width: 300px;">
+          <div class="input-group input-group-sm" style="width: 300px; max-width: 100%;">
             <input type="text" class="form-control" placeholder="Rechercher..."
                    (keyup.enter)="onSearch(searchInput.value)" #searchInput>
             <div class="input-group-append">
