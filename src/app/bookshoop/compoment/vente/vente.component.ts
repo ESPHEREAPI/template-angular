@@ -1446,6 +1446,26 @@ modifierQuantite(item: CaisseItem, qty: number): void {
     });
   }
 
+  // Imprime le bon (ticket PDF avec code-barres) juste emis pour le
+  // reliquat. Le backend marque le bon comme imprime dans le meme appel -
+  // une deuxieme impression est bloquee (voir BonAchatController#telechargerTicket).
+  imprimerBonEmis(): void {
+    if (!this.bonAchatEmis?.id || this.bonAchatEmis.imprime) return;
+    const bon = this.bonAchatEmis;
+    const fenetre = window.open('', '_blank');
+    this.bonAchatService.telechargerTicket(bon.id!).subscribe({
+      next: (blob) => {
+        this.printService.imprimerAvecPrevisualisation(blob, fenetre);
+        bon.imprime = true;
+      },
+      error: (err) => {
+        fenetre?.close();
+        this.notificationService.error('❌ Erreur lors de l\'impression du bon d\'achat');
+        console.error(err);
+      }
+    });
+  }
+
   // Paiement mixte : gestion des lignes de paiement du modal
   ajouterLignePaiement(): void {
     this.lignesPaiement.push({

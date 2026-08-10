@@ -424,6 +424,11 @@
                                 Bon <strong>{{ bonAchatEmis.codeBon }}</strong> de {{ bonAchatEmis.montantTotal |
                                 currency:'XAF':'symbol':'1.0-0' }} émis pour {{ bonAchatEmis.clientBonAchat.nom }}
                                 (valable jusqu'au {{ bonAchatEmis.dateExpiration | date:'dd/MM/yyyy' }}).
+                                <button type="button" class="btn btn-sm btn-outline-success mt-1"
+                                    (click)="imprimerBonEmis()" [disabled]="!!bonAchatEmis.imprime">
+                                    <i class="fas fa-print mr-1"></i>
+                                    {{ bonAchatEmis.imprime ? 'Déjà imprimé' : 'Imprimer le bon' }}
+                                </button>
                             </div>
                         </div>
                     </div>

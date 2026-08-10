@@ -55,6 +55,11 @@
                   </span>
                 </td>
                 <td>
+                  <button class="btn btn-sm btn-outline-secondary mr-1" (click)="imprimerBon(bon)"
+                    [disabled]="!!bon.imprime || impressionEnCours === bon.id"
+                    [title]="bon.imprime ? ('Déjà imprimé' + (bon.dateImpression ? (' le ' + (bon.dateImpression | date:'dd/MM/yyyy')) : '')) : 'Imprimer le ticket'">
+                    <i class="fas fa-print"></i>
+                  </button>
                   <button class="btn btn-sm btn-info mr-1" (click)="openModal(bon)">
                     <i class="fas fa-edit"></i>
                   </button>

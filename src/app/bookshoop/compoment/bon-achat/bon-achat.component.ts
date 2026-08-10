@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BonAchat } from '../../model/bon-achat';
 import { BonAchatService } from '../../service/BonAchat.service';
+import { PrintService } from '../../service/print.service';
 
 declare var $: any;
 
@@ -17,8 +18,9 @@ export class BonAchatComponent implements OnInit {
   bonsAchat: BonAchat[] = [];
   selectedBonAchat: BonAchat = this.emptyBonAchat();
   isEditMode = false;
+  impressionEnCours: number | null = null;
 
-  constructor(private bonAchatService: BonAchatService) {}
+  constructor(private bonAchatService: BonAchatService, private printService: PrintService) {}
 
   ngOnInit(): void {
     this.loadBonsAchat();
@@ -103,6 +105,30 @@ export class BonAchatComponent implements OnInit {
 
   getSolde(bonAchat: BonAchat): number {
     return (bonAchat.montantTotal || 0) - (bonAchat.montantUtilise || 0);
+  }
+
+  // Genere le ticket PDF (avec code-barres) et l'imprime. Le backend marque
+  // le bon comme imprime dans le meme appel - un bon deja imprime ne peut
+  // plus l'etre a nouveau (voir BonAchatController#telechargerTicket).
+  imprimerBon(bon: BonAchat): void {
+    if (!bon.id || bon.imprime || this.impressionEnCours) return;
+    this.impressionEnCours = bon.id;
+    // Ouverture synchrone au clic - sinon le navigateur bloque le popup une
+    // fois le PDF recupere de facon asynchrone.
+    const fenetre = window.open('', '_blank');
+    this.bonAchatService.telechargerTicket(bon.id).subscribe({
+      next: (blob) => {
+        this.printService.imprimerAvecPrevisualisation(blob, fenetre);
+        bon.imprime = true;
+        this.impressionEnCours = null;
+      },
+      error: (error) => {
+        fenetre?.close();
+        this.impressionEnCours = null;
+        console.error('Erreur lors de l\'impression du bon d\'achat', error);
+        this.showToast(error.error?.message || 'Erreur lors de l\'impression', 'error');
+      }
+    });
   }
 
   showToast(message: string, type: string): void {

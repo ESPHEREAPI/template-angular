@@ -14,4 +14,6 @@ export interface BonAchat {
   dateExpiration?: string;
   actif: boolean;
   clientBonAchat: ClientBonAchat;
+  imprime?: boolean;
+  dateImpression?: string;
 }

@@ -33,6 +33,12 @@ export class BonAchatService {
     return this.http.get<BonAchat>(`${this.apiUrl}/verifier/${code}`);
   }
 
+  // Ticket imprimable (PDF, code-barres inclus) - marque le bon comme
+  // imprime cote serveur dans le meme appel ; echoue si deja imprime.
+  telechargerTicket(id: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/${id}/ticket`, { responseType: 'blob' });
+  }
+
   // Emission rapide depuis la caisse : convertit un reliquat de monnaie
   // (rendu impossible faute de piece/billet) en bon d'achat. Le code et la
   // date d'expiration sont generes cote serveur.
