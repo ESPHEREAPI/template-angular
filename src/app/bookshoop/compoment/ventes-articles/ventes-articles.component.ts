@@ -930,11 +930,12 @@ refreshApplication(): void {
      }*/
 
     if (this.venteid) {
+      // Ouverture synchrone au clic - sinon le navigateur bloque le popup
+      // une fois que le blob (recupere de facon asynchrone) est pret.
+      const fenetre = window.open('', '_blank');
       this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe(blob => {
         const file = new Blob([blob], { type: 'text/plain;charset=utf-8' });
-        this.printService.imprimerAvecPrevisualisation(file);
-        // const url = window.URL.createObjectURL(blob);gggggggg
-        // window.open(url); // ✅ Ouvre dans un nouvel onglet
+        this.printService.imprimerAvecPrevisualisation(file, fenetre);
       });
     }
     /* *this.barcodeService.downloadTicketVente(this.venteid).subscribe(blob => {

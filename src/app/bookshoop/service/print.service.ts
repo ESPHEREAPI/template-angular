@@ -61,29 +61,37 @@ export class PrintService {
   
   /**
    * Alternative : Impression avec prévisualisation
+   *
+   * fenetrePreouverte (optionnel) : fenetre deja ouverte par l'appelant, de
+   * facon SYNCHRONE au clic de l'utilisateur (ex. `window.open('', '_blank')`
+   * avant un appel HTTP asynchrone). Necessaire car ouvrir la fenetre ICI,
+   * apres l'attente reseau qui precede cet appel, se fait bloquer comme
+   * popup par la plupart des navigateurs (window.open hors d'un geste
+   * utilisateur direct).
    */
-  async imprimerAvecPrevisualisation(pdfBlob:Blob): Promise<void> {
+  async imprimerAvecPrevisualisation(pdfBlob: Blob, fenetrePreouverte?: Window | null): Promise<void> {
     try {
       this.afficherLoader(true);
-      
-      //const pdfBlob = Blob
+
       const pdfUrl = URL.createObjectURL(pdfBlob);
-      
-      // Ouverture dans un nouvel onglet pour prévisualisation
-      const newWindow = window.open(pdfUrl, '_blank');
-      
+
+      const newWindow = fenetrePreouverte !== undefined ? fenetrePreouverte : window.open(pdfUrl, '_blank');
+
       if (newWindow) {
+        if (fenetrePreouverte !== undefined) {
+          newWindow.location.href = pdfUrl;
+        }
         // Auto-impression après chargement
         newWindow.addEventListener('load', () => {
           setTimeout(() => {
             newWindow.print();
+            URL.revokeObjectURL(pdfUrl);
           }, 500);
         });
-         URL.revokeObjectURL(pdfUrl);
       } else {
         throw new Error('Popup bloqué par le navigateur');
       }
-      
+
     } catch (error) {
       console.error('Erreur lors de l\'impression avec prévisualisation:', error);
       this.afficherNotification('Erreur lors de l\'impression', 'error');

@@ -692,12 +692,16 @@ private async chargerStocksAvantAffichage(produits: Produit[]): Promise<void> {
       this.imprimerTicketLocal();
     } else {
       if (this.venteid > 0) {
+        // Ouverture synchrone au clic - sinon le navigateur bloque le popup
+        // une fois que le blob (recupere de facon asynchrone) est pret.
+        const fenetre = window.open('', '_blank');
         this.barcodeService.downloadTicketVenteTXT(this.venteid)
           .pipe(
             timeout(10000),
             catchError(error => {
               console.error('❌ Erreur téléchargement ticket:', error);
               this.notificationService.warning('⚠️ Impression ticket local');
+              fenetre?.close();
               this.imprimerTicketLocal();
               return of(null);
             })
@@ -705,7 +709,9 @@ private async chargerStocksAvantAffichage(produits: Produit[]): Promise<void> {
           .subscribe(blob => {
             if (blob) {
               const file = new Blob([blob], { type: 'text/plain;charset=utf-8' });
-              this.printService.imprimerAvecPrevisualisation(file);
+              this.printService.imprimerAvecPrevisualisation(file, fenetre);
+            } else {
+              fenetre?.close();
             }
           });
       } else {
