@@ -21,6 +21,23 @@ import { AuthService } from '../../../auth/auth.service';
 import { OfflineSyncService, SyncStatus, VenteOffline } from '../../service/OfflineSyncService';
 
 
+// Une "vente en cours" tenue en memoire cote client - permet de mettre en
+// attente le panier d'un client (ex: il va chercher un article oublie) pour
+// servir un second client sans perdre le premier panier. N'existe pas cote
+// backend tant que la vente n'est pas validee (aucune reservation de stock).
+interface Panier {
+  id: string;
+  label: string;
+  caisseItems: CaisseItem[];
+  numeroTicket: string;
+  client: any;
+  typeRemise: string;
+  remise: number;
+  numerocommande: number;
+}
+
+const MAX_PANIERS = 5;
+
 @Component({
   selector: 'app-vente',
   standalone: true,
@@ -78,6 +95,10 @@ export class VenteComponent implements OnInit, OnDestroy {
   numerocommande: number = 0;
   user: User | null = null;
   userSession: any;
+
+  // Ventes multiples en parallele (onglets)
+  paniers: Panier[] = [];
+  panierActifId = '';
 
   // ==================== BON D'ACHAT ====================
   bonAchatCode = '';
@@ -137,6 +158,8 @@ private readonly STOCK_CACHE_DURATION = 30000; // 3
     }
 
     this.genererNumeroTicket();
+    this.paniers = [this.creerPanierVide('Vente 1')];
+    this.panierActifId = this.paniers[0].id;
     this.initSyncStatusMonitoring();
     this.initStockMonitoring();
     this.initRemiseMonitoring();
@@ -1402,6 +1425,87 @@ modifierQuantite(item: CaisseItem, qty: number): void {
     );
   }
 
+  // ===== Ventes multiples en parallele (onglets) =====
+  private creerPanierVide(label: string): Panier {
+    return {
+      id: 'p' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      label,
+      caisseItems: [],
+      numeroTicket: this.numeroTicket,
+      client: null,
+      typeRemise: 'taux',
+      remise: 0,
+      numerocommande: 0
+    };
+  }
+
+  private snapshotPanierActif(): void {
+    const panier = this.paniers.find(p => p.id === this.panierActifId);
+    if (!panier) return;
+    panier.caisseItems = this.caisseItems;
+    panier.numeroTicket = this.numeroTicket;
+    panier.client = this.venteForm.get('client')?.value;
+    panier.typeRemise = this.venteForm.get('typeRemise')?.value ?? 'taux';
+    panier.remise = this.venteForm.get('remise')?.value ?? 0;
+    panier.numerocommande = this.numerocommande;
+  }
+
+  private chargerPanier(panier: Panier): void {
+    this.caisseItems = panier.caisseItems;
+    this.numeroTicket = panier.numeroTicket;
+    this.numerocommande = panier.numerocommande;
+    this.venteForm.patchValue({
+      client: panier.client,
+      typeRemise: panier.typeRemise,
+      remise: panier.remise
+    }, { emitEvent: false });
+    this.panierActifId = panier.id;
+    this.calculerMontantTotal();
+  }
+
+  nouveauPanier(): void {
+    if (this.paniers.length >= MAX_PANIERS) {
+      this.notificationService.warning(`Maximum ${MAX_PANIERS} ventes en parallèle`);
+      return;
+    }
+    this.snapshotPanierActif();
+    this.genererNumeroTicket();
+    const panier = this.creerPanierVide(`Vente ${this.paniers.length + 1}`);
+    this.paniers.push(panier);
+    this.chargerPanier(panier);
+    this.venteForm.patchValue({ barcode: '' }, { emitEvent: false });
+    this.focusBarcodeInput();
+  }
+
+  selectionnerPanier(panier: Panier): void {
+    if (panier.id === this.panierActifId) return;
+    this.snapshotPanierActif();
+    this.chargerPanier(panier);
+    this.focusBarcodeInput();
+  }
+
+  fermerPanier(panier: Panier, event: Event): void {
+    event.stopPropagation();
+    if (panier.caisseItems.length > 0
+      && !confirm(`"${panier.label}" contient ${panier.caisseItems.length} article(s) non validé(s). Fermer quand même ?`)) {
+      return;
+    }
+    const idx = this.paniers.findIndex(p => p.id === panier.id);
+    if (idx === -1) return;
+    const etaitActif = panier.id === this.panierActifId;
+    this.paniers.splice(idx, 1);
+
+    if (!etaitActif) return;
+    if (this.paniers.length === 0) {
+      this.genererNumeroTicket();
+      const nouveau = this.creerPanierVide('Vente 1');
+      this.paniers.push(nouveau);
+      this.chargerPanier(nouveau);
+    } else {
+      this.chargerPanier(this.paniers[Math.max(0, idx - 1)]);
+    }
+  }
+
   ajouterArticleNonStock(): void {
     if (!this.articleForm.valid) return;
 
@@ -1568,10 +1672,24 @@ modifierQuantite(item: CaisseItem, qty: number): void {
     this.venteForm.reset({ typeRemise: 'taux', remise: 0 });
     this.bonAchatCode = '';
     this.numerocommande = 0;
-    
+
     await this.chargerDonneesAvecFallback();
-    
+
     this.genererNumeroTicket();
+
+    // La vente de cet onglet vient d'être validée : on le remet à vide pour
+    // le prochain client plutôt que de le faire disparaître (les autres
+    // ventes en attente dans les autres onglets ne sont pas affectées).
+    const panierActif = this.paniers.find(p => p.id === this.panierActifId);
+    if (panierActif) {
+      panierActif.caisseItems = [];
+      panierActif.numeroTicket = this.numeroTicket;
+      panierActif.client = null;
+      panierActif.typeRemise = 'taux';
+      panierActif.remise = 0;
+      panierActif.numerocommande = 0;
+    }
+
     this.showConfirmationModal = false;
     this.focusBarcodeInput();
     this.loading = false;
