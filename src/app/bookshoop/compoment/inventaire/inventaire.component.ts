@@ -74,10 +74,13 @@ export class InventaireComponent {
   }
 
   private loadInitialData(): void {
+    // Seul le mode "Par boutique" (choix par defaut) a un backend fonctionnel
+    // aujourd'hui - /depots et /inventaires/dates n'existent pas cote
+    // serveur, donc charger ces listes des l'ouverture de l'ecran declenchait
+    // deux erreurs a chaque visite, meme pour un utilisateur qui ne compte
+    // utiliser que le mode boutique. Chargees a la demande (onChoixChange).
     this.loadBoutiques();
     this.loadCategories();
-    this.loadDepots();
-    this.loadDatesInventaire();
   }
 
   private loadBoutiques(): void {

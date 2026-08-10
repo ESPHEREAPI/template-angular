@@ -111,16 +111,28 @@
                    [(ngModel)]="newBarcode.codeBard" name="codeBard" required>
           </div>
           <div class="form-group">
-            <label for="produitId">ID Article *</label>
-            <input type="number" class="form-control" id="produitId"
-                   [(ngModel)]="newBarcode.produitId" name="produitId" required>
-            <small class="form-text text-muted">Identifiant de l'article (visible dans l'écran Produits)</small>
+            <label for="boutiqueId">Boutique *</label>
+            <select class="form-control" id="boutiqueId"
+                    [(ngModel)]="newBarcode.boutiqueId" name="boutiqueId" (ngModelChange)="onBoutiqueChange()" required>
+              <option [ngValue]="0" disabled>-- Choisir une boutique --</option>
+              <option *ngFor="let boutique of boutiques" [ngValue]="boutique.id">{{ boutique.nom }}</option>
+            </select>
           </div>
           <div class="form-group">
-            <label for="boutiqueId">ID Boutique *</label>
-            <input type="number" class="form-control" id="boutiqueId"
-                   [(ngModel)]="newBarcode.boutiqueId" name="boutiqueId" required>
-            <small class="form-text text-muted">Identifiant de la boutique où ce prix est actif</small>
+            <label for="produitId">Article *</label>
+            <select class="form-control" id="produitId"
+                    [(ngModel)]="newBarcode.produitId" name="produitId"
+                    [disabled]="!newBarcode.boutiqueId || chargementArticles" required>
+              <option [ngValue]="0" disabled>
+                {{ !newBarcode.boutiqueId ? '-- Choisir une boutique d\'abord --' : (chargementArticles ? 'Chargement...' : '-- Choisir un article --') }}
+              </option>
+              <option *ngFor="let article of articlesDeLaBoutique" [ngValue]="article.id">
+                {{ article.reference }} - {{ article.libelle }}
+              </option>
+            </select>
+            <small class="form-text text-muted" *ngIf="newBarcode.boutiqueId && !chargementArticles && articlesDeLaBoutique.length === 0">
+              Aucun article trouvé pour cette boutique.
+            </small>
           </div>
         </form>
       </div>

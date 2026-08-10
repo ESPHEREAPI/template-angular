@@ -200,10 +200,10 @@
                     <span class="badge badge-primary">{{ formatNumber(item.pointVente.stockFinalTheorie) }}</span>
                   </td>
                   <td>{{ formatNumber(item.prixVenteNet) }} FCFA</td>
-                  <td>{{ formatNumber(item.tva) }}%</td>
-                  <td>{{ formatNumber(item.remise) }}%</td>
+                  <td>{{ formatNumber(item.tva || 0) }}%</td>
+                  <td>{{ formatNumber(item.remise || 0) }}%</td>
                   <td>
-                    <strong>{{ formatNumber(item.prixVenteNet * (1 + item.tva/100)) }} FCFA</strong>
+                    <strong>{{ formatNumber(item.prixVenteNet * (1 + (item.tva || 0)/100)) }} FCFA</strong>
                   </td>
                   <td>
                     <span class="badge badge-success">

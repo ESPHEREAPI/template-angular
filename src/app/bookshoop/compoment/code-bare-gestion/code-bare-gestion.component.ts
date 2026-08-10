@@ -3,6 +3,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Barcodeproduit } from '../../model/barcodeproduit';
 import { BarcodeGestionService, BarcodeCreateRequest } from '../../service/BarcodeGestion.service';
+import { ReferenceDataService } from '../../service/reference-data.service';
+import { BarcodeService } from '../../service/barcode.service';
+import { Boutique } from '../../model/boutique';
+import { Produit } from '../../model/produit';
 
 declare var $: any;
 
@@ -19,16 +23,61 @@ export class CodeBareGestionComponent implements OnInit {
   editingId: number | null = null;
   editingCode: string = '';
 
+  // Listes de selection - remplacent la saisie manuelle d'ID numeriques
+  // (l'utilisateur choisit une boutique puis un article par leur nom, pas
+  // par un identifiant qu'il devrait aller chercher ailleurs).
+  boutiques: Boutique[] = [];
+  articlesDeLaBoutique: Produit[] = [];
+  chargementArticles = false;
+
   // Pagination
   currentPage = 0;
   pageSize = 10;
   totalElements = 0;
   totalPages = 0;
 
-  constructor(private barcodeGestionService: BarcodeGestionService) {}
+  constructor(
+    private barcodeGestionService: BarcodeGestionService,
+    private referenceDataService: ReferenceDataService,
+    private barcodeService: BarcodeService
+  ) {}
 
   ngOnInit(): void {
     this.loadBarcodes();
+    this.chargerBoutiques();
+  }
+
+  private chargerBoutiques(): void {
+    this.referenceDataService.getBoutiques()
+      .subscribe({
+        next: (data) => this.boutiques = data,
+        error: (error) => {
+          console.error('Erreur lors du chargement des boutiques', error);
+          this.showToast('Erreur lors du chargement des boutiques', 'error');
+        }
+      });
+  }
+
+  // Appele quand l'utilisateur choisit une boutique dans le formulaire :
+  // charge les articles DE CETTE boutique pour le second selecteur.
+  onBoutiqueChange(): void {
+    this.newBarcode.produitId = 0;
+    this.articlesDeLaBoutique = [];
+    if (!this.newBarcode.boutiqueId) return;
+
+    this.chargementArticles = true;
+    this.barcodeService.getProduitsAutoComplet(this.newBarcode.boutiqueId)
+      .subscribe({
+        next: (produits) => {
+          this.articlesDeLaBoutique = produits;
+          this.chargementArticles = false;
+        },
+        error: (error) => {
+          console.error('Erreur lors du chargement des articles', error);
+          this.showToast('Erreur lors du chargement des articles de la boutique', 'error');
+          this.chargementArticles = false;
+        }
+      });
   }
 
   emptyBarcode(): BarcodeCreateRequest {
@@ -52,6 +101,7 @@ export class CodeBareGestionComponent implements OnInit {
 
   openModal(): void {
     this.newBarcode = this.emptyBarcode();
+    this.articlesDeLaBoutique = [];
     $('#barcodeModal').modal('show');
   }
 

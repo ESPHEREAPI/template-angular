@@ -109,7 +109,13 @@ export class TransactionComponent implements OnInit, OnDestroy {
   chargerMagasins(): void {
     this.chargementMagasins = true;
     
-    this.referenceDataService.getDepotsMagasin()
+    // Depots ET points de vente : les 4 combinaisons (Magasin<->Magasin,
+    // Magasin<->Point de vente, Point de vente<->Point de vente) sont
+    // valides pour un transfert (voir "Guide d'utilisation" de l'ecran) -
+    // getDepotsMagasin() se limitait aux depots purs et masquait donc a
+    // la fois les points de vente et tout magasin cree avec une boutique
+    // rattachee.
+    this.referenceDataService.getTousLesMagasins()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data) => {

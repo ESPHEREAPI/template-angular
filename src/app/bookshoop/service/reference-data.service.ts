@@ -34,5 +34,11 @@ private readonly API_URL =`${environment.apiUrl}/gateway-proxy/api/microservice-
    getDepotsMagasin(): Observable<Depot[]> {
     return this.http.get<Depot[]>(`${this.API_URL}/depots-stockage`);
   }
+
+  // Depots ET points de vente - pour le Transfert de Stock, ou les deux
+  // natures de magasin sont des sources/destinations valides.
+  getTousLesMagasins(): Observable<Depot[]> {
+    return this.http.get<Depot[]>(`${this.API_URL}/magasins-transfert`);
+  }
 }
 
