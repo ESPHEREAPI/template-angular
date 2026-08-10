@@ -64,6 +64,10 @@ export class CommandComponent implements OnInit, OnDestroy {
   // magasin destination determine seul la liste des fournisseurs proposes,
   // plus besoin de la case a cocher "Depot destination".
   magasins: Magasin[] = [];
+  // Magasin selectionne pour la liste "Prix Articles" en bas de page - par
+  // defaut celui de la boutique de l'utilisateur, mais consultable pour
+  // n'importe quel magasin/depot de la compagnie.
+  selectedMagasinId: number | null = null;
 
   // UI State
   isLoading = false;
@@ -275,9 +279,22 @@ export class CommandComponent implements OnInit, OnDestroy {
     this.magasinService.getAll(0, 1000)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => this.magasins = response.content,
+        next: (response) => {
+          this.magasins = response.content;
+          // Par defaut, on affiche la liste du magasin lie a la boutique de
+          // l'utilisateur ; a defaut le premier magasin de la compagnie.
+          const magasinBoutique = this.magasins.find(m => m.boutique?.id === this.boutiqueid);
+          this.selectedMagasinId = magasinBoutique?.id ?? this.magasins[0]?.id ?? null;
+          this.loadPrixArticles(0);
+        },
         error: (error) => this.handleError('Erreur lors du chargement des magasins', error)
       });
+  }
+
+  onMagasinFilterChange(magasinId: number | string): void {
+    this.selectedMagasinId = Number(magasinId);
+    this.currentPage = 0;
+    this.loadPrixArticles(0);
   }
 
   /**
@@ -317,7 +334,10 @@ export class CommandComponent implements OnInit, OnDestroy {
   }
 
   private loadPrixArticles(page: number = 0): void {
-    this.prixArticlesService.getPrixArticles(page, this.pageSize, this.searchTerm)
+    const source$ = this.selectedMagasinId
+      ? this.prixArticlesService.getPrixArticlesByMagasin(this.selectedMagasinId, page, this.pageSize, this.searchTerm)
+      : this.prixArticlesService.getPrixArticles(page, this.pageSize, this.searchTerm);
+    source$
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (response: PaginationResponse<PrixArticles>) => {

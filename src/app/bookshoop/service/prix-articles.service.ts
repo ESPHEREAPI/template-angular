@@ -51,6 +51,17 @@ export class PrixArticlesService {
     return this.http.get<PaginationResponse<PrixArticles>>(`${this.apiUrl}/prix-articles/${boutiqueid}`, { params });
   }
 
+  getPrixArticlesByMagasin(magasinid: number, page: number = 0, size: number = 10, search?: string): Observable<PaginationResponse<PrixArticles>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
+
+    if (search) {
+      params = params.set('search', search);
+    }
+    return this.http.get<PaginationResponse<PrixArticles>>(`${this.apiUrl}/prix-articles/magasin/${magasinid}`, { params });
+  }
+
   getPrixArticlesByFilters(filters: any): Observable<PrixArticles[]> {
     let boutiqueid =this.getBoutiqueUser();
     return this.http.post<PrixArticles[]>(`${this.apiUrl}/prix-articles/filter/${boutiqueid}`, filters);
