@@ -602,6 +602,34 @@
                             *ngIf="resteAPayer() === 0 && monnaieARendre() === 0">
                             <span><i class="fas fa-check-circle mr-1"></i>Montant couvert</span>
                         </div>
+
+                        <div class="mt-2 pt-2" style="border-top:1px dashed #ccc;" *ngIf="monnaieARendre() > 0">
+                            <div class="small text-muted mb-1">Pas de monnaie disponible ? Convertir le rendu en bon
+                                d'achat :</div>
+                            <div class="row no-gutters" *ngIf="!bonAchatEmis" style="gap:4px 0;">
+                                <div class="col-5 pr-1">
+                                    <input type="text" class="form-control form-control-sm" placeholder="Nom client"
+                                        [(ngModel)]="bonAchatRenduNom" name="bonAchatRenduNom">
+                                </div>
+                                <div class="col-4 pr-1">
+                                    <input type="text" class="form-control form-control-sm"
+                                        placeholder="Téléphone (optionnel)" [(ngModel)]="bonAchatRenduTelephone"
+                                        name="bonAchatRenduTelephone">
+                                </div>
+                                <div class="col-3">
+                                    <button type="button" class="btn btn-sm btn-outline-warning btn-block"
+                                        (click)="convertirRenduEnBonAchat()"
+                                        [disabled]="emissionBonEnCours || !bonAchatRenduNom.trim()">
+                                        Émettre
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="alert alert-success py-1 px-2 mt-1 mb-0" *ngIf="bonAchatEmis">
+                                Bon <strong>{{ bonAchatEmis.codeBon }}</strong> de {{ bonAchatEmis.montantTotal |
+                                currency:'XAF':'symbol':'1.0-0' }} émis pour {{ bonAchatEmis.clientBonAchat.nom }}
+                                (valable jusqu'au {{ bonAchatEmis.dateExpiration | date:'dd/MM/yyyy' }}).
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

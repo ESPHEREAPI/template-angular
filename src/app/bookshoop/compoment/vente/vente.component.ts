@@ -19,6 +19,8 @@ import { PrintService } from '../../service/print.service';
 import { StockManagementService } from '../../service/stock-management.service';
 import { AuthService } from '../../../auth/auth.service';
 import { OfflineSyncService, SyncStatus, VenteOffline } from '../../service/OfflineSyncService';
+import { BonAchatService } from '../../service/BonAchat.service';
+import { BonAchat } from '../../model/bon-achat';
 
 
 // Une "vente en cours" tenue en memoire cote client - permet de mettre en
@@ -100,6 +102,12 @@ export class VenteComponent implements OnInit, OnDestroy {
   paniers: Panier[] = [];
   panierActifId = '';
 
+  // Conversion du reliquat de monnaie en bon d'achat (a la place du rendu physique)
+  bonAchatRenduNom = '';
+  bonAchatRenduTelephone = '';
+  bonAchatEmis: BonAchat | null = null;
+  emissionBonEnCours = false;
+
   // ==================== BON D'ACHAT ====================
   bonAchatCode = '';
   bonAchatValide = false;
@@ -133,7 +141,8 @@ private readonly STOCK_CACHE_DURATION = 30000; // 3
     private printService: PrintService,
     private stockManagementService: StockManagementService,
     private authService: AuthService,
-    private offlineSyncService: OfflineSyncService
+    private offlineSyncService: OfflineSyncService,
+    private bonAchatService: BonAchatService
   ) {
     this.initializeForms();
   }
@@ -1388,7 +1397,36 @@ modifierQuantite(item: CaisseItem, qty: number): void {
       montant: this.montantTotalApaye,
       reference: ''
     }];
+    this.bonAchatRenduNom = '';
+    this.bonAchatRenduTelephone = '';
+    this.bonAchatEmis = null;
     this.showPaiementModal = true;
+  }
+
+  // Convertit le reliquat de monnaie (rendu impossible faute de
+  // piece/billet) en bon d'achat au nom du client, au lieu de le lui rendre
+  // en especes. N'affecte pas les lignes de paiement de la vente (deja
+  // couverte) - emet juste un avoir separe.
+  convertirRenduEnBonAchat(): void {
+    const montant = this.monnaieARendre();
+    if (montant <= 0 || !this.bonAchatRenduNom.trim() || this.emissionBonEnCours) return;
+
+    this.emissionBonEnCours = true;
+    this.bonAchatService.emettreDepuisRendu(
+      this.bonAchatRenduNom.trim(),
+      this.bonAchatRenduTelephone.trim() || undefined,
+      montant
+    ).subscribe({
+      next: (bon) => {
+        this.bonAchatEmis = bon;
+        this.emissionBonEnCours = false;
+      },
+      error: (err) => {
+        this.notificationService.error('❌ Erreur lors de l\'émission du bon d\'achat');
+        console.error(err);
+        this.emissionBonEnCours = false;
+      }
+    });
   }
 
   // Paiement mixte : gestion des lignes de paiement du modal

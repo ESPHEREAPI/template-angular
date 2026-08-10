@@ -17,6 +17,8 @@ import { CalendarModule } from 'primeng/calendar';
 import { Route, Router } from '@angular/router';
 import { User } from '../../model/user';
 import { AuthService } from '../../../auth/auth.service';
+import { BonAchatService } from '../../service/BonAchat.service';
+import { BonAchat } from '../../model/bon-achat';
 
 // Une "vente en cours" tenue en memoire cote client - permet de mettre en
 // attente le panier d'un client (ex: il va chercher un article oublie) pour
@@ -97,10 +99,17 @@ export class VentesArticlesComponent {
   paniers: Panier[] = [];
   panierActifId = '';
 
+  // Conversion du reliquat de monnaie en bon d'achat (a la place du rendu physique)
+  bonAchatRenduNom = '';
+  bonAchatRenduTelephone = '';
+  bonAchatEmis: BonAchat | null = null;
+  emissionBonEnCours = false;
+
   constructor(
     private fb: FormBuilder, private barcodeService: BarcodeService, private notificationService: NotificationService,
     private prixArticlesService: PrixArticlesService, private userService: UserService, private printService: PrintService,
-    private stockService: StockServiceService,private router:Router,private authService: AuthService
+    private stockService: StockServiceService,private router:Router,private authService: AuthService,
+    private bonAchatService: BonAchatService
   ) {
     this.initializeForms();
   }
@@ -573,7 +582,35 @@ export class VentesArticlesComponent {
       montant: this.montantTotalApaye,
       reference: ''
     }];
+    this.bonAchatRenduNom = '';
+    this.bonAchatRenduTelephone = '';
+    this.bonAchatEmis = null;
     this.showPaiementModal = true;
+  }
+
+  // Convertit le reliquat de monnaie (rendu impossible faute de
+  // piece/billet) en bon d'achat au nom du client, au lieu de le lui rendre
+  // en especes. N'affecte pas les lignes de paiement de la vente (deja
+  // couverte) - emet juste un avoir separe.
+  convertirRenduEnBonAchat(): void {
+    const montant = this.monnaieARendre();
+    if (montant <= 0 || !this.bonAchatRenduNom.trim() || this.emissionBonEnCours) return;
+
+    this.emissionBonEnCours = true;
+    this.bonAchatService.emettreDepuisRendu(
+      this.bonAchatRenduNom.trim(),
+      this.bonAchatRenduTelephone.trim() || undefined,
+      montant
+    ).subscribe({
+      next: (bon) => {
+        this.bonAchatEmis = bon;
+        this.emissionBonEnCours = false;
+      },
+      error: (err) => {
+        this.handleError('Erreur lors de l\'émission du bon d\'achat', err);
+        this.emissionBonEnCours = false;
+      }
+    });
   }
 
   // Paiement mixte : gestion des lignes de paiement du modal
