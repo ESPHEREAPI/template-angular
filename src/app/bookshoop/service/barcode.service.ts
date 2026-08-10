@@ -39,7 +39,8 @@ private readonly apiUrl =`${environment.apiUrl}/gateway-proxy/api/microservice-p
 
   }
 getArticleById(produitid:number): Observable<Produit> {
-    return this.http.get<Produit>(`${this.apiUrl}/produit/${produitid}`);
+    const boutiqueid=this.autheService.getBoutiqueByUserSession();
+    return this.http.get<Produit>(`${this.apiUrl}/produit/${produitid}/${boutiqueid}`);
   }
   searchProducts(query: string): Observable<PrixArticles[]> {
     return this.http.get<PrixArticles[]>(`${this.apiUrl}/products/search?q=${query}`);
@@ -181,8 +182,9 @@ downloadTicketVenteTXT(venteid: number): Observable<Blob> {
   }
 
   getArticleByReference(reference: string): Observable<Produit> {
+    const boutiqueid=this.autheService.getBoutiqueByUserSession();
     const params = new HttpParams().set('reference', reference);
-    return this.http.get<Produit>(`${this.apiUrl}/reference`, { params });
+    return this.http.get<Produit>(`${this.apiUrl}/reference/${boutiqueid}`, { params });
   }
 
   searchArticles(query: string): Observable<ApiResponse<Produit[]>> {
@@ -222,7 +224,8 @@ createVente(vente: Vente,numerocommande:number): Observable<number> {
   }
  verificationNumeTicketForEcom(numeTicket: string): Observable<Vente>{
   console.log("valeur ticket ",numeTicket)
- return this.http.get<Vente>(`${this.apiUrl}/vente/e-com/${numeTicket}`);
+  const boutiqueid=this.autheService.getBoutiqueByUserSession();
+ return this.http.get<Vente>(`${this.apiUrl}/vente/e-com/${numeTicket}/${boutiqueid}`);
   }
   createVenteForEcom(vente: Vente,numerocommande:number): Observable<number> {
   console.log(vente)

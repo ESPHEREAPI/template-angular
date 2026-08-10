@@ -158,7 +158,7 @@ export class ControleCaisseComponent implements OnInit {
     console.log("vente modifiee", vente.items);
     console.log("username", this.username);
     
-    this.venteService.updateStatut(vente.id, this.username, nouveauStatut).subscribe({
+    this.venteService.updateStatut(vente.id, nouveauStatut).subscribe({
       next: (updated) => {
         vente.statut = updated.statut;
         alert('Statut modifié avec succès.');

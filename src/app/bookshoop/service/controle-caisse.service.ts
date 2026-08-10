@@ -50,10 +50,10 @@ export class ControleCaisseService {
     return this.http.get<Page<Vente>>(this.baseUrl, { params });
   }
 
-  updateStatut(venteId: number, username: string, statut: string): Observable<Vente> {
+  updateStatut(venteId: number, statut: string): Observable<Vente> {
     const boutiqueid = this.authService.getBoutiqueByUserSession();
     return this.http.patch<Vente>(
-      `${this.baseUrl}/${venteId}/${username}/statut/${boutiqueid}`, 
+      `${this.baseUrl}/${venteId}/statut/${boutiqueid}`,
       { statut }
     );
   }

@@ -207,8 +207,9 @@ export class CommandComponent implements OnInit, OnDestroy {
         }
       });
 
-    // Load commands and prices
-    this.loadCommandes();
+    // "Commandes en cours" est un panier brouillon local (voir chargeCommandeTable),
+    // jamais restaure depuis le serveur - le charger ici melangerait l'historique
+    // persiste de la compagnie (GET /commandes) avec les lignes en cours de saisie.
     this.loadPrixArticles();
   }
 
@@ -318,18 +319,6 @@ export class CommandComponent implements OnInit, OnDestroy {
           }));
         },
         error: (error) => this.handleError('Erreur lors du chargement des fournisseurs', error)
-      });
-  }
-
-  private loadCommandes(): void {
-    this.commandeService.getCommandes()
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (commandes) => {
-          this.commandes = commandes;
-          this.commandeService.updateLocalCommandes(commandes);
-        },
-        error: (error) => this.handleError('Erreur lors du chargement des commandes', error)
       });
   }
 
