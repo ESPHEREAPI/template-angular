@@ -27,4 +27,6 @@ export interface CompagnieParametres {
   factureMentionsLegales: string | null;
   facturePrefixeNumerotation: string | null;
   factureEcheanceJoursDefaut: number;
+
+  bonAchatDureeValiditeJours: number;
 }

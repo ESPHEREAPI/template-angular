@@ -41,6 +41,11 @@
               <i class="fas fa-file-invoice"></i> Facture A4
             </a>
           </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="ongletActif === 'bonAchat'" href="javascript:void(0)" (click)="ongletActif = 'bonAchat'">
+              <i class="fas fa-gift"></i> Bon d'achat
+            </a>
+          </li>
         </ul>
       </div>
       <div class="card-body">
@@ -230,6 +235,24 @@
               <div class="form-group">
                 <label>Mentions légales (pied de facture)</label>
                 <textarea class="form-control" rows="3" [(ngModel)]="parametres.factureMentionsLegales" name="factureMentionsLegales" placeholder="Ex: conditions de règlement, pénalités de retard..."></textarea>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <!-- Bon d'achat -->
+        <form *ngIf="ongletActif === 'bonAchat'">
+          <div class="alert alert-info">
+            S'applique aux bons d'achat émis par un caissier pour compenser un reliquat de monnaie
+            (rendu impossible faute de pièce/billet). Les bons créés manuellement (remise accordée à un
+            client) gardent une date d'expiration libre, choisie au moment de la création.
+          </div>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label>Durée de validité par défaut (jours)</label>
+                <input type="number" min="1" class="form-control" [(ngModel)]="parametres.bonAchatDureeValiditeJours" name="bonAchatDureeValiditeJours">
+                <small class="form-text text-muted">Ex: 90 jours = 3 mois.</small>
               </div>
             </div>
           </div>

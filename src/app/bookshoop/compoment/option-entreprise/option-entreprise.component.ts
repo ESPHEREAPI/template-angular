@@ -23,7 +23,7 @@ export class OptionEntrepriseComponent implements OnInit {
   parametres: CompagnieParametres | null = null;
   loading = false;
   saving = false;
-  ongletActif: 'securite' | 'fiscalite' | 'ticket' | 'facture' = 'securite';
+  ongletActif: 'securite' | 'fiscalite' | 'ticket' | 'facture' | 'bonAchat' = 'securite';
   formatsLogin = FORMATS_LOGIN;
 
   constructor(private compagnieParametresService: CompagnieParametresService, private toastr: ToastrService) {}
