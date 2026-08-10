@@ -38,7 +38,7 @@ private readonly apiUrl =`${environment.apiUrl}/gateway-proxy/api/microservice-p
   }
 getAllAnneesCaisse(): Observable<Annee[]> {
      const boutiqueid=this.authservice.getBoutiqueByUserSession();
-    return this.http.get<Annee[]>(`${this.apiUrl}/annees/${boutiqueid}`);
+    return this.http.get<Annee[]>(`${this.apiUrl}/historique-caisse/annees/${boutiqueid}`);
   }
   getAllCaissier(): Observable<User[]> {
     return this.http.get<User[]>(`${this.apiUrl}/annees`);
