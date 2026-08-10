@@ -97,12 +97,14 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
       };
       this.userSession = userSession;
 
+      // Un compte sans "profil" assigne (typiquement l'admin de la compagnie,
+      // qui n'a pas de profil de type CAISSE) doit quand meme voir l'ecran -
+      // ne bloquer le chargement que sur la valeur du profil, jamais sur son
+      // absence.
       const profil = this.userSession.usersDTO?.profil;
-      if (profil) {
-        console.log("profil =", profil.code);
-        this.loadInitialData(profil.code);
-        this.subscribeToServiceUpdates();
-      }
+      console.log("profil =", profil?.code);
+      this.loadInitialData(profil?.code ?? '');
+      this.subscribeToServiceUpdates();
     }
     //if(roles==='CAISSE'){
 
