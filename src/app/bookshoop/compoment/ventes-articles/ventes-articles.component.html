@@ -17,8 +17,25 @@
 
     </div>
 
+    <!-- Onglets : ventes en parallele -->
+    <div class="paniers-tabs d-flex align-items-center flex-wrap px-2 py-1" style="background:#f1f3f5; gap:6px;">
+        <button type="button" *ngFor="let panier of paniers" class="btn btn-sm d-flex align-items-center"
+            [class.btn-primary]="panier.id === panierActifId" [class.btn-outline-secondary]="panier.id !== panierActifId"
+            (click)="selectionnerPanier(panier)">
+            <i class="fas fa-shopping-cart mr-1"></i>
+            {{ panier.label }}
+            <span class="badge badge-light ml-1" *ngIf="panier.caisseItems.length > 0">{{ panier.caisseItems.length }}</span>
+            <i class="fas fa-times ml-2" style="opacity:0.6;" (click)="fermerPanier(panier, $event)"
+                *ngIf="paniers.length > 1" title="Fermer cette vente"></i>
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-primary" (click)="nouveauPanier()"
+            title="Servir un autre client sans perdre ce panier">
+            <i class="fas fa-plus"></i> Nouvelle vente
+        </button>
+    </div>
+
     <div class="main-content">
-        
+
         <!-- Left Panel - Caisse -->
         <div class="caisse-panel">
             <!-- Barcode Input -->
