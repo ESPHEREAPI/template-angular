@@ -55,6 +55,7 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
   loading = false;
   printing = false;
   vendeur!: string;
+  isCaisse = false;
   userSession!: UserSession;
 
   // Configuration du tableau
@@ -123,6 +124,7 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
 
   private loadInitialData(profil: string): void {
     const isCaisse = profil === 'CAISSE';
+    this.isCaisse = isCaisse;
     this.vendeur = isCaisse ? this.userSession.usersDTO.userName : '';
 
     const annees$ = isCaisse
@@ -187,8 +189,12 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
     this.resetDateFilters();
 
     const anneeId = this.filter.annee.id;
-    if (this.users?.length === 0 || !this.users) {
-      // Cas sans users ou users vide, utilise getDateByAnnee avec vendeur
+    if (this.isCaisse) {
+      // Compte CAISSE : uniquement ses propres dates de vente. Se base sur
+      // le role reel (this.isCaisse), pas sur la liste des caissiers - celle-ci
+      // est vide pour un admin des qu'aucun autre compte CAISSE n'existe
+      // encore, ce qui prenait ce meme chemin par erreur et cassait le
+      // chargement pour tout admin/gerant d'une compagnie neuve.
       this.caisseService.getDateByAnnee(anneeId, this.vendeur)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
