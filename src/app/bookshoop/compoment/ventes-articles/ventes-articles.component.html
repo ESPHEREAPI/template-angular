@@ -330,26 +330,56 @@
             <div class="modal-body">
                 <div class="paiement-info">
                     <div class="total-display">
-                        <h4>Total: {{ montantTotalApaye | currency:'XAF':'symbol':'1.0-0' }}</h4>
+                        <h4>Total à payer: {{ montantTotalApaye | currency:'XAF':'symbol':'1.0-0' }}</h4>
                     </div>
 
-                    <div class="form-group">
-                        <label>Type de paiement</label>
-                        <select class="form-control" [(ngModel)]="typePaiementSelectionne">
-                            <option *ngFor="let type of typesPaiement" [value]="type">
-                                {{ type }}
-                            </option>
-                        </select>
+                    <label class="mb-1">Paiement (une ou plusieurs lignes)</label>
+                    <div class="ligne-paiement row align-items-center mb-2 mx-0"
+                        *ngFor="let ligne of lignesPaiement; let i = index">
+                        <div class="col-5 pl-0">
+                            <select class="form-control" [(ngModel)]="ligne.typePaiement" name="typeLigne{{i}}">
+                                <option *ngFor="let type of typesPaiement" [value]="type">{{ type }}</option>
+                            </select>
+                        </div>
+                        <div class="col-3">
+                            <input type="number" class="form-control" [(ngModel)]="ligne.montant"
+                                name="montantLigne{{i}}" step="0.01" min="0" placeholder="Montant">
+                        </div>
+                        <div class="col-3 pr-0">
+                            <input type="text" class="form-control" [(ngModel)]="ligne.reference"
+                                name="referenceLigne{{i}}"
+                                [placeholder]="ligne.typePaiement === 'BON_ACHAT' ? 'Code du bon' : 'Référence (optionnel)'">
+                        </div>
+                        <div class="col-1 pr-0 text-right">
+                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                (click)="supprimerLignePaiement(i)" [disabled]="lignesPaiement.length <= 1"
+                                title="Retirer cette ligne">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
                     </div>
 
-                    <div class="form-group" *ngIf="typePaiementSelectionne === 'ESPECES'">
-                        <label>Montant reçu</label>
-                        <input type="number" class="form-control" [(ngModel)]="montantRecu"
-                            (input)="onMontantRecuInput($event)" step="0.01" min="0">
+                    <button type="button" class="btn btn-sm btn-outline-primary mb-3"
+                        (click)="ajouterLignePaiement()">
+                        <i class="fas fa-plus mr-1"></i>Ajouter un mode de paiement
+                    </button>
 
-                        <div class="monnaie-info mt-2" *ngIf="montantRecu > 0">
-                            <strong>Monnaie à rendre: {{ monnaieRendue | currency:'XAF':'symbol':'1.2-2':'fr'
-                                }}</strong>
+                    <div class="paiement-recap p-2 rounded" style="background:#f8f9fa;">
+                        <div class="d-flex justify-content-between">
+                            <span>Total payé:</span>
+                            <strong>{{ totalPaye() | currency:'XAF':'symbol':'1.0-0' }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between text-danger" *ngIf="resteAPayer() > 0">
+                            <span>Reste à payer:</span>
+                            <strong>{{ resteAPayer() | currency:'XAF':'symbol':'1.0-0' }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between text-primary" *ngIf="monnaieARendre() > 0">
+                            <span>Monnaie à rendre:</span>
+                            <strong>{{ monnaieARendre() | currency:'XAF':'symbol':'1.0-0' }}</strong>
+                        </div>
+                        <div class="d-flex justify-content-between text-success"
+                            *ngIf="resteAPayer() === 0 && monnaieARendre() === 0">
+                            <span><i class="fas fa-check-circle mr-1"></i>Montant couvert</span>
                         </div>
                     </div>
                 </div>
@@ -359,7 +389,7 @@
                     Annuler
                 </button>
                 <button type="button" class="btn btn-success" (click)="validerVente()"
-                    [disabled]="loading || (typePaiementSelectionne === 'ESPECES' && montantRecu < montantTotalApaye)">
+                    [disabled]="loading || !paiementValide()">
                     <span *ngIf="loading" class="spinner-border spinner-border-sm mr-2"></span>
                     Valider la vente
                 </button>

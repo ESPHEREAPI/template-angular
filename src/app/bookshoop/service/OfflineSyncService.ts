@@ -18,6 +18,9 @@ export interface VenteOffline {
   montantTotal: number;
   montantNet: number;
   typePaiement: string;
+  // Paiement mixte : lignes individuelles (ex. especes + Orange Money + bon
+  // d'achat). Si absent, le backend retombe sur typePaiement/montantNet.
+  paiements?: { typePaiement: string; montant: number; reference?: string }[];
   montantRecu: number;
   monnaieRendue: number;
   remise: number;
@@ -558,6 +561,13 @@ export class OfflineSyncService {
       montantTotal: Number(vente.montantTotal || 0),
       montantNet: Number(vente.montantNet || 0),
       typePaiement: (vente.typePaiement || 'ESPECES').toUpperCase(),
+      paiements: Array.isArray(vente.paiements) && vente.paiements.length > 0
+        ? vente.paiements.map((p: any) => ({
+            typePaiement: String(p.typePaiement).toUpperCase(),
+            montant: Number(p.montant || 0),
+            reference: p.reference || undefined
+          }))
+        : undefined,
       montantRecu: Number(vente.montantRecu || 0),
       monnaieRendue: Number(vente.monnaieRendue || 0),
       remise: Number(vente.remise || 0),

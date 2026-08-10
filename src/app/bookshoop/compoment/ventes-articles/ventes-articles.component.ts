@@ -4,7 +4,7 @@ import { Produit } from '../../model/produit';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CaisseItem } from '../../model/caisse-item';
 import { Person } from '../../model/person';
-import { Vente } from '../../model/vente';
+import { Vente, LignePaiement } from '../../model/vente';
 import { BarcodeService } from '../../service/barcode.service';
 import { NotificationService } from '../../service/notification.service';
 import { PrixArticlesService } from '../../service/prix-articles.service';
@@ -42,7 +42,9 @@ export class VentesArticlesComponent {
   articles: Produit[] = [];
   filteredArticles: Produit[] = [];
   personnes: Person[] = [];
-  typesPaiement: string[] = ['ESPECES', 'MOBILE_MONEY', 'ORANGE_MONEY', 'EXPRESS_UNION', 'CARTE_BANCAIRE', 'VIREMENT', 'CHEQUE'];
+  typesPaiement: string[] = ['ESPECES', 'MOBILE_MONEY', 'ORANGE_MONEY', 'EXPRESS_UNION', 'CARTE_BANCAIRE', 'VIREMENT', 'CHEQUE', 'BON_ACHAT'];
+  // Paiement mixte : plusieurs lignes (ex. especes + Orange Money + bon d'achat)
+  lignesPaiement: LignePaiement[] = [];
 
   // UI State
   loading = false;
@@ -539,8 +541,50 @@ export class VentesArticlesComponent {
     this.typePaiementSelectionne = type === 'especes' ? 'ESPECES' : 'CARTE_BANCAIRE';
     this.montantRecu = 0;
     this.monnaieRendue = 0;
-    this.showPaiementModal = true;
     this.montantTotalApaye = this.montantTotal - this.montantRemise;
+    // Une seule ligne pre-remplie sur le montant total : le cas courant
+    // (un seul mode de paiement) reste a un clic. Le caissier peut ajouter
+    // d'autres lignes pour un paiement mixte (espece+telephone+bon d'achat).
+    this.lignesPaiement = [{
+      typePaiement: this.typePaiementSelectionne,
+      montant: this.montantTotalApaye,
+      reference: ''
+    }];
+    this.showPaiementModal = true;
+  }
+
+  // Paiement mixte : gestion des lignes de paiement du modal
+  ajouterLignePaiement(): void {
+    this.lignesPaiement.push({
+      typePaiement: 'ESPECES',
+      montant: this.resteAPayer(),
+      reference: ''
+    });
+  }
+
+  supprimerLignePaiement(index: number): void {
+    if (this.lignesPaiement.length <= 1) return;
+    this.lignesPaiement.splice(index, 1);
+  }
+
+  totalPaye(): number {
+    return this.lignesPaiement.reduce((sum, l) => sum + (Number(l.montant) || 0), 0);
+  }
+
+  resteAPayer(): number {
+    return Math.max(0, this.montantTotalApaye - this.totalPaye());
+  }
+
+  monnaieARendre(): number {
+    return Math.max(0, this.totalPaye() - this.montantTotalApaye);
+  }
+
+  paiementValide(): boolean {
+    if (this.lignesPaiement.length === 0) return false;
+    if (this.totalPaye() + 0.01 < this.montantTotalApaye) return false;
+    return this.lignesPaiement.every(l =>
+      l.typePaiement !== 'BON_ACHAT' || !!(l.reference && l.reference.trim().length > 0)
+    );
   }
 
   // Calculs
@@ -627,8 +671,8 @@ export class VentesArticlesComponent {
     return;
   }
 
-  if (this.typePaiementSelectionne === 'ESPECES' && this.montantRecu < this.montantTotalApaye) {
-    alert('Montant reçu insuffisant');
+  if (!this.paiementValide()) {
+    alert('Le total des paiements doit couvrir le montant à payer (et un code de bon d\'achat est requis pour une ligne "BON_ACHAT")');
     return;
   }
 
@@ -669,18 +713,13 @@ export class VentesArticlesComponent {
   }
   private async enregistrerVente(): Promise<void> {
     const userinsert = this.userService.getUserConnected();
-    // Simuler un appel API
-    //controller le type de paiement mobile money orange money, express union autres sauf bon achat
 
-   /**  if (this.typePaiementSelectionne === 'MOBILE_MONEY' || 'ORANGE_MONEY' || 'EXPRESS_UNION' || 'CARTE_BANCAIRE') {
-      this.montantRecu = this.montantTotalApaye;
-      // alert('Montant reçu insuffisant');
-      //return;
-    }*/
-    const paiementsAutoMontantRecu = ['MOBILE_MONEY', 'ORANGE_MONEY', 'EXPRESS_UNION', 'CARTE_BANCAIRE'];
-  if (paiementsAutoMontantRecu.includes(this.typePaiementSelectionne)) {
-    this.montantRecu = this.montantTotalApaye;
-  }
+    // Montant recu/monnaie rendue affiches sur le ticket = agregats des
+    // lignes de paiement mixte (le backend valide/persiste ces lignes
+    // individuellement via venteValidee.paiements).
+    this.montantRecu = this.totalPaye();
+    this.monnaieRendue = this.monnaieARendre();
+
     return new Promise(resolve => {
       setTimeout(() => {
         // Stocker les données de la vente pour l'impression
@@ -689,7 +728,12 @@ export class VentesArticlesComponent {
           date: this.venteForm.get('dateSave')?.value,
           items: [...this.caisseItems],
           montantTotal: this.montantTotal,
-          typePaiement: this.typePaiementSelectionne,
+          typePaiement: this.lignesPaiement.map(l => l.typePaiement).filter((v, i, a) => a.indexOf(v) === i).join(' + '),
+          paiements: this.lignesPaiement.map(l => ({
+            typePaiement: l.typePaiement,
+            montant: Number(l.montant) || 0,
+            reference: l.reference || undefined
+          })),
           montantRecu: this.montantRecu,
           monnaieRendue: this.monnaieRendue,
           montantNet: this.checkMontantApaye(),
