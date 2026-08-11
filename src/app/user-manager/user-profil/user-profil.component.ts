@@ -5,7 +5,12 @@ import { Profil } from '../../bookshoop/model/profil';
 import { MenuActions } from '../../bookshoop/model/menu-actions';
 import { ProfilService } from '../../services/profil.service';
 
-const ACTIONS_DISPONIBLES = ['READ', 'WRITE', 'UPDATE', 'DELETE', 'PRINT'];
+// PRINT exclu : la colonne operation_type est un ENUM MySQL natif cree
+// avant l'ajout de PRINT a l'enum Java cote backend (derive de schema) - la
+// cocher declenche "Data truncated for column 'operation_type'" a l'insertion
+// (voir ProfilPermissionMatrixService.toggle -> permissionRepository.save).
+// A reactiver une fois la colonne alignee en base.
+const ACTIONS_DISPONIBLES = ['READ', 'WRITE', 'UPDATE', 'DELETE'];
 const LIBELLE_ACTION: Record<string, string> = {
   READ: 'Voir',
   WRITE: 'Ajouter',
