@@ -56,10 +56,12 @@ getAllAnneesCaisse(): Observable<Annee[]> {
     return this.http.get<Date[]>(`${this.apiUrl}/all-dates/${anneeId}/${boutiqueid}`, );
   }
 
-  // Récupérer les caissiers
+  // Récupérer les caissiers de toute la compagnie (pas seulement une
+  // boutique) - un admin/gerant transverse a la compagnie n'a pas toujours
+  // de boutiqueid exploitable dans sa session, ce qui rendait cette liste
+  // toujours vide via l'ancien endpoint /allcaissier/{boutiqueid}.
   getCaissiers(): Observable<User[]> {
-    const boutiqueid=this.authservice.getBoutiqueByUserSession();
-    return this.http.get<User[]>(`${this.apiUrl}/allcaissier/${boutiqueid}`);
+    return this.http.get<User[]>(`${this.apiUrl}/allcaissier-compagnie`);
   }
 
   // Récupérer les dates pour la caisse

@@ -113,8 +113,16 @@
 
             <!-- Caissier (conditionnel) -->
             <div class="col-md-3 mb-3" *ngIf="users.length==0">
-              <label for="caissier" class="form-label">Caissier : {{ vendeur }} </label>
-          
+              <label class="form-label d-block">Caissier</label>
+              <div class="form-control-plaintext" *ngIf="isCaisse">
+                <i class="fas fa-user mr-1"></i>{{ vendeur || 'Non identifié' }}
+              </div>
+              <div class="text-danger" *ngIf="!isCaisse && caissierLoadError">
+                <i class="fas fa-exclamation-triangle mr-1"></i>Erreur de chargement des caissiers
+              </div>
+              <div class="text-muted" *ngIf="!isCaisse && !caissierLoadError">
+                <i class="fas fa-users mr-1"></i>Vue globale (tous les caissiers)
+              </div>
             </div>
 
             <!-- Date
@@ -193,54 +201,35 @@
               </div>
             </div>
 
-            <!-- Autres montants conditionnels -->
-            <div class="col-md-4 col-sm-6 col-12" 
-                 *ngIf="montantPaieEnEspece > 0">
+            <!-- Ventilation par mode de paiement - dynamique, couvre TOUS les
+                 modes utilises (especes, carte, bon d'achat, mobile money,
+                 orange money, virement, cheque, express union), pas
+                 seulement especes/MTN/Orange comme avant. -->
+            <div class="col-md-4 col-sm-6 col-12" *ngFor="let stat of getPaymentStats()">
               <div class="info-box">
-                <span class="info-box-icon bg-info">
-                  <i class="fas fa-money-bill"></i>
+                <span class="info-box-icon" [ngClass]="'bg-' + stat.color">
+                  <i [ngClass]="stat.icon"></i>
                 </span>
                 <div class="info-box-content">
-                  <span class="info-box-text">Paiement Espèce</span>
+                  <span class="info-box-text">{{ stat.label }}</span>
                   <span class="info-box-number">
-                    {{ formatNumber(montantPaieEnEspece) }} F
-                  </span>
-                </div>
-              </div>
-            </div>
-
-           <div class="col-md-4 col-sm-6 col-12" 
-                 *ngIf="montantCodeMarchantMtn > 0">
-              <div class="info-box">
-                <span class="info-box-icon bg-primary">
-                  <i class="fas fa-mobile-alt"></i>
-                </span>
-                <div class="info-box-content">
-                  <span class="info-box-text">MTN Mobile</span>
-                  <span class="info-box-number">
-                    {{ formatNumber(montantCodeMarchantMtn) }} F
-                  </span>
-                </div>
-              </div>
-            </div>
-
-       <div class="col-md-4 col-sm-6 col-12" 
-                 *ngIf="montantCodeMarchantOrange > 0">
-              <div class="info-box">
-                <span class="info-box-icon bg-orange">
-                  <i class="fas fa-mobile-alt"></i>
-                </span>
-                <div class="info-box-content">
-                  <span class="info-box-text">Orange Money</span>
-                  <span class="info-box-number">
-                    {{ formatNumber(montantCodeMarchantOrange) }} F
+                    {{ formatNumber(stat.montant) }} F
                   </span>
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- Transparence sur les bons d'achat emis en monnaie (deja inclus
+               dans le total Especes ci-dessus - aucune espece n'est sortie
+               du tiroir pour ce montant, contrairement a un rendu classique). -->
+          <div class="alert alert-light border mt-2 mb-0" *ngIf="montantBonEmisTotal > 0">
+            <i class="fas fa-info-circle text-muted mr-1"></i>
+            Dont <strong>{{ formatNumber(montantBonEmisTotal) }} F</strong> rendus sous forme de
+            bon d'achat (aucune espèce sortie du tiroir pour ce montant, déjà comptabilisé dans "Espèces").
+          </div>
         </div>
-      </div> 
+      </div>
 
       <!-- Tableau des ventes -->
       <div class="card" >
@@ -283,12 +272,12 @@
                 <td>{{ item.article.reference }}</td>
                 <td>{{ item.article.libelle }}</td>
                 <td>{{ item.quantite }}</td>
-                <td>{{ item.prixUnitaire }}</td>
-                <td>{{ item.typePaiement }}</td>
-                <!--<td class="text-right">{{ item.quantite }}</td>
-                <td class="text-right">{{ formatNumber(item.prixUnitaire) }}</td>
-                <td class="text-right">{{ formatNumber(item.caisse) }}</td>-->
-                <td></td>
+                <td>{{ formatNumber(item.prixUnitaire) }}</td>
+                <td>
+                  <span class="badge" [ngClass]="'badge-' + getPaymentColor(item.typePaiement)">
+                    {{ getModePaiementLabel(item.typePaiement) }}
+                  </span>
+                </td>
               </tr>
               <tr *ngIf="paginatedVentes.length === 0">
                 <td [attr.colspan]="columns.length" class="text-center text-muted py-4">

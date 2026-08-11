@@ -1437,7 +1437,8 @@ modifierQuantite(item: CaisseItem, qty: number): void {
     this.bonAchatService.emettreDepuisRendu(
       this.bonAchatRenduNom.trim(),
       this.bonAchatRenduTelephone.trim() || undefined,
-      montant
+      montant,
+      this.numeroTicket
     ).subscribe({
       next: (bon) => {
         this.bonAchatEmis = bon;

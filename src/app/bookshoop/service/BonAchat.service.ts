@@ -41,8 +41,10 @@ export class BonAchatService {
 
   // Emission rapide depuis la caisse : convertit un reliquat de monnaie
   // (rendu impossible faute de piece/billet) en bon d'achat. Le code et la
-  // date d'expiration sont generes cote serveur.
-  emettreDepuisRendu(nomClient: string, telephoneClient: string | undefined, montant: number): Observable<BonAchat> {
-    return this.http.post<BonAchat>(`${this.apiUrl}/emettre-reliquat`, { nomClient, telephoneClient, montant });
+  // date d'expiration sont generes cote serveur. numeroTicketOrigine relie
+  // le bon a la vente d'origine (voir Historique Caisse - ce montant ne
+  // doit pas compter comme espece sortie du tiroir).
+  emettreDepuisRendu(nomClient: string, telephoneClient: string | undefined, montant: number, numeroTicketOrigine?: string): Observable<BonAchat> {
+    return this.http.post<BonAchat>(`${this.apiUrl}/emettre-reliquat`, { nomClient, telephoneClient, montant, numeroTicketOrigine });
   }
 }

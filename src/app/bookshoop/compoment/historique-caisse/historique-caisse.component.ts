@@ -6,7 +6,6 @@ import { Person } from '../../model/person';
 import { CaisseFilter } from '../../model/caisse-filter';
 import { HistoriqueCaisse } from '../../model/historique-caisse';
 import { Vente } from '../../model/vente';
-import { PaymentType } from '../../enums/payment-type';
 import { HistoriqueCaisseService } from '../../service/historique-caisse.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -16,11 +15,39 @@ import { CaisseItem } from '../../model/caisse-item';
 import { User } from '../../model/user';
 import { AuthService } from '../../../auth/auth.service';
 import { UserSession } from '../../../model/user-session';
+import { ToastrModule, ToastrService } from 'ngx-toastr';
+
+// Metadonnees d'affichage par mode de paiement - les valeurs DOIVENT
+// correspondre exactement a l'enum backend TypePaiement (voir
+// com.mproduits.enums.TypePaiement), pas a l'ancien enum PaymentType du
+// frontend qui utilisait 'CARTE' au lieu de 'CARTE_BANCAIRE' et faisait
+// silencieusement echouer tout rapprochement carte/mixte.
+interface ModePaiementMeta {
+  label: string;
+  color: string;
+  icon: string;
+  rowClass: string;
+}
+
+const MODE_PAIEMENT_META: { [mode: string]: ModePaiementMeta } = {
+  ESPECES: { label: 'Espèces', color: 'success', icon: 'fas fa-money-bill-wave', rowClass: 'bg-green' },
+  CARTE_BANCAIRE: { label: 'Carte Bancaire', color: 'info', icon: 'fas fa-credit-card', rowClass: 'table-info' },
+  BON_ACHAT: { label: "Bon d'Achat", color: 'secondary', icon: 'fas fa-ticket-alt', rowClass: 'bg-purple' },
+  MOBILE_MONEY: { label: 'MTN Money', color: 'primary', icon: 'fas fa-mobile-alt', rowClass: 'bg-yellow' },
+  ORANGE_MONEY: { label: 'Orange Money', color: 'orange', icon: 'fas fa-mobile-alt', rowClass: 'bg-orange' },
+  EXPRESS_UNION: { label: 'Express Union', color: 'dark', icon: 'fas fa-money-check-alt', rowClass: 'bg-navy' },
+  VIREMENT: { label: 'Virement', color: 'info', icon: 'fas fa-university', rowClass: 'bg-teal' },
+  CHEQUE: { label: 'Chèque', color: 'secondary', icon: 'fas fa-money-check', rowClass: 'bg-gray' },
+};
+
+function modeMeta(mode: string | null | undefined): ModePaiementMeta {
+  return (mode && MODE_PAIEMENT_META[mode]) || { label: mode || 'Inconnu', color: 'secondary', icon: 'fas fa-question-circle', rowClass: '' };
+}
 
 @Component({
   selector: 'app-historique-caisse',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule, ToastrModule],
   templateUrl: './historique-caisse.component.html',
   styleUrl: './historique-caisse.component.css'
 })
@@ -38,6 +65,16 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
   montantCodeMarchantMtn: number = 0;
   montantCodeMarchantOrange: number = 0;
   montantPaieEnEspece: number = 0;
+  // Ventilation complete par mode de paiement (ESPECES, CARTE_BANCAIRE,
+  // BON_ACHAT, MOBILE_MONEY, ORANGE_MONEY, EXPRESS_UNION, VIREMENT, CHEQUE)
+  // - source unique utilisee par getPaymentStats() pour les cartes recap.
+  // Les 3 champs montantXxx ci-dessus restent en compat mais sont derives
+  // de cette map a chaque calculerTotal().
+  totauxParMode: { [mode: string]: number } = {};
+  // Bons d'achat emis en remplacement d'un rendu de monnaie (deja inclus
+  // dans totauxParMode['ESPECES'] - aucune espece sortie du tiroir pour ce
+  // montant), affiche separement pour transparence.
+  montantBonEmisTotal: number = 0;
   ligneVente: CaisseItem[] = [];
 
 
@@ -50,6 +87,9 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
   ventes: Vente[] = [];
   filteredVentes: CaisseItem[] = [];
   users: User[] = [];
+  // true si le dernier chargement de la liste des caissiers a echoue (a
+  // distinguer du cas normal "aucun caissier dans cette compagnie").
+  caissierLoadError = false;
 
   // État de l'interface
   loading = false;
@@ -81,9 +121,14 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
 
 
   // Cache des modes de paiement
-  private modePaiementCache = new Map<string, PaymentType>();
+  private modePaiementCache = new Map<string, string>();
 
-  constructor(private caisseService: HistoriqueCaisseService, private userService: UserService, private auth: AuthService) { }
+  constructor(
+    private caisseService: HistoriqueCaisseService,
+    private userService: UserService,
+    private auth: AuthService,
+    private toastr: ToastrService
+  ) { }
 
   ngOnInit(): void {
 
@@ -144,10 +189,12 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
         next: ({ annees, users }) => {
           this.annees = annees;
           this.users = isCaisse ? [] : users; // si profil CAISSE → vider les users
-          console.log("liste Caissier", this.users);
+          this.caissierLoadError = false;
         },
         error: (error) => {
           console.error('Erreur lors du chargement des données initiales:', error);
+          this.caissierLoadError = true;
+          this.toastr.error('Impossible de charger la liste des caissiers ou des années de vente', 'Erreur');
         }
       });
   }
@@ -342,16 +389,7 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
 
   // Obtenir la classe CSS pour la ligne selon le mode de paiement
   getRowClass(item: CaisseItem): string {
-    //const modePaiement = this.modePaiementCache.get(item.typePaiement ?? 'ESPECES');
-    //if (!modePaiement) return '';
-
-    switch (item.typePaiement) {
-      case 'MOBILE_MONEY': return 'bg-yellow ';
-      case 'CARTE': return 'table-info';
-      case 'ORANGE_MONEY': return 'bg-orange';
-      case 'BON_ACHAT': return 'bg-purple'
-      default: return 'bg-green';
-    }
+    return modeMeta(item.typePaiement).rowClass || 'bg-green';
   }
 
   // Validation du filtre
@@ -426,76 +464,60 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
     this.montantPaieEnEspece = 0;
     this.montantCodeMarchantMtn = 0;
     this.montantCodeMarchantOrange = 0;
+    this.totauxParMode = {};
+    this.montantBonEmisTotal = 0;
   }
+
+  // Ventile chaque vente par mode de paiement REEL (lignes v.paiements,
+  // remplies cote backend depuis les lignes Paiement - voir
+  // MapperDtoImpl.mapperVentByVenteDto). Avant ce fix, seul v.typePaiement
+  // (une simple chaine "ESPECES + BON_ACHAT" pour un paiement mixte) etait
+  // lu : aucune valeur ne correspondait plus a un mode precis des qu'une
+  // vente combinait plusieurs moyens de paiement, faussant silencieusement
+  // tous les totaux du recapitulatif.
   calculerTotal(): void {
     this.initiationItemsCaisse();
     this.ventes.forEach(v => {
-      this.ligneVente.push(...v.items)
-      this.filteredVentes = [...this.ligneVente]
-      this.montantTotal = this.montantTotal + v.montantTotal
-      this.montantNetEnCaisse = this.montantNetEnCaisse + v.montantNet;
-      if (v.remise) this.remise = this.remise + v.remise;
+      this.ligneVente.push(...v.items);
+      this.filteredVentes = [...this.ligneVente];
+      this.montantTotal += v.montantTotal;
+      this.montantNetEnCaisse += v.montantNet;
+      if (v.remise) this.remise += v.remise;
 
-      switch (v.typePaiement) {
-        case PaymentType.ESPECES:
-          this.montantPaieEnEspece = this.montantPaieEnEspece + v.montantNet;
-          break;
-
-        case PaymentType.CARTE:
-          console.log('Paiement par carte');
-          break;
-
-        case PaymentType.BON_ACHAT:
-          console.log('Paiement par bon d\'achat');
-
-          break;
-
-        case PaymentType.MOBILE_MONEY:
-          console.log('Paiement par Mobile Money');
-          this.montantCodeMarchantMtn = this.montantCodeMarchantMtn + v.montantNet;
-          break;
-
-        case PaymentType.ORANGE_MONEY:
-          console.log('Paiement par Orange Money');
-          this.montantCodeMarchantOrange = this.montantCodeMarchantOrange + v.montantNet;
-          break;
-
-        case PaymentType.EXPRESS_UNION:
-          console.log('Paiement via Express Union');
-
-          break;
-
-        default:
-          console.log('Méthode de paiement inconnue');
+      if (v.paiements && v.paiements.length > 0) {
+        v.paiements.forEach(p => {
+          const mode = p.typePaiement || 'AUTRE';
+          this.totauxParMode[mode] = (this.totauxParMode[mode] || 0) + (Number(p.montant) || 0);
+        });
+      } else if (v.typePaiement) {
+        // Compat : vente sans ventilation par ligne (donnee ancienne ou
+        // aucune ligne Paiement retrouvee cote serveur) - on retombe sur le
+        // montant net entier attribue au mode declare.
+        this.totauxParMode[v.typePaiement] = (this.totauxParMode[v.typePaiement] || 0) + (Number(v.montantNet) || 0);
       }
 
+      // Bon d'achat EMIS en monnaie (et non recu du client comme paiement) :
+      // aucune espece n'est sortie du tiroir pour ce montant, il faut donc
+      // le rajouter aux especes reellement en caisse (a l'inverse d'un bon
+      // ENCAISSE du client, deja compte a part via la ligne de paiement
+      // BON_ACHAT ci-dessus).
+      if (v.montantBonEmis && v.montantBonEmis > 0) {
+        this.montantBonEmisTotal += v.montantBonEmis;
+        this.totauxParMode['ESPECES'] = (this.totauxParMode['ESPECES'] || 0) + v.montantBonEmis;
+      }
+    });
 
-
-
-    })
-
+    // Champs historiques conserves pour compat (peu de reutilisation directe).
+    this.montantPaieEnEspece = this.totauxParMode['ESPECES'] || 0;
+    this.montantCodeMarchantMtn = this.totauxParMode['MOBILE_MONEY'] || 0;
+    this.montantCodeMarchantOrange = this.totauxParMode['ORANGE_MONEY'] || 0;
   }
 
   // Méthodes additionnelles à ajouter à votre composant
 
   // Obtenir le libellé du mode de paiement
-  getModePaiementLabel(typePaiement: string): string {
-    switch (typePaiement) {
-      case 'ESPECES':
-        return 'Espèces';
-      case 'MOBILE_MONEY':
-        return 'MTN Money';
-      case 'ORANGE_MONEY':
-        return 'Orange Money';
-      case 'CARTE':
-        return 'Carte';
-      case 'BON_ACHAT':
-        return 'Bon d\'achat';
-      case 'EXPRESS_UNION':
-        return 'Express Union';
-      default:
-        return 'Inconnu';
-    }
+  getModePaiementLabel(typePaiement: string | null | undefined): string {
+    return modeMeta(typePaiement).label;
   }
 
   // Générer la plage de pages pour la pagination
@@ -518,30 +540,23 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
     return range;
   }
 
-  // Obtenir les statistiques par mode de paiement
-  getPaymentStats(): any[] {
-    const stats = [
-      {
-        label: 'Espèces',
-        montant: this.montantPaieEnEspece,
-        color: 'success',
-        icon: 'fas fa-money-bill-wave'
-      },
-      {
-        label: 'MTN Money',
-        montant: this.montantCodeMarchantMtn,
-        color: 'primary',
-        icon: 'fas fa-mobile-alt'
-      },
-      {
-        label: 'Orange Money',
-        montant: this.montantCodeMarchantOrange,
-        color: 'warning',
-        icon: 'fas fa-mobile-alt'
-      }
-    ];
+  // Statistiques par mode de paiement, TOUS modes confondus (carte, bon
+  // d'achat, virement, cheque... pas seulement especes/MTN/Orange comme
+  // avant) - source unique : totauxParMode, alimente par calculerTotal()
+  // a partir des vraies lignes de paiement de chaque vente.
+  getPaymentStats(): { mode: string; label: string; montant: number; color: string; icon: string }[] {
+    return Object.keys(this.totauxParMode)
+      .filter(mode => this.totauxParMode[mode] > 0)
+      .map(mode => {
+        const meta = modeMeta(mode);
+        return { mode, label: meta.label, montant: this.totauxParMode[mode], color: meta.color, icon: meta.icon };
+      })
+      .sort((a, b) => b.montant - a.montant);
+  }
 
-    return stats.filter(stat => stat.montant > 0);
+  // Couleur associee a un mode de paiement (graphiques/badges).
+  getPaymentColor(typePaiement: string | null | undefined): string {
+    return modeMeta(typePaiement).color;
   }
 
   // Calculer le pourcentage d'un montant par rapport au total
@@ -643,23 +658,5 @@ export class HistoriqueCaisseComponent implements OnInit, OnDestroy {
   // Vérifier si des données sont disponibles
   hasData(): boolean {
     return this.ventes.length > 0;
-  }
-
-  // Obtenir la couleur pour le graphique selon le mode de paiement
-  getPaymentColor(typePaiement: string): string {
-    switch (typePaiement) {
-      case 'ESPECES':
-        return '#28a745';
-      case 'MOBILE_MONEY':
-        return '#007bff';
-      case 'ORANGE_MONEY':
-        return '#ffc107';
-      case 'CARTE':
-        return '#17a2b8';
-      case 'BON_ACHAT':
-        return '#6c757d';
-      default:
-        return '#dee2e6';
-    }
   }
 }

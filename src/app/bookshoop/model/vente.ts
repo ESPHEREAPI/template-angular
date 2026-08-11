@@ -23,6 +23,10 @@ export interface Vente {
   montantNet:number;
   typePaiement: string;
   paiements?: LignePaiement[];
+  // Montant des bons d'achat emis en remplacement d'un rendu de monnaie pour
+  // cette vente - aucune espece sortie du tiroir pour ce montant (voir
+  // Historique Caisse, recapitulatif "especes reelles en caisse").
+  montantBonEmis?: number;
   client?: Person;
   remise?: number;
   bonAchat?: BonAchat;
