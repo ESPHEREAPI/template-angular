@@ -271,14 +271,14 @@
             <tr *ngFor="let item of filteredPrixArticles" class="clickable-row">
               <td><span class="badge badge-info">{{ item.pointVente.produit.reference }}</span></td>
               <td>{{ item.pointVente.produit.libelle }}</td>
-              <td>{{ item.pointVente.entreeProduit + item.pointVente.stockInitial }}</td>
+              <td>{{ (item.pointVente.entreeProduit || 0) + (item.pointVente.stockInitial || 0) }}</td>
               <td>
-                <span class="badge" 
+                <span class="badge"
                       [ngClass]="item.pointVente.stockFinalTheorie > 10 ? 'badge-success' : 'badge-warning'">
-                  {{ item.pointVente.stockFinalTheorie }}
+                  {{ item.pointVente.stockFinalTheorie || 0 }}
                 </span>
               </td>
-              <td>{{ (item.pointVente.stockFinalTheorie * item.prixVenteNet) | currency:'XAF':'symbol':'1.2-2':'fr' }}</td>
+              <td>{{ ((item.pointVente.stockFinalTheorie || 0) * (item.prixVenteNet || 0)) | currency:'XAF':'symbol':'1.2-2':'fr' }}</td>
               <td>{{ item.pointVente.sortiProduit }}</td>
               <td>{{ getQuantiteMagasin(item) }}</td>
               <td>{{ item.remise }}%</td>

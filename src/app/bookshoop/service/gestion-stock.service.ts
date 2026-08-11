@@ -97,14 +97,17 @@ private readonly apiUrl =`${environment.apiUrl}/gateway-proxy/api/microservice-p
    * Calcule la quantité totale (stock initial + entrée)
    */
   calculateTotalQuantity(item: PrixArticles): number {
-    return item.pointVente.stockInitial + item.pointVente.entreeProduit;
+    // Certaines lignes anciennes (creees avant l'initialisation par defaut
+    // a zero de ces champs) ont stockInitial/entreeProduit a null en base,
+    // ce qui donnait NaN a l'affichage.
+    return (item.pointVente.stockInitial || 0) + (item.pointVente.entreeProduit || 0);
   }
 
   /**
    * Calcule l'estimation du stock
    */
   calculateStockEstimation(item: PrixArticles): number {
-    return item.pointVente.stockFinalTheorie * item.prixVenteNet;
+    return (item.pointVente.stockFinalTheorie || 0) * (item.prixVenteNet || 0);
   }
 
   /**

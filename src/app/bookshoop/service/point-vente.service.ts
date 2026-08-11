@@ -122,11 +122,11 @@ export class PointVenteService {
 
   // Utilitaires
   calculateEstimationStock(stockFinal: number, prixVenteNet: number): number {
-    return stockFinal * prixVenteNet;
+    return (stockFinal || 0) * (prixVenteNet || 0);
   }
 
   calculatePrixTTC(prixNet: number, tva: number): number {
-    return prixNet * (1 + tva / 100);
+    return (prixNet || 0) * (1 + (tva || 0) / 100);
   }
 
   formatNumber(value: number): string {
