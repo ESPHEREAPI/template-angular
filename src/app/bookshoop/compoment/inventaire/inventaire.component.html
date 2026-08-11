@@ -38,7 +38,9 @@
                   <select id="choix" class="form-control" formControlName="choix" (change)="onChoixChange()">
                     <option [value]="ChoixInventaire.BOUTIQUE">Par Boutique</option>
                     <option [value]="ChoixInventaire.DEPOT">Par Dépôt</option>
-                    <option [value]="ChoixInventaire.DATE">Par Date</option>
+                    <!-- "Par Date" masque : necessiterait un historique de stock
+                         (snapshot par date) qui n'existe pas encore dans le systeme. -->
+                    <!-- <option [value]="ChoixInventaire.DATE">Par Date</option> -->
                   </select>
                 </div>
               </div>

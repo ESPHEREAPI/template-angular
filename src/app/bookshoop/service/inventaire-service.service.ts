@@ -80,9 +80,11 @@ export class InventaireService {
     return this.http.get<Categorie[]>(`${this.apiUrl}/categories`);
   }
 
-  // Récupérer tous les dépôts
+  // Récupérer tous les dépôts (magasins de stock purs, sans boutique -
+  // /depots n'existe pas cote serveur, /depots-stockage est le bon endpoint,
+  // deja utilise ailleurs dans l'application pour cette meme liste).
   getDepots(): Observable<Depot[]> {
-    return this.http.get<Depot[]>(`${this.apiUrl}/depots`);
+    return this.http.get<Depot[]>(`${this.apiUrl}/depots-stockage`);
   }
 
   // Récupérer les dates d'inventaire disponibles

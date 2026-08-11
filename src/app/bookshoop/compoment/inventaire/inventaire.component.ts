@@ -135,6 +135,9 @@ export class InventaireComponent {
       this.isBoutique=false;
       this.isDate=false;
       this.isDepot=true;
+      if (this.depots.length === 0) {
+        this.loadDepots();
+      }
       break;
 
       case ChoixInventaire.DATE:
