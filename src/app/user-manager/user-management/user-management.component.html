@@ -142,14 +142,16 @@
                  <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label>Point de Vente</label>
+                <label>Point de Vente<span *ngIf="userForm.get('boutiqueid')?.hasError('required')"> *</span></label>
                 <select class="form-control" formControlName="boutiqueid">
                   <option [ngValue]="null">Sélectionner un Point de Vente </option>
                   <option *ngFor="let boutique of boutiques" [ngValue]="boutique">
                     {{boutique.nom}}
                   </option>
                 </select>
-
+                <small class="text-danger" *ngIf="userForm.get('boutiqueid')?.invalid && userForm.get('boutiqueid')?.touched">
+                  Un compte Caissier doit être rattaché à un Point de Vente.
+                </small>
               </div>
             </div>
 
@@ -166,6 +168,14 @@
               <strong>Login:</strong> {{selectedUser.userName}} |
               <strong>Nom:</strong> {{selectedUser.firstName}} |
               <strong>Prénom:</strong> {{selectedUser.lastname}}
+            </div>
+
+            <!-- Un utilisateur avec un Profil a ses droits geres par la matrice
+                 Profil x Menu (ecran Sécurité > Profil), pas par attribution
+                 individuelle : cette section n'a plus d'effet pour lui. -->
+            <div class="alert alert-warning" *ngIf="selectedUser.profil">
+              Cet utilisateur a le profil <strong>{{selectedUser.profil.code}}</strong> : ses droits d'accès sont gérés
+              depuis l'écran <strong>Sécurité &gt; Profil</strong>, pas ici. Toute modification ci-dessous sera refusée.
             </div>
 
             <!-- Gestion des modules -->
@@ -454,14 +464,16 @@
           <div class="row">
             <div class="col-md-6">
               <div class="form-group">
-                <label>Point de Vente</label>
+                <label>Point de Vente<span *ngIf="userForm.get('boutiqueid')?.hasError('required')"> *</span></label>
                 <select class="form-control" formControlName="boutiqueid">
                   <option [ngValue]="null">Sélectionner un Point de Vente </option>
                   <option *ngFor="let boutique of boutiques" [ngValue]="boutique">
                     {{boutique.nom}}
                   </option>
                 </select>
-
+                <small class="text-danger" *ngIf="userForm.get('boutiqueid')?.invalid && userForm.get('boutiqueid')?.touched">
+                  Un compte Caissier doit être rattaché à un Point de Vente.
+                </small>
               </div>
             </div>
 

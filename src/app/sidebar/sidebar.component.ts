@@ -67,6 +67,16 @@ export class SidebarComponent implements OnInit {
     } else {
       this.imagePath = '../img/user2-160x160.jpg';
     }
+
+    // Le Dashboard est un item sans enfants (voir sidebar.component.html), donc
+    // il echappe a resultal()/resultalMenu() et s'affichait pour tout le monde.
+    // Un profil Caissier n'a pas vocation a voir les stats globales de la
+    // compagnie - on le retire explicitement pour ce profil.
+    const profilCode = this.authService.currentUserValue?.usersDTO?.profil?.code?.toUpperCase();
+    if (profilCode === 'CAISSIER') {
+      this.menuItems = this.menuItems.filter(item => item.title !== 'Dashboard');
+    }
+
     let username=this.userService.getUserConnected();
 
   this.userService.getUsernameModules(username.username).subscribe({

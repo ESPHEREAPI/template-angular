@@ -166,6 +166,20 @@ export class UserManagementComponent implements OnInit {
       globalFilter: ['']
     });
 
+    // Un compte Caissier n'agit que sur sa boutique assignee (voir
+    // BoutiqueAccessGuard cote backend) : sans boutique, toutes ses operations
+    // de caisse sont rejetees en 403. On le rend obligatoire des la saisie
+    // plutot que de laisser decouvrir le probleme apres coup.
+    this.userForm.get('profilid')?.valueChanges.subscribe((profilId: number) => {
+      const boutiqueCtrl = this.userForm.get('boutiqueid');
+      const profil = this.profils.find(p => p.id === profilId);
+      if (profil?.code?.toUpperCase() === 'CAISSIER') {
+        boutiqueCtrl?.setValidators([Validators.required]);
+      } else {
+        boutiqueCtrl?.clearValidators();
+      }
+      boutiqueCtrl?.updateValueAndValidity();
+    });
 
   }
 
