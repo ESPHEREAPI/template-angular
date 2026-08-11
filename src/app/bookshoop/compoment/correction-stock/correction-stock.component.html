@@ -28,7 +28,7 @@
                         <div class="card-body">
                             <form [formGroup]="correctionForm">
                                 <button type="button" class="btn btn-success mr-2"
-                                    [disabled]="saving || correctionForm.invalid" (click)="saveCorrections()">
+                                    [disabled]="saving || correctionForm.invalid || motifForm.invalid" (click)="saveCorrections()">
                                     <i class="fas fa-save"></i>
                                     <span *ngIf="!saving">Valider</span>
                                     <span *ngIf="saving">
@@ -76,6 +76,23 @@
                                             <div class="invalid-feedback"
                                                 *ngIf="correctionForm.get('categories')?.invalid && correctionForm.get('categories')?.touched">
                                                 Veuillez sélectionner une catégorie
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <form [formGroup]="motifForm">
+                                <div class="row mt-2">
+                                    <div class="col-md-12">
+                                        <div class="form-group mb-0">
+                                            <label for="motif">Motif de la correction * <small class="text-muted">(obligatoire, pour la tracabilite)</small></label>
+                                            <input type="text" id="motif" class="form-control" formControlName="motif"
+                                                placeholder="Ex: erreur de saisie a l'approvisionnement, casse constatee, ecart d'inventaire..."
+                                                [class.is-invalid]="motifForm.get('motif')?.invalid && motifForm.get('motif')?.touched">
+                                            <div class="invalid-feedback"
+                                                *ngIf="motifForm.get('motif')?.invalid && motifForm.get('motif')?.touched">
+                                                Le motif est obligatoire (5 caracteres minimum)
                                             </div>
                                         </div>
                                     </div>

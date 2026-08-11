@@ -19,6 +19,7 @@ import { CommonModule } from '@angular/common';
 export class CorrectionStockComponent {
 
   correctionForm: FormGroup;
+  motifForm: FormGroup;
   boutiques: Boutique[] = [];
   categories: Categorie[] = [];
   pointsVente: PointVente[] = [];
@@ -48,6 +49,9 @@ export class CorrectionStockComponent {
     this.correctionForm = this.fb.group({
       boutique: [null, Validators.required],
       categories: [null, Validators.required]
+    });
+    this.motifForm = this.fb.group({
+      motif: ['', [Validators.required, Validators.minLength(5)]]
     });
   }
 
@@ -204,18 +208,29 @@ export class CorrectionStockComponent {
       return;
     }
 
+    if (this.motifForm.invalid) {
+      this.toastr.warning('Veuillez indiquer un motif (5 caracteres minimum) pour cette correction', 'Attention');
+      this.motifForm.markAllAsTouched();
+      return;
+    }
+
     this.saving = true;
-    this.correctionService.saveCorrections(this.pointsVente).subscribe({
+    const motif = this.motifForm.value.motif;
+    this.correctionService.saveCorrections(this.pointsVente, motif).subscribe({
       next: (response) => {
         if (response.success) {
           this.toastr.success('Corrections sauvegardées avec succès', 'Succès');
+          this.motifForm.reset();
         } else {
           this.toastr.error(response.message || 'Erreur lors de la sauvegarde', 'Erreur');
         }
         this.saving = false;
       },
       error: (error) => {
-        this.toastr.error('Erreur lors de la sauvegarde', 'Erreur');
+        const message = error?.status === 403
+          ? 'Vous n\'avez pas les droits pour corriger le stock (reserve aux administrateurs)'
+          : 'Erreur lors de la sauvegarde';
+        this.toastr.error(message, 'Erreur');
         this.saving = false;
       }
     });

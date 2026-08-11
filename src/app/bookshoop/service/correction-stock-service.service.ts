@@ -40,9 +40,11 @@ export class CorrectionStockServiceService {
   }
 
 
-  // Sauvegarder les corrections de stock
-  saveCorrections(pointsVente: PointVente[]): Observable<ApiResponse<any>> {
-    return this.http.post<ApiResponse<any>>(`${this.baseUrl}/corrections-stock`, pointsVente);
+  // Sauvegarder les corrections de stock - le motif est obligatoire cote
+  // backend (voir InventairesService.saveStockInventaire), pour pouvoir
+  // tracer pourquoi une quantite a ete corrigee manuellement.
+  saveCorrections(pointsVente: PointVente[], motif: string): Observable<ApiResponse<any>> {
+    return this.http.post<ApiResponse<any>>(`${this.baseUrl}/corrections-stock`, { motif, lignes: pointsVente });
   }
 
   // Imprimer le rapport
