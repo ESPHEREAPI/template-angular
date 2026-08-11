@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnDestroy, OnInit, TrackByFunction } from '@angular/core';
+import { Component, OnDestroy, OnInit, TrackByFunction } from '@angular/core';
 import { StockItem } from '../../model/stock-item';
 import { PrixArticles } from '../../model/prix-articles';
 import { BehaviorSubject, catchError, combineLatest, debounceTime, distinctUntilChanged, finalize, map, startWith, Subject, takeUntil, tap } from 'rxjs';
@@ -70,8 +70,7 @@ export class StaticStockComponent  implements OnInit, OnDestroy{
     private readonly stockService: GestionStockService,
     private readonly formatService: FormatService,
     private readonly notificationService: NotificationService,
-    private readonly fb: FormBuilder,
-    private readonly cdr: ChangeDetectorRef
+    private readonly fb: FormBuilder
   ) {
     this.filterForm = this.createFilterForm();
     this.searchForm = this.createSearchForm();
@@ -152,7 +151,6 @@ export class StaticStockComponent  implements OnInit, OnDestroy{
     ).subscribe(filtered => {
       this.filteredData$.next(filtered);
       this.updatePaginationTotal(filtered.length);
-      this.cdr.detectChanges();
     });
 
     // Gestion des erreurs globales
@@ -268,7 +266,6 @@ export class StaticStockComponent  implements OnInit, OnDestroy{
    */
   private updateState(partialState: Partial<ComponentState>): void {
     this.state$.next({ ...this.state$.value, ...partialState });
-    this.cdr.detectChanges();
   }
 
   /**

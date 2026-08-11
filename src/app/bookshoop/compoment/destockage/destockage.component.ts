@@ -2,8 +2,10 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Boutique } from '../../model/boutique';
+import { Produit } from '../../model/produit';
 import { BoutiqueService } from '../../service/boutique.service';
 import { DestockageService } from '../../service/Destockage.service';
+import { BarcodeService } from '../../service/barcode.service';
 
 declare var $: any;
 
@@ -22,9 +24,15 @@ export class DestockageComponent implements OnInit {
   nouveauStock: number | null = null;
   enCours = false;
 
+  // Liste des articles de la boutique choisie - evite de devoir saisir un
+  // ID numerique a la main (l'utilisateur choisit par reference/libelle).
+  articlesDeLaBoutique: Produit[] = [];
+  chargementArticles = false;
+
   constructor(
     private boutiqueService: BoutiqueService,
-    private destockageService: DestockageService
+    private destockageService: DestockageService,
+    private barcodeService: BarcodeService
   ) {}
 
   ngOnInit(): void {
@@ -32,6 +40,26 @@ export class DestockageComponent implements OnInit {
       next: (boutiques) => this.boutiques = boutiques,
       error: (error) => console.error('Erreur lors du chargement des boutiques', error)
     });
+  }
+
+  onBoutiqueChange(): void {
+    this.articleId = null;
+    this.articlesDeLaBoutique = [];
+    if (!this.boutiqueId) return;
+
+    this.chargementArticles = true;
+    this.barcodeService.getProduitsAutoComplet(this.boutiqueId)
+      .subscribe({
+        next: (produits) => {
+          this.articlesDeLaBoutique = produits;
+          this.chargementArticles = false;
+        },
+        error: (error) => {
+          console.error('Erreur lors du chargement des articles', error);
+          this.showToast('Erreur lors du chargement des articles de la boutique', 'error');
+          this.chargementArticles = false;
+        }
+      });
   }
 
   destocker(): void {

@@ -25,7 +25,7 @@
         <form>
           <div class="form-group">
             <label for="boutique">Boutique *</label>
-            <select class="form-control" id="boutique" [(ngModel)]="boutiqueId" name="boutique">
+            <select class="form-control" id="boutique" [(ngModel)]="boutiqueId" name="boutique" (ngModelChange)="onBoutiqueChange()">
               <option [ngValue]="null">-- Sélectionner une boutique --</option>
               <option *ngFor="let boutique of boutiques" [ngValue]="boutique.id">
                 {{ boutique.nom }} ({{ boutique.code }})
@@ -33,10 +33,19 @@
             </select>
           </div>
           <div class="form-group">
-            <label for="articleId">ID Article *</label>
-            <input type="number" class="form-control" id="articleId"
-                   [(ngModel)]="articleId" name="articleId" required>
-            <small class="form-text text-muted">Identifiant de l'article (visible dans l'écran Produits)</small>
+            <label for="articleId">Article *</label>
+            <select class="form-control" id="articleId" [(ngModel)]="articleId" name="articleId"
+                    [disabled]="!boutiqueId || chargementArticles" required>
+              <option [ngValue]="null">
+                {{ !boutiqueId ? '-- Choisir une boutique d\'abord --' : (chargementArticles ? 'Chargement...' : '-- Sélectionner un article --') }}
+              </option>
+              <option *ngFor="let article of articlesDeLaBoutique" [ngValue]="article.id">
+                {{ article.reference }} - {{ article.libelle }}
+              </option>
+            </select>
+            <small class="form-text text-muted" *ngIf="boutiqueId && !chargementArticles && articlesDeLaBoutique.length === 0">
+              Aucun article trouvé pour cette boutique.
+            </small>
           </div>
           <div class="form-group">
             <label for="quantite">Quantité à retirer *</label>
