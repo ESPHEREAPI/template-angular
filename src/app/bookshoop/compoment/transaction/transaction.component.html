@@ -55,6 +55,20 @@
           </p>
         </div>
       </div>
+      <div class="row mt-2">
+        <div class="col-12">
+          <button type="button" class="btn btn-primary btn-sm mr-2"
+                  [disabled]="telechargementBordereau"
+                  (click)="telechargerBordereau()">
+            <i class="fas fa-file-pdf" *ngIf="!telechargementBordereau"></i>
+            <i class="fas fa-spinner fa-spin" *ngIf="telechargementBordereau"></i>
+            Télécharger le bordereau de livraison
+          </button>
+          <button type="button" class="btn btn-outline-secondary btn-sm" (click)="reinitialiser()">
+            <i class="fas fa-plus"></i> Nouveau transfert
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Formulaire -->

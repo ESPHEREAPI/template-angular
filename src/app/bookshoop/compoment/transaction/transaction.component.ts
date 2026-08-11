@@ -54,6 +54,7 @@ export class TransactionComponent implements OnInit, OnDestroy {
   erreur: string = '';
   succes: string = '';
   reponseTransfert: TransfertResponse | null = null;
+  telechargementBordereau: boolean = false;
 
   // Infos utilisateur
   boutiqueid!: number;
@@ -327,10 +328,10 @@ export class TransactionComponent implements OnInit, OnDestroy {
 
           console.log('✅ Transfert réussi:', reponse);
 
-          // Réinitialiser après 3 secondes
-          setTimeout(() => {
-            this.reinitialiser();
-          }, 3000);
+          // Pas de reinitialisation automatique : on laisse le temps a
+          // l'utilisateur de telecharger le bordereau de livraison avant
+          // que le panneau ne disparaisse (voir telechargerBordereau() et
+          // le bouton "Nouveau transfert" dans le template).
         },
         error: (error: any) => {
           this.soumission = false;
@@ -344,6 +345,31 @@ export class TransactionComponent implements OnInit, OnDestroy {
           
           this.toastr.error(this.erreur);
           this.cdr.markForCheck();
+        }
+      });
+  }
+
+  /**
+   * Telecharge le bordereau de livraison PDF du transfert qui vient d'etre
+   * effectue - piece justificative a faire signer par le depot destinataire
+   * pour attester la reception.
+   */
+  telechargerBordereau(): void {
+    if (!this.reponseTransfert?.transfertId || this.telechargementBordereau) return;
+
+    this.telechargementBordereau = true;
+    this.stockService.telechargerBordereau(this.reponseTransfert.transfertId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (blob) => {
+          const url = window.URL.createObjectURL(blob);
+          window.open(url, '_blank');
+          this.telechargementBordereau = false;
+        },
+        error: (err) => {
+          console.error('❌ Erreur téléchargement bordereau:', err);
+          this.toastr.error('Erreur lors du téléchargement du bordereau de livraison');
+          this.telechargementBordereau = false;
         }
       });
   }

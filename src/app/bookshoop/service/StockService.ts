@@ -59,6 +59,17 @@ export class StockService {
   }
 
   /**
+   * Telecharge le bordereau de livraison PDF d'un transfert - piece
+   * justificative de la reception, a faire signer par le depot destinataire.
+   *
+   * @param id ID du transfert
+   * @return Observable du blob PDF
+   */
+  telechargerBordereau(id: number): Observable<Blob> {
+    return this.http.get(`${this.apiUrl}/transferts/${id}/bordereau`, { responseType: 'blob' });
+  }
+
+  /**
    * Liste tous les transferts
    * 
    * @return Observable de la liste
