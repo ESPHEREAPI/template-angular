@@ -21,6 +21,7 @@ import { ArticlesComponent } from './bookshoop/compoment/articles/articles.compo
 import { VenteComponent } from './bookshoop/compoment/vente/vente.component';
 import { TransactionComponent } from './bookshoop/compoment/transaction/transaction.component';
 import { HistoriqueCaisseComponent } from './bookshoop/compoment/historique-caisse/historique-caisse.component';
+import { HistoriqueVenteComponent } from './bookshoop/compoment/historique-vente/historique-vente.component';
 import { MargeVenteComponent } from './bookshoop/compoment/marge-vente/marge-vente.component';
 import { InventaireComponent } from './bookshoop/compoment/inventaire/inventaire.component';
 import { CorrectionStockComponent } from './bookshoop/compoment/correction-stock/correction-stock.component';
@@ -383,6 +384,15 @@ export const routes: Routes = [
       {
         path: 'historique-caisse',
         component: HistoriqueCaisseComponent,
+        canActivate: [RoleGuard],
+        data: {
+          permissions: ['VIEW_CASH_HISTORY'],
+          permissionCheckMethod: 'any'
+        }
+      },
+      {
+        path: 'historique-vente',
+        component: HistoriqueVenteComponent,
         canActivate: [RoleGuard],
         data: {
           permissions: ['VIEW_CASH_HISTORY'],

@@ -1,0 +1,208 @@
+<!-- historique-vente.component.html -->
+
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">Historique Vente</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Historique Vente</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<section class="content">
+  <div class="container-fluid">
+
+    <!-- Filtres et Actions -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-filter mr-2"></i>
+          Critères de Recherche
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-12">
+            <button type="button" class="btn btn-primary mr-2" [disabled]="loading || !peutGenerer()"
+              (click)="genererHistorique()">
+              <i class="fas fa-sync-alt mr-1" [class.fa-spin]="loading"></i>
+              {{ loading ? 'Génération...' : 'Générer' }}
+            </button>
+
+            <button type="button" class="btn btn-secondary" [disabled]="ventes.length === 0"
+              (click)="imprimerDetail()">
+              <i class="fas fa-print mr-1"></i>
+              Imprimer
+            </button>
+          </div>
+        </div>
+
+        <div class="row">
+          <!-- Boutique(s) -->
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Boutique(s) *</label>
+            <div class="custom-control custom-checkbox mb-1">
+              <input type="checkbox" class="custom-control-input" id="hvToutesBoutiques"
+                [(ngModel)]="toutesBoutiques" (ngModelChange)="onToutesBoutiquesChange()" name="hvToutesBoutiques">
+              <label class="custom-control-label" for="hvToutesBoutiques">Toute la compagnie</label>
+            </div>
+            <select class="form-control" id="hvBoutiques" multiple size="3" [disabled]="toutesBoutiques"
+              [(ngModel)]="boutiqueIds" (ngModelChange)="onBoutiqueChange()" name="hvBoutiques">
+              <option *ngFor="let boutique of boutiques" [ngValue]="boutique.id">
+                {{ boutique.nom }} ({{ boutique.code }})
+              </option>
+            </select>
+            <small class="form-text text-muted">Ctrl/Cmd + clic pour sélectionner plusieurs boutiques.</small>
+          </div>
+
+          <!-- Année -->
+          <div class="col-md-3 mb-3">
+            <label for="hvAnnee" class="form-label">Année <span class="text-danger">*</span></label>
+            <select id="hvAnnee" class="form-control" [(ngModel)]="annee" (change)="onAnneeChange()" name="hvAnnee">
+              <option [ngValue]="null">-- Sélectionner --</option>
+              <option *ngFor="let a of annees" [ngValue]="a">{{ a.id }}</option>
+            </select>
+          </div>
+
+          <!-- Date Vente -->
+          <div class="col-md-3 mb-3">
+            <label for="hvDate" class="form-label">Date Vente <span class="text-danger">*</span></label>
+            <select id="hvDate" class="form-control" [(ngModel)]="date" [disabled]="!annee" name="hvDate">
+              <option [ngValue]="null">-- Sélectionner --</option>
+              <option *ngFor="let d of dates" [ngValue]="d">{{ formatDate(d) }}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Récapitulatif -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-calculator mr-2"></i>
+          Récapitulatif
+        </h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-4 col-sm-6 col-12">
+            <div class="info-box">
+              <span class="info-box-icon bg-danger"><i class="fas fa-cash-register"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Total Net en Caisse</span>
+                <span class="info-box-number">{{ formatNumber(montantNetEnCaisse) }} F</span>
+                <small class="text-muted">(Remise exclue)</small>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4 col-sm-6 col-12">
+            <div class="info-box">
+              <span class="info-box-icon bg-warning"><i class="fas fa-percentage"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Remise Article</span>
+                <span class="info-box-number">{{ formatNumber(remise) }} F</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4 col-sm-6 col-12">
+            <div class="info-box">
+              <span class="info-box-icon bg-success"><i class="fas fa-coins"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text">Total</span>
+                <span class="info-box-number">{{ formatNumber(montantTotal) }} F</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-md-4 col-sm-6 col-12" *ngFor="let stat of getPaymentStats()">
+            <div class="info-box">
+              <span class="info-box-icon" [ngClass]="'bg-' + stat.color"><i [ngClass]="stat.icon"></i></span>
+              <div class="info-box-content">
+                <span class="info-box-text">{{ stat.label }}</span>
+                <span class="info-box-number">{{ formatNumber(stat.montant) }} F</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-light border mt-2 mb-0" *ngIf="montantBonEmisTotal > 0">
+          <i class="fas fa-info-circle text-muted mr-1"></i>
+          Dont <strong>{{ formatNumber(montantBonEmisTotal) }} F</strong> rendus sous forme de
+          bon d'achat (aucune espèce sortie du tiroir pour ce montant, déjà comptabilisé dans "Espèces").
+        </div>
+      </div>
+    </div>
+
+    <!-- Détail des ventes -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-list mr-2"></i>
+          Détail des Ventes
+        </h3>
+        <div class="card-tools">
+          <div class="input-group input-group-sm" style="width: 250px;">
+            <input type="text" class="form-control" placeholder="Rechercher..." [(ngModel)]="globalFilter"
+              (keyup.enter)="onGlobalFilter()" (input)="onGlobalFilter()">
+            <div class="input-group-append">
+              <button type="button" class="btn btn-default" (click)="onGlobalFilter()">
+                <i class="fas fa-search"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card-body table-responsive p-0">
+        <table class="table table-hover text-nowrap">
+          <thead>
+            <tr>
+              <th *ngFor="let col of columns">{{ col.header }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of filteredVentes" [ngClass]="getRowClass(item)">
+              <td>{{ item.boutiqueNom }}</td>
+              <td>{{ item.numeroTicket }}</td>
+              <td>{{ item.article.reference }}</td>
+              <td>{{ item.article.libelle }}</td>
+              <td>{{ item.quantite }}</td>
+              <td>{{ formatNumber(item.prixUnitaire) }}</td>
+              <td>
+                <span class="badge" [ngClass]="'badge-' + getPaymentColor(item.typePaiement)">
+                  {{ getModePaiementLabel(item.typePaiement) }}
+                </span>
+              </td>
+            </tr>
+            <tr *ngIf="filteredVentes.length === 0">
+              <td [attr.colspan]="columns.length" class="text-center text-muted py-4">
+                <i class="fas fa-inbox fa-2x mb-2"></i>
+                <div>Aucune donnée disponible</div>
+              </td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr class="bg-light font-weight-bold">
+              <td [attr.colspan]="columns.length - 1" class="text-right"><strong>Total:</strong></td>
+              <td class="text-right"><strong>{{ formatNumber(montantTotal) }} F</strong></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<div class="overlay dark" *ngIf="loading">
+  <i class="fas fa-3x fa-sync-alt fa-spin"></i>
+</div>
