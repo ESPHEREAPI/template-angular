@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Ressource, RessourceCreateRequest, TypeResource } from '../model/ressource';
+import { Ressource, RessourceConsolidee, RessourceCreateRequest, TypeResource } from '../model/ressource';
 
 @Injectable({
   providedIn: 'root'
@@ -28,6 +28,13 @@ export class RessourceService {
   getByBoutiqueAndPeriode(boutiqueid: number, debut: string, fin: string): Observable<Ressource[]> {
     const params = new HttpParams().set('boutiqueid', boutiqueid.toString()).set('debut', debut).set('fin', fin);
     return this.http.get<Ressource[]>(this.apiUrl, { params });
+  }
+
+  // Ressources manuelles + caisse + versements clients consolides (caisse
+  // et versement client sont reflechis automatiquement, pas saisis a la main).
+  getConsolide(boutiqueid: number, debut: string, fin: string): Observable<RessourceConsolidee> {
+    const params = new HttpParams().set('boutiqueid', boutiqueid.toString()).set('debut', debut).set('fin', fin);
+    return this.http.get<RessourceConsolidee>(`${this.apiUrl}/consolide`, { params });
   }
 
   create(request: RessourceCreateRequest): Observable<Ressource> {

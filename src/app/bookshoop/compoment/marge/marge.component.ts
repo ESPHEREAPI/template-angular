@@ -5,6 +5,10 @@ import { Categorie } from '../../model/categorie';
 import { CategorieService } from '../../service/Categorie.service';
 import { MargeCibleService } from '../../service/MargeCible.service';
 import { MargeCible, MargeCibleRequest } from '../../model/marge-cible';
+import { Boutique } from '../../model/boutique';
+import { BoutiqueService } from '../../service/boutique.service';
+import { MargeReelleService } from '../../service/MargeReelle.service';
+import { MargeDetail } from '../../model/marge-detail';
 
 declare var $: any;
 
@@ -16,6 +20,14 @@ declare var $: any;
   styleUrls: ['./marge.component.css']
 })
 export class MargeComponent implements OnInit {
+  // Marge reelle (Ressources - Charges)
+  boutiques: Boutique[] = [];
+  boutiqueId: number | null = null;
+  debut: string = this.premierJourMois();
+  fin: string = this.dernierJourMois();
+  detail: MargeDetail | null = null;
+
+  // Configuration des marges cibles par categorie (inchange)
   categories: Categorie[] = [];
   marges: MargeCible[] = [];
 
@@ -24,7 +36,9 @@ export class MargeComponent implements OnInit {
 
   constructor(
     private categorieService: CategorieService,
-    private margeCibleService: MargeCibleService
+    private margeCibleService: MargeCibleService,
+    private boutiqueService: BoutiqueService,
+    private margeReelleService: MargeReelleService
   ) {}
 
   ngOnInit(): void {
@@ -32,7 +46,34 @@ export class MargeComponent implements OnInit {
       next: (categories) => this.categories = categories,
       error: (error) => console.error('Erreur lors du chargement des categories', error)
     });
+    this.boutiqueService.getBoutiques().subscribe({
+      next: (boutiques) => this.boutiques = boutiques,
+      error: (error) => console.error('Erreur lors du chargement des boutiques', error)
+    });
     this.charger();
+  }
+
+  premierJourMois(): string {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().substring(0, 10);
+  }
+
+  dernierJourMois(): string {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().substring(0, 10);
+  }
+
+  chargerMargeReelle(): void {
+    if (!this.boutiqueId) {
+      return;
+    }
+    this.margeReelleService.getDetail(this.boutiqueId, this.debut, this.fin).subscribe({
+      next: (data) => this.detail = data,
+      error: (error) => {
+        console.error('Erreur lors du chargement de la marge', error);
+        this.showToast('Erreur de chargement de la marge', 'error');
+      }
+    });
   }
 
   emptyMarge(): MargeCibleRequest {

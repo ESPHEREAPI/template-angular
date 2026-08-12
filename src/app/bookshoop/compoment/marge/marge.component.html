@@ -16,6 +16,128 @@
 
 <section class="content">
   <div class="container-fluid">
+
+    <!-- Marge reelle = Ressources (caisse + versements clients + ressources
+         manuelles) - Charges, sur une periode donnee. -->
+    <div class="card card-primary">
+      <div class="card-header">
+        <h3 class="card-title">Marge (Ressources − Charges)</h3>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3 form-group">
+            <label>Boutique *</label>
+            <select class="form-control" [(ngModel)]="boutiqueId" name="margeBoutique">
+              <option [ngValue]="null">-- Sélectionner --</option>
+              <option *ngFor="let boutique of boutiques" [ngValue]="boutique.id">{{ boutique.nom }}</option>
+            </select>
+          </div>
+          <div class="col-md-3 form-group">
+            <label>Début</label>
+            <input type="date" class="form-control" [(ngModel)]="debut" name="margeDebut">
+          </div>
+          <div class="col-md-3 form-group">
+            <label>Fin</label>
+            <input type="date" class="form-control" [(ngModel)]="fin" name="margeFin">
+          </div>
+          <div class="col-md-3 form-group d-flex align-items-end">
+            <button type="button" class="btn btn-primary" [disabled]="!boutiqueId" (click)="chargerMargeReelle()">
+              <i class="fas fa-calculator"></i> Calculer
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="detail">
+          <div class="row">
+            <div class="col-md-3">
+              <div class="info-box">
+                <span class="info-box-icon bg-info"><i class="fas fa-cash-register"></i></span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Caisse (ventes)</span>
+                  <span class="info-box-number">{{ detail.ressources.totalCaisse }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="info-box">
+                <span class="info-box-icon bg-primary"><i class="fas fa-hand-holding-usd"></i></span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Versements Clients</span>
+                  <span class="info-box-number">{{ detail.ressources.totalVersementClient }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="info-box">
+                <span class="info-box-icon bg-secondary"><i class="fas fa-plus-circle"></i></span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Ressources manuelles</span>
+                  <span class="info-box-number">{{ detail.ressources.totalRessourcesManuelles }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <div class="info-box">
+                <span class="info-box-icon bg-warning"><i class="fas fa-minus-circle"></i></span>
+                <div class="info-box-content">
+                  <span class="info-box-text">Total Charges</span>
+                  <span class="info-box-number">{{ detail.totalCharges }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="callout" [ngClass]="detail.marge >= 0 ? 'callout-success' : 'callout-danger'">
+            <h5>Marge {{ debut | date:'dd/MM/yyyy' }} — {{ fin | date:'dd/MM/yyyy' }}</h5>
+            <p class="h3 mb-0">{{ detail.marge }}</p>
+          </div>
+
+          <div class="row">
+            <div class="col-md-6">
+              <h5>Détail Ressources manuelles</h5>
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered table-striped">
+                  <thead>
+                    <tr><th>Date</th><th>Type</th><th>Montant</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let r of detail.ressources.ressourcesManuelles">
+                      <td>{{ r.dateRessource | date:'dd/MM/yyyy' }}</td>
+                      <td>{{ r.typeResource?.libelle }}</td>
+                      <td>{{ r.montant }}</td>
+                    </tr>
+                    <tr *ngIf="detail.ressources.ressourcesManuelles.length === 0">
+                      <td colspan="3" class="text-center">Aucune ressource manuelle</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <h5>Détail Charges</h5>
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered table-striped">
+                  <thead>
+                    <tr><th>Date</th><th>Type</th><th>Montant</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let c of detail.charges">
+                      <td>{{ c.dateCharge | date:'dd/MM/yyyy' }}</td>
+                      <td>{{ c.typeDepense?.libelle }}</td>
+                      <td>{{ c.montant }}</td>
+                    </tr>
+                    <tr *ngIf="detail.charges.length === 0">
+                      <td colspan="3" class="text-center">Aucune charge</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header">
         <h3 class="card-title">Configuration des marges cibles par catégorie</h3>

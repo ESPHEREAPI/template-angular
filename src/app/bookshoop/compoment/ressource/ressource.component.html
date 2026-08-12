@@ -54,11 +54,44 @@
       </div>
     </div>
 
+    <!-- Caisse et Versement Client sont des types de ressource "systeme" -
+         reflechis automatiquement depuis Vente/Facturation, jamais ressaisis
+         a la main. -->
+    <div class="row" *ngIf="consolidee">
+      <div class="col-md-4">
+        <div class="info-box">
+          <span class="info-box-icon bg-info"><i class="fas fa-cash-register"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Caisse (ventes)</span>
+            <span class="info-box-number">{{ consolidee.totalCaisse }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="info-box">
+          <span class="info-box-icon bg-primary"><i class="fas fa-hand-holding-usd"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Versements Clients</span>
+            <span class="info-box-number">{{ consolidee.totalVersementClient }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="info-box">
+          <span class="info-box-icon bg-secondary"><i class="fas fa-plus-circle"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Ressources manuelles</span>
+            <span class="info-box-number">{{ consolidee.totalRessourcesManuelles }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-header">
-        <h3 class="card-title">Liste des Ressources</h3>
+        <h3 class="card-title">Liste des Ressources manuelles</h3>
         <div class="card-tools">
-          <span class="badge badge-success">Total : {{ getTotal() }}</span>
+          <span class="badge badge-success">Total (caisse + versements + manuelles) : {{ getTotal() }}</span>
         </div>
       </div>
       <div class="card-body">
@@ -86,7 +119,7 @@
                 </td>
               </tr>
               <tr *ngIf="ressources.length === 0">
-                <td colspan="5" class="text-center">Aucune ressource trouvée</td>
+                <td colspan="5" class="text-center">Aucune ressource manuelle trouvée</td>
               </tr>
             </tbody>
           </table>

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Boutique } from '../../model/boutique';
 import { BoutiqueService } from '../../service/boutique.service';
 import { RessourceService } from '../../service/Ressource.service';
-import { Ressource, RessourceCreateRequest, TypeResource } from '../../model/ressource';
+import { Ressource, RessourceConsolidee, RessourceCreateRequest, TypeResource } from '../../model/ressource';
 
 declare var $: any;
 
@@ -23,6 +23,7 @@ export class RessourceComponent implements OnInit {
 
   types: TypeResource[] = [];
   ressources: Ressource[] = [];
+  consolidee: RessourceConsolidee | null = null;
 
   newRessource: RessourceCreateRequest = this.emptyRessource();
   newType: TypeResource = { code: '', libelle: '' };
@@ -67,8 +68,11 @@ export class RessourceComponent implements OnInit {
     if (!this.boutiqueId) {
       return;
     }
-    this.ressourceService.getByBoutiqueAndPeriode(this.boutiqueId, this.debut, this.fin).subscribe({
-      next: (data) => this.ressources = data,
+    this.ressourceService.getConsolide(this.boutiqueId, this.debut, this.fin).subscribe({
+      next: (data) => {
+        this.consolidee = data;
+        this.ressources = data.ressourcesManuelles;
+      },
       error: (error) => {
         console.error('Erreur lors du chargement des ressources', error);
         this.showToast('Erreur de chargement', 'error');
@@ -77,7 +81,7 @@ export class RessourceComponent implements OnInit {
   }
 
   getTotal(): number {
-    return this.ressources.reduce((sum, r) => sum + (r.montant || 0), 0);
+    return this.consolidee?.total ?? 0;
   }
 
   openModal(): void {
