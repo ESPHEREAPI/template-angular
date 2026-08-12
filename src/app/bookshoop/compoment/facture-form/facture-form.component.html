@@ -316,7 +316,7 @@
                         class="form-control form-control-sm" 
                         formControlName="quantite"
                         min="1"
-                        [max]="selectedProduits[i].stock || 9999"
+                        [max]="selectedProduits[i]?.stock || 9999"
                         (change)="calculerTotaux()"
                         [class.is-invalid]="item.get('quantite')?.invalid && item.get('quantite')?.touched"
                       >
