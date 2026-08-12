@@ -401,7 +401,7 @@ export class SidebarComponent implements OnInit {
         {
           title: 'Historique vente',
           icon: 'far fa-circle',
-          route: '/historique-vente'
+          route: '/historique-caisse'
         },
         {
           title: 'Controle Vente',

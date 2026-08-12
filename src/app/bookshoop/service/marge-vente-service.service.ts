@@ -9,6 +9,7 @@ import { MargeVenteStats } from '../model/marge-vente-stats';
 import { map } from 'jquery';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
+import { AuthService } from '../../auth/auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -27,7 +28,7 @@ export class MargeVenteServiceService {
   public margeVente$ = this.margeVenteSubject.asObservable();
   public stats$ = this.statsSubject.asObservable();
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private authService: AuthService) { }
 
   // Récupérer les marges de vente selon les filtres
   getMargesVente(filter: MargeVenteFilter): Observable<MargeVente[]> {
@@ -79,7 +80,8 @@ export class MargeVenteServiceService {
 
   // Récupérer les mois par année
   getDateByAnnee(anneeId: number): Observable<Date[]> {
-    return this.http.get<Date[]>(`${this.apiUrl}/all-dates/${anneeId}`);
+    const boutiqueid = this.authService.getBoutiqueByUserSession();
+    return this.http.get<Date[]>(`${this.apiUrl}/all-dates/${anneeId}/${boutiqueid}`);
   }
 
   // Récupérer les dates par mois
