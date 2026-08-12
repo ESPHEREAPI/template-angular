@@ -241,7 +241,11 @@ export class FactureFormComponent implements OnInit, OnDestroy {
     const item = this.items.at(index);
     item.patchValue({
       produitId: produit.id,
-      prixUnitaireHT: produit.prixVenteNet || 0,
+      // getProduitsHaveStock (recherche d'article) alimente le champ
+      // prixVente (pas prixVenteNet, toujours vide sur cette reponse - voir
+      // PointVenteRepositories.findProduitsDtoByAnneeAndBoutique qui mappe
+      // PrixArticles.prixVenteNet dans le champ DTO nomme prixVente).
+      prixUnitaireHT: produit.prixVente || 0,
       tauxTVA: produit.tva || 19.25,
       quantite: 1
     });

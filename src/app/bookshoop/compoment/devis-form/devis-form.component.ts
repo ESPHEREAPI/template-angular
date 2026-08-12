@@ -552,7 +552,11 @@ export class DevisFormComponent implements OnInit, OnDestroy {
       ? `${produit.reference} - ${produit.libelle}`
       : produit.libelle || '';
     item.searchTerm = item.produit;
-    item.prixUnitaire = produit.prixVenteNet || 0;
+    // getProduitsHaveStock (recherche d'article) alimente le champ prixVente
+    // (pas prixVenteNet, toujours vide sur cette reponse - voir
+    // PointVenteRepositories.findProduitsDtoByAnneeAndBoutique qui mappe
+    // PrixArticles.prixVenteNet dans le champ DTO nomme prixVente).
+    item.prixUnitaire = produit.prixVente || 0;
     item.showDropdown = false;
 
     // Mettre en cache
