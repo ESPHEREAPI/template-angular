@@ -9,7 +9,6 @@ import { MargeVenteStats } from '../model/marge-vente-stats';
 import { map } from 'jquery';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { environment } from '../../../environments/environment';
-import { AuthService } from '../../auth/auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -28,7 +27,7 @@ export class MargeVenteServiceService {
   public margeVente$ = this.margeVenteSubject.asObservable();
   public stats$ = this.statsSubject.asObservable();
 
-  constructor(private http: HttpClient, private authService: AuthService) { }
+  constructor(private http: HttpClient) { }
 
   // Récupérer les marges de vente selon les filtres
   getMargesVente(filter: MargeVenteFilter): Observable<MargeVente[]> {
@@ -78,10 +77,19 @@ export class MargeVenteServiceService {
     return this.http.get<Annee[]>(`${this.apiUrl}/annees`);
   }
 
-  // Récupérer les mois par année
-  getDateByAnnee(anneeId: number): Observable<Date[]> {
-    const boutiqueid = this.authService.getBoutiqueByUserSession();
-    return this.http.get<Date[]>(`${this.apiUrl}/all-dates/${anneeId}/${boutiqueid}`);
+  // boutiqueIds vide/absent = toute la compagnie courante
+  private appendBoutiqueIds(params: HttpParams, boutiqueIds: number[]): HttpParams {
+    for (const id of boutiqueIds) {
+      params = params.append('boutiqueIds', id.toString());
+    }
+    return params;
+  }
+
+  // Récupérer les dates de vente disponibles, pour une/plusieurs/toutes les boutiques
+  getDateByAnnee(anneeId: number, boutiqueIds: number[] = []): Observable<Date[]> {
+    let params = new HttpParams().set('anneeId', anneeId.toString());
+    params = this.appendBoutiqueIds(params, boutiqueIds);
+    return this.http.get<Date[]>(`${this.apiUrl}/marge-dates`, { params });
   }
 
   // Récupérer les dates par mois
@@ -144,7 +152,7 @@ export class MargeVenteServiceService {
     ];
     return mois[typeMois - 1] || '';
   }
-  getMargeJournaliere(date: Date, anneeid: number): Observable<MargeVente[]> {
+  getMargeJournaliere(date: Date, anneeid: number, boutiqueIds: number[] = []): Observable<MargeVente[]> {
     let params = new HttpParams();
 
     if (anneeid) {
@@ -156,10 +164,11 @@ export class MargeVenteServiceService {
     if (date) {
       params = params.append('dateVente', ""+date);
     }
+    params = this.appendBoutiqueIds(params, boutiqueIds);
     return this.http.get<MargeVente[]>(`${this.apiUrl}/marge-journalier`, { params });
   }
 
-   getMargeMargeMensuel(debut: Date,fin:Date, anneeid: number): Observable<MargeVente[]> {
+   getMargeMargeMensuel(debut: Date,fin:Date, anneeid: number, boutiqueIds: number[] = []): Observable<MargeVente[]> {
     let params = new HttpParams();
 
     if (anneeid) {
@@ -174,6 +183,7 @@ export class MargeVenteServiceService {
      if (fin) {
       params = params.append('fin', ""+fin);
     }
+    params = this.appendBoutiqueIds(params, boutiqueIds);
     return this.http.get<MargeVente[]>(`${this.apiUrl}/marge-mensuel`, {params});
   }
 }

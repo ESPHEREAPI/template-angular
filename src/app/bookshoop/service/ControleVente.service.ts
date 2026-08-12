@@ -12,19 +12,22 @@ export class ControleVenteService {
 
   constructor(private http: HttpClient) {}
 
-  generer(moisId: number, anneeid: number, boutiqueid: number): Observable<ControleVenteDTO[]> {
-    const params = new HttpParams()
+  // boutiqueIds vide/absent = toute la compagnie courante
+  private buildParams(moisId: number, anneeid: number, boutiqueIds: number[]): HttpParams {
+    let params = new HttpParams()
       .set('moisId', moisId.toString())
-      .set('anneeid', anneeid.toString())
-      .set('boutiqueid', boutiqueid.toString());
-    return this.http.get<ControleVenteDTO[]>(this.apiUrl, { params });
+      .set('anneeid', anneeid.toString());
+    for (const id of boutiqueIds) {
+      params = params.append('boutiqueIds', id.toString());
+    }
+    return params;
   }
 
-  getSummary(moisId: number, anneeid: number, boutiqueid: number): Observable<ControleVenteSummaryDTO> {
-    const params = new HttpParams()
-      .set('moisId', moisId.toString())
-      .set('anneeid', anneeid.toString())
-      .set('boutiqueid', boutiqueid.toString());
-    return this.http.get<ControleVenteSummaryDTO>(`${this.apiUrl}/summary`, { params });
+  generer(moisId: number, anneeid: number, boutiqueIds: number[]): Observable<ControleVenteDTO[]> {
+    return this.http.get<ControleVenteDTO[]>(this.apiUrl, { params: this.buildParams(moisId, anneeid, boutiqueIds) });
+  }
+
+  getSummary(moisId: number, anneeid: number, boutiqueIds: number[]): Observable<ControleVenteSummaryDTO> {
+    return this.http.get<ControleVenteSummaryDTO>(`${this.apiUrl}/summary`, { params: this.buildParams(moisId, anneeid, boutiqueIds) });
   }
 }

@@ -15,7 +15,8 @@ import { ControleVenteDTO, ControleVenteSummaryDTO } from '../../model/controle-
 })
 export class ControleVenteComponent implements OnInit {
   boutiques: Boutique[] = [];
-  boutiqueId: number | null = null;
+  boutiqueIds: number[] = [];
+  toutesBoutiques = false;
   annee: number = new Date().getFullYear();
   mois: number = new Date().getMonth() + 1;
 
@@ -36,14 +37,25 @@ export class ControleVenteComponent implements OnInit {
     });
   }
 
+  onToutesBoutiquesChange(): void {
+    if (this.toutesBoutiques) {
+      this.boutiqueIds = [];
+    }
+  }
+
+  peutGenerer(): boolean {
+    return this.toutesBoutiques || this.boutiqueIds.length > 0;
+  }
+
   generer(): void {
-    if (!this.boutiqueId) {
+    if (!this.peutGenerer()) {
       return;
     }
     this.loading = true;
     this.hasGenerated = true;
+    const boutiqueIds = this.toutesBoutiques ? [] : this.boutiqueIds;
 
-    this.controleVenteService.generer(this.mois, this.annee, this.boutiqueId).subscribe({
+    this.controleVenteService.generer(this.mois, this.annee, boutiqueIds).subscribe({
       next: (data) => {
         this.controles = data;
         this.loading = false;
@@ -54,7 +66,7 @@ export class ControleVenteComponent implements OnInit {
       }
     });
 
-    this.controleVenteService.getSummary(this.mois, this.annee, this.boutiqueId).subscribe({
+    this.controleVenteService.getSummary(this.mois, this.annee, boutiqueIds).subscribe({
       next: (summary) => this.summary = summary,
       error: (error) => console.error('Erreur lors du chargement du résumé', error)
     });

@@ -61,6 +61,25 @@
         </div>
       </div>
       <div class="card-body">
+        <!-- Boutique(s) -->
+        <div class="form-group">
+          <label class="form-label">Boutique(s) *</label>
+          <div class="custom-control custom-checkbox mb-1">
+            <input type="checkbox" class="custom-control-input" id="margeToutesBoutiques"
+              [ngModel]="toutesBoutiques()" (ngModelChange)="toutesBoutiques.set($event); onToutesBoutiquesChange()"
+              name="margeToutesBoutiques" [ngModelOptions]="{standalone: true}">
+            <label class="custom-control-label" for="margeToutesBoutiques">Toute la compagnie</label>
+          </div>
+          <select class="form-control" id="margeBoutiques" multiple size="4" [disabled]="toutesBoutiques()"
+            [ngModel]="boutiqueIds()" (ngModelChange)="boutiqueIds.set($event); onBoutiqueChange()"
+            name="margeBoutiques" [ngModelOptions]="{standalone: true}">
+            <option *ngFor="let boutique of boutiques()" [ngValue]="boutique.id">
+              {{ boutique.nom }} ({{ boutique.code }})
+            </option>
+          </select>
+          <small class="form-text text-muted">Ctrl/Cmd + clic pour sélectionner plusieurs boutiques.</small>
+        </div>
+
         <!-- Type de marge -->
         <div class="form-group">
           <label class="form-label">Type de marge</label>

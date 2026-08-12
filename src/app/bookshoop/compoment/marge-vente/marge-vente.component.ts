@@ -8,8 +8,10 @@ import { MargeVenteStats } from '../../model/marge-vente-stats';
 import { Annee } from '../../model/annee';
 import { Depot } from '../../model/depot';
 import { Mois } from '../../model/mois';
+import { Boutique } from '../../model/boutique';
 import { CommonModule } from '@angular/common';
 import { UserService } from '../../service/user-service.service';
+import { BoutiqueService } from '../../service/boutique.service';
 import { NgbPaginationConfig } from '@ng-bootstrap/ng-bootstrap';
 import { TableSortConfig } from '../../model/table-sort-config';
 import { CustomPaginationConfig } from '../../model/custom-pagination-config';
@@ -30,6 +32,7 @@ export class MargeVenteComponent {
   private readonly fb = inject(FormBuilder);
   private readonly margeVenteService = inject(MargeVenteServiceService);
   private readonly userService = inject(UserService);
+  private readonly boutiqueService = inject(BoutiqueService);
   private readonly destroy$ = new Subject<void>();
 
   // Signals pour la réactivité
@@ -38,6 +41,9 @@ export class MargeVenteComponent {
   readonly annees = signal<Annee[]>([]);
   readonly datesByMois = signal<Date[]>([]);
   readonly depots = signal<Depot[]>([]);
+  readonly boutiques = signal<Boutique[]>([]);
+  readonly boutiqueIds = signal<number[]>([]);
+  readonly toutesBoutiques = signal<boolean>(true);
   readonly isLoading = signal<boolean>(false);
   readonly selectedMarge = signal<MargeVente | null>(null);
   readonly showEditModal = signal<boolean>(false);
@@ -70,7 +76,8 @@ export class MargeVenteComponent {
   readonly canGenerate = computed(() => {
     const form = this.margeVenteForm;
     const pos = this.position();
-    return form.valid && (pos === 2 || form.get('date')?.value);
+    const boutiqueValide = this.toutesBoutiques() || this.boutiqueIds().length > 0;
+    return form.valid && boutiqueValide && (pos === 2 || form.get('date')?.value);
   });
   readonly canEditSignal  = computed(() => {
     const marge = this.selectedMarge();
@@ -166,13 +173,37 @@ export class MargeVenteComponent {
         next: (depots) => this.depots.set(depots),
         error: (error) => console.error('Erreur lors du chargement des dépôts:', error)
       });
+
+    this.boutiqueService.getBoutiques()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (boutiques) => this.boutiques.set(boutiques),
+        error: (error) => console.error('Erreur lors du chargement des boutiques:', error)
+      });
+  }
+
+  // Une boutique, plusieurs, ou toute la compagnie (liste vide) - lu par
+  // tous les appels backend (dates, marge journaliere/mensuelle).
+  private boutiqueIdsPourRequete(): number[] {
+    return this.toutesBoutiques() ? [] : this.boutiqueIds();
+  }
+
+  onToutesBoutiquesChange(): void {
+    if (this.toutesBoutiques()) {
+      this.boutiqueIds.set([]);
+    }
+    this.onAnneeChange();
+  }
+
+  onBoutiqueChange(): void {
+    this.onAnneeChange();
   }
 
   // Gestion des événements
   onAnneeChange(): void {
     const annee = this.margeVenteForm.get('annee')?.value;
     if (annee) {
-      this.margeVenteService.getDateByAnnee(annee.id)
+      this.margeVenteService.getDateByAnnee(annee.id, this.boutiqueIdsPourRequete())
         .pipe(takeUntil(this.destroy$))
         .subscribe({
           next: (dates) => this.datesByMois.set(dates),
@@ -204,7 +235,7 @@ export class MargeVenteComponent {
     this.isLoading.set(true);
     this.margesVente.set([]);
 
-    this.margeVenteService.getMargeJournaliere(dateValue, anneeValue.id)
+    this.margeVenteService.getMargeJournaliere(dateValue, anneeValue.id, this.boutiqueIdsPourRequete())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (marges) => {
@@ -229,7 +260,7 @@ export class MargeVenteComponent {
 
     this.isLoading.set(true);
 
-    this.margeVenteService.getMargeMargeMensuel(debutValue, finValue, anneeValue.id)
+    this.margeVenteService.getMargeMargeMensuel(debutValue, finValue, anneeValue.id, this.boutiqueIdsPourRequete())
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (marges) => {
