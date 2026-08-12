@@ -16,6 +16,64 @@
 
 <section class="content">
   <div class="container-fluid">
+
+    <!-- Vue globale compagnie : combien elle attend, et les clients a
+         plus gros reste-a-payer ("clients a haute redevance"). -->
+    <div class="card card-primary">
+      <div class="card-header">
+        <h3 class="card-title">Vue globale — Recouvrement</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" (click)="chargerVueGlobale()" [disabled]="loadingGlobal">
+            <i class="fas fa-sync-alt" [class.fa-spin]="loadingGlobal"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="callout callout-danger">
+          <h5>Total attendu (tous clients, toutes factures non soldées)</h5>
+          <p class="h3 mb-0">{{ totalAttendu }} F</p>
+        </div>
+
+        <h5>Clients à haute redevance</h5>
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Code</th>
+                <th>Téléphone</th>
+                <th>Nb factures</th>
+                <th>Total facturé</th>
+                <th>Total payé</th>
+                <th>Reste à payer</th>
+                <th style="width: 90px">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let s of soldesClients" [class.table-danger]="s.soldeRestant > 0">
+                <td>{{ s.nom }}</td>
+                <td>{{ s.code }}</td>
+                <td>{{ s.telephone }}</td>
+                <td>{{ s.nombreFactures }}</td>
+                <td>{{ s.totalFacture }}</td>
+                <td>{{ s.totalPaye }}</td>
+                <td><strong>{{ s.soldeRestant }}</strong></td>
+                <td>
+                  <button class="btn btn-sm btn-primary" (click)="selectionnerClient(s.clientId)">
+                    <i class="fas fa-eye"></i>
+                  </button>
+                </td>
+              </tr>
+              <tr *ngIf="soldesClients.length === 0 && !loadingGlobal">
+                <td colspan="8" class="text-center">Aucun client avec facture trouvé</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detail d'un client precis -->
     <div class="card">
       <div class="card-header">
         <h3 class="card-title">Sélection du client</h3>
@@ -29,10 +87,47 @@
               <option *ngFor="let client of clients" [ngValue]="client.id">{{ client.nom }}</option>
             </select>
           </div>
-          <div class="col-md-4 form-group d-flex align-items-end">
+          <div class="col-md-2 form-group d-flex align-items-end">
             <button type="button" class="btn btn-primary btn-block" (click)="charger()">
-              <i class="fas fa-search"></i> Charger le relevé
+              <i class="fas fa-search"></i> Charger
             </button>
+          </div>
+          <div class="col-md-2 form-group d-flex align-items-end">
+            <button type="button" class="btn btn-secondary btn-block" [disabled]="!clientId" (click)="imprimerReleve()">
+              <i class="fas fa-print"></i> Imprimer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row" *ngIf="clientId">
+      <div class="col-md-4">
+        <div class="info-box">
+          <span class="info-box-icon bg-info"><i class="fas fa-file-invoice"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Total Facturé</span>
+            <span class="info-box-number">{{ solde?.totalFacture ?? 0 }} F</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="info-box">
+          <span class="info-box-icon bg-success"><i class="fas fa-hand-holding-usd"></i></span>
+          <div class="info-box-content">
+            <span class="info-box-text">Total Payé</span>
+            <span class="info-box-number">{{ solde?.totalPaye ?? 0 }} F</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="info-box">
+          <span class="info-box-icon" [ngClass]="(solde?.soldeRestant ?? 0) > 0 ? 'bg-danger' : 'bg-secondary'">
+            <i class="fas fa-exclamation-circle"></i>
+          </span>
+          <div class="info-box-content">
+            <span class="info-box-text">Reste à Payer</span>
+            <span class="info-box-number">{{ solde?.soldeRestant ?? 0 }} F</span>
           </div>
         </div>
       </div>
@@ -40,7 +135,7 @@
 
     <div class="card" *ngIf="versements.length > 0 || clientId">
       <div class="card-header">
-        <h3 class="card-title">Historique des Versements</h3>
+        <h3 class="card-title">Historique des Versements — {{ clientNom(clientId!) }}</h3>
         <div class="card-tools">
           <span class="badge badge-success">Total versé : {{ getTotalVerse() }}</span>
         </div>
