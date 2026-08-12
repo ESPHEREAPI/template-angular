@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { DevisService } from '../../service/devis.service';
 import { ClientService } from '../../service/client.service';
 import { ProduitService } from '../../service/produit.service';
+import { FactureService } from '../../service/facture.service';
 import { ActivatedRoute, Router } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { CommonModule } from '@angular/common';
@@ -69,6 +70,7 @@ export class DevisFormComponent implements OnInit, OnDestroy {
   modeAffichage: 'creation' | 'edition' | 'detail' = 'creation';
   devisId?: number;
   lectureSeule = false;
+  conversionEnCours = false;
 
   private destroy$ = new Subject<void>();
 
@@ -77,6 +79,7 @@ export class DevisFormComponent implements OnInit, OnDestroy {
     private devisService: DevisService,
     private clientService: ClientService,
     private produitService: ProduitService,
+    private factureService: FactureService,
     public router: Router,
     private toastr: ToastrService,
     private cdr: ChangeDetectorRef,
@@ -657,6 +660,35 @@ export class DevisFormComponent implements OnInit, OnDestroy {
   annuler(): void {
     if (confirm('Êtes-vous sûr de vouloir annuler ? Les modifications non sauvegardées seront perdues.')) {
       this.router.navigate(['/devis']);
+    }
+  }
+
+  /**
+   * Convertit ce devis (statut ACCEPTE) en facture via
+   * POST .../factures/from-devis, puis ouvre la facture creee.
+   */
+  async convertirEnFacture(): Promise<void> {
+    if (!this.devisId || this.conversionEnCours) {
+      return;
+    }
+    if (!confirm('Convertir ce devis en facture ? Une nouvelle facture brouillon sera créée avec les mêmes articles.')) {
+      return;
+    }
+
+    this.conversionEnCours = true;
+    try {
+      const facture = await firstValueFrom(
+        this.factureService.convertirDevisEnFacture({
+          devisId: this.devisId,
+          username: this.username
+        }).pipe(takeUntil(this.destroy$))
+      );
+      this.router.navigate(['/factures', facture.id]);
+    } catch (err) {
+      console.error('❌ Erreur conversion devis en facture:', err);
+    } finally {
+      this.conversionEnCours = false;
+      this.cdr.markForCheck();
     }
   }
 

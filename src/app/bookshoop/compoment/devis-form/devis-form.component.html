@@ -12,7 +12,15 @@
         </h1>
       </div>
       <div class="col-sm-6 text-right">
-        <button type="button" 
+        <button type="button"
+                *ngIf="modeAffichage === 'detail' && devis?.statut === 'ACCEPTE'"
+                class="btn btn-success mr-2"
+                (click)="convertirEnFacture()"
+                [disabled]="conversionEnCours">
+          <i class="fas fa-file-invoice-dollar mr-2"></i>
+          {{ conversionEnCours ? 'Conversion...' : 'Convertir en facture' }}
+        </button>
+        <button type="button"
                 class="btn btn-secondary"
                 (click)="annuler()"
                 [disabled]="chargement">
