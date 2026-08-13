@@ -18,6 +18,14 @@ import { data } from 'jquery';
 import { UserSession } from '../../model/user-session';
 import { Boutique } from '../../bookshoop/model/boutique';
 import { ReferenceDataService } from '../../bookshoop/service/reference-data.service';
+import { ProfilService } from '../../services/profil.service';
+import { PersonneMenuActions } from '../../bookshoop/model/personne-menu-actions';
+
+interface ModuleGroupeEffectif {
+  moduleId: number;
+  moduleDescription: string;
+  menus: PersonneMenuActions[];
+}
 
 @Component({
   selector: 'app-user-management',
@@ -64,6 +72,14 @@ export class UserManagementComponent implements OnInit {
   availableMenus: any[] = [];
   selectedMenus: any[] = [];
 
+  // Droits effectifs (Profil + exceptions par utilisateur, voir
+  // PersonnePermissionController) - permet d'ajuster certaines actions pour
+  // CET utilisateur precis sans affecter les autres utilisateurs du meme Profil.
+  permissionsEffectives: PersonneMenuActions[] = [];
+  modulesGroupesEffectifs: ModuleGroupeEffectif[] = [];
+  chargementPermissions = false;
+  libelleActionEffective: Record<string, string> = {};
+
   // Pagination et tri
   currentPage = 1;
   pageSize = 15;
@@ -104,7 +120,8 @@ export class UserManagementComponent implements OnInit {
     private userService: UserService,
     private toastr: ToastrService,
     private confirmationService: ConfirmationService,
-    private authService: AuthService, private referenceDataService: ReferenceDataService
+    private authService: AuthService, private referenceDataService: ReferenceDataService,
+    private profilService: ProfilService
   ) {
     this.initForms();
   }
@@ -112,9 +129,12 @@ export class UserManagementComponent implements OnInit {
   ngOnInit(): void {
 
     this.loadInitialData();
-
-
-
+    this.profilService.getActions().subscribe({
+      next: (actions) => {
+        this.libelleActionEffective = Object.fromEntries(actions.map(a => [a.code, a.libelle]));
+      },
+      error: (error) => console.error('Erreur lors du chargement des actions:', error)
+    });
 
   }
 
@@ -261,7 +281,9 @@ openEditModal(user: User): void {
   this.selectedUser = user;
   this.isEditMode = true;
   this.populateForm(user);
-  
+  this.permissionsEffectives = [];
+  this.modulesGroupesEffectifs = [];
+
   // Définir la boutique après que le formulaire soit populé
   const boutique = this.checkBoutique(user.boutiqueid ?? 0);
   console.log("boutique check", boutique);
@@ -663,6 +685,79 @@ openEditModal(user: User): void {
 
   onTabChange(tab: string): void {
     this.activeTab = tab;
+    if (tab === 'userPermissions' && this.selectedUser?.id) {
+      this.loadPermissionsEffectives(this.selectedUser.id);
+    }
+  }
+
+  // Droits effectifs (Profil + exceptions par utilisateur)
+  loadPermissionsEffectives(personneId: number): void {
+    this.chargementPermissions = true;
+    this.profilService.getPermissionsEffectives(personneId).subscribe({
+      next: (permissions) => {
+        this.permissionsEffectives = permissions;
+        this.modulesGroupesEffectifs = this.regrouperParModuleEffectif(permissions);
+        this.chargementPermissions = false;
+      },
+      error: (error) => {
+        console.error('Erreur lors du chargement des droits effectifs:', error);
+        this.chargementPermissions = false;
+      }
+    });
+  }
+
+  private regrouperParModuleEffectif(permissions: PersonneMenuActions[]): ModuleGroupeEffectif[] {
+    const groupes = new Map<number, ModuleGroupeEffectif>();
+    for (const ligne of permissions) {
+      if (!groupes.has(ligne.moduleId)) {
+        groupes.set(ligne.moduleId, { moduleId: ligne.moduleId, moduleDescription: ligne.moduleDescription, menus: [] });
+      }
+      groupes.get(ligne.moduleId)!.menus.push(ligne);
+    }
+    return Array.from(groupes.values());
+  }
+
+  aLactionEffective(menu: PersonneMenuActions, action: string): boolean {
+    return menu.actionsEffectives.includes(action);
+  }
+
+  estException(menu: PersonneMenuActions, action: string): boolean {
+    return menu.actionsExceptionAjoutees.includes(action) || menu.actionsExceptionRetirees.includes(action);
+  }
+
+  basculerActionEffective(menu: PersonneMenuActions, action: string): void {
+    if (!this.selectedUser?.id) return;
+
+    const accordeActuellement = this.aLactionEffective(menu, action);
+    const nouveauType: 'GRANT' | 'REVOKE' = accordeActuellement ? 'REVOKE' : 'GRANT';
+
+    // Mise a jour optimiste de l'affichage
+    if (accordeActuellement) {
+      menu.actionsEffectives = menu.actionsEffectives.filter(a => a !== action);
+      menu.actionsExceptionRetirees.push(action);
+    } else {
+      menu.actionsEffectives.push(action);
+      menu.actionsExceptionAjoutees.push(action);
+    }
+
+    this.profilService.definirException(this.selectedUser.id, {
+      menuId: menu.menuId,
+      action,
+      type: nouveauType
+    }).subscribe({
+      error: (error) => {
+        console.error('Erreur lors de la mise a jour de l\'exception:', error);
+        // Annule la mise a jour optimiste en cas d'echec
+        if (accordeActuellement) {
+          menu.actionsEffectives.push(action);
+          menu.actionsExceptionRetirees = menu.actionsExceptionRetirees.filter(a => a !== action);
+        } else {
+          menu.actionsEffectives = menu.actionsEffectives.filter(a => a !== action);
+          menu.actionsExceptionAjoutees = menu.actionsExceptionAjoutees.filter(a => a !== action);
+        }
+        this.toastr.error('Erreur lors de la mise à jour du droit.');
+      }
+    });
   }
 
   trackByFn(index: number, item: User): string {

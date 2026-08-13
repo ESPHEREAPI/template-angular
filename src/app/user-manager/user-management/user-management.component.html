@@ -31,6 +31,12 @@
               <i class="fas fa-puzzle-piece"></i> Modules Utilisateur
             </a>
           </li>
+          <li class="nav-item" *ngIf="selectedUser?.id && selectedUser?.profil">
+            <a class="nav-link" [class.active]="activeTab === 'userPermissions'" (click)="onTabChange('userPermissions')"
+              data-toggle="pill">
+              <i class="fas fa-user-shield"></i> Droits effectifs
+            </a>
+          </li>
         </ul>
       </div>
 
@@ -253,6 +259,53 @@
               </div>
             </div>
 
+          </div>
+
+          <!-- Tab Droits effectifs (Profil + exceptions par utilisateur) -->
+          <div class="tab-pane fade" [class.show]="activeTab === 'userPermissions'"
+            [class.active]="activeTab === 'userPermissions'" *ngIf="selectedUser?.id && selectedUser?.profil">
+
+            <div class="alert alert-info">
+              <strong>Login:</strong> {{selectedUser?.userName}} |
+              <strong>Profil:</strong> {{selectedUser?.profil?.code}}
+            </div>
+            <p class="text-muted small">
+              Cet utilisateur hérite des droits du profil <strong>{{selectedUser?.profil?.code}}</strong>
+              (colonnes cochées ci-dessous). Décocher/cocher une case crée une exception propre à
+              <strong>{{selectedUser?.userName}}</strong>, sans affecter les autres utilisateurs de ce profil.
+              Les cases marquées <span class="badge badge-success">+</span> ou <span class="badge badge-danger">-</span>
+              sont déjà des exceptions.
+            </p>
+
+            <div *ngIf="chargementPermissions" class="text-muted">Chargement des droits...</div>
+
+            <div *ngFor="let groupe of modulesGroupesEffectifs" class="mb-4">
+              <h5 class="border-bottom pb-1">{{ groupe.moduleDescription }}</h5>
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Menu</th>
+                    <th class="text-center" *ngFor="let code of libelleActionEffective | keyvalue">{{ code.value }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let menu of groupe.menus">
+                    <td>{{ menu.menuDescription }}</td>
+                    <td class="text-center" *ngFor="let code of libelleActionEffective | keyvalue">
+                      <input type="checkbox"
+                             [checked]="aLactionEffective(menu, code.key)"
+                             (change)="basculerActionEffective(menu, code.key)">
+                      <sup *ngIf="menu.actionsExceptionAjoutees.includes(code.key)" class="badge badge-success">+</sup>
+                      <sup *ngIf="menu.actionsExceptionRetirees.includes(code.key)" class="badge badge-danger">-</sup>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div *ngIf="!chargementPermissions && modulesGroupesEffectifs.length === 0" class="text-muted">
+              Ce profil n'a encore aucun droit configuré (voir écran Sécurité &gt; Profil).
+            </div>
           </div>
 
         </div>

@@ -5,12 +5,20 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Profil } from '../bookshoop/model/profil';
 import { MenuActions } from '../bookshoop/model/menu-actions';
+import { ActionDTO } from '../bookshoop/model/action';
+import { PersonneMenuActions } from '../bookshoop/model/personne-menu-actions';
 
 export interface TogglePermissionRequest {
   profilId: number;
   menuId: number;
   action: string;
   granted: boolean;
+}
+
+export interface PersonnePermissionExceptionRequest {
+  menuId: number;
+  action: string;
+  type: 'GRANT' | 'REVOKE';
 }
 
 /**
@@ -46,5 +54,30 @@ export class ProfilService {
 
   togglePermission(request: TogglePermissionRequest): Observable<void> {
     return this.http.put<void>(`${this.API_URL}/profils/permissions-matrix/toggle`, request);
+  }
+
+  dupliquerProfil(profilId: number, code: string, description: string): Observable<Profil> {
+    return this.http.post<Profil>(`${this.API_URL}/profils/${profilId}/dupliquer`, { code, description });
+  }
+
+  // Catalogue global des actions (voir ActionController) - gere par
+  // SUPER_ADMIN/SYSTEM_ADMIN, consomme par toutes les compagnies.
+  getActions(): Observable<ActionDTO[]> {
+    return this.http.get<ActionDTO[]>(`${this.API_URL}/actions`);
+  }
+
+  createAction(code: string, libelle: string, description: string): Observable<ActionDTO> {
+    return this.http.post<ActionDTO>(`${this.API_URL}/actions`, { code, libelle, description });
+  }
+
+  // Droits effectifs d'un utilisateur precis (Profil + exceptions, voir
+  // PersonnePermissionController) - alimente l'onglet "Droits effectifs"
+  // de l'ecran Utilisateurs.
+  getPermissionsEffectives(personneId: number): Observable<PersonneMenuActions[]> {
+    return this.http.get<PersonneMenuActions[]>(`${this.API_URL}/personne/${personneId}/permissions-effectives`);
+  }
+
+  definirException(personneId: number, request: PersonnePermissionExceptionRequest): Observable<void> {
+    return this.http.post<void>(`${this.API_URL}/personne/${personneId}/permission-exception`, request);
   }
 }

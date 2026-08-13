@@ -3,21 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Profil } from '../../bookshoop/model/profil';
 import { MenuActions } from '../../bookshoop/model/menu-actions';
+import { ActionDTO } from '../../bookshoop/model/action';
 import { ProfilService } from '../../services/profil.service';
-
-// PRINT exclu : la colonne operation_type est un ENUM MySQL natif cree
-// avant l'ajout de PRINT a l'enum Java cote backend (derive de schema) - la
-// cocher declenche "Data truncated for column 'operation_type'" a l'insertion
-// (voir ProfilPermissionMatrixService.toggle -> permissionRepository.save).
-// A reactiver une fois la colonne alignee en base.
-const ACTIONS_DISPONIBLES = ['READ', 'WRITE', 'UPDATE', 'DELETE'];
-const LIBELLE_ACTION: Record<string, string> = {
-  READ: 'Voir',
-  WRITE: 'Ajouter',
-  UPDATE: 'Modifier',
-  DELETE: 'Supprimer',
-  PRINT: 'Imprimer'
-};
+import { AuthService } from '../../auth/auth.service';
 
 interface ModuleGroupe {
   moduleId: number;
@@ -42,8 +30,11 @@ interface ModuleGroupe {
   styleUrl: './user-profil.component.css'
 })
 export class UserProfilComponent implements OnInit {
-  actions = ACTIONS_DISPONIBLES;
-  libelleAction = LIBELLE_ACTION;
+  // Catalogue dynamique (voir ActionController) - remplace l'ancienne liste
+  // fixe ACTIONS_DISPONIBLES limitee a READ/WRITE/UPDATE/DELETE.
+  actionsCatalogue: ActionDTO[] = [];
+  actions: string[] = [];
+  libelleAction: Record<string, string> = {};
 
   profils: Profil[] = [];
   selectedProfil: Profil | null = null;
@@ -60,10 +51,42 @@ export class UserProfilComponent implements OnInit {
   creationEnCours = false;
   erreurCreation: string | null = null;
 
-  constructor(private profilService: ProfilService) {}
+  // Formulaire "nouvelle action" (SUPER_ADMIN/SYSTEM_ADMIN uniquement -
+  // catalogue global, voir ActionController)
+  afficherFormulaireAction = false;
+  nouvelleActionCode = '';
+  nouvelleActionLibelle = '';
+  nouvelleActionDescription = '';
+  creationActionEnCours = false;
+  erreurCreationAction: string | null = null;
+
+  // Duplication de profil
+  profilEnDuplication: Profil | null = null;
+  codeDuplication = '';
+  duplicationEnCours = false;
+  erreurDuplication: string | null = null;
+
+  constructor(private profilService: ProfilService, private authService: AuthService) {}
+
+  get peutGererActions(): boolean {
+    const roleName = this.authService.currentUserValue?.usersDTO?.role?.name;
+    return roleName === 'SUPER_ADMIN' || roleName === 'SYSTEM_ADMIN';
+  }
 
   ngOnInit(): void {
     this.loadProfils();
+    this.loadActions();
+  }
+
+  loadActions(): void {
+    this.profilService.getActions().subscribe({
+      next: (actions) => {
+        this.actionsCatalogue = actions;
+        this.actions = actions.map(a => a.code);
+        this.libelleAction = Object.fromEntries(actions.map(a => [a.code, a.libelle]));
+      },
+      error: (error) => console.error('Erreur lors du chargement des actions:', error)
+    });
   }
 
   loadProfils(): void {
@@ -176,6 +199,89 @@ export class UserProfilComponent implements OnInit {
         console.error('Erreur lors de la creation du profil:', error);
         this.erreurCreation = error?.error?.message || 'Erreur lors de la création du profil (code déjà utilisé ?).';
         this.creationEnCours = false;
+      }
+    });
+  }
+
+  basculerFormulaireAction(): void {
+    this.afficherFormulaireAction = !this.afficherFormulaireAction;
+    this.erreurCreationAction = null;
+    if (this.afficherFormulaireAction) {
+      this.nouvelleActionCode = '';
+      this.nouvelleActionLibelle = '';
+      this.nouvelleActionDescription = '';
+    }
+  }
+
+  creerAction(): void {
+    if (!this.nouvelleActionCode.trim() || !this.nouvelleActionLibelle.trim()) {
+      this.erreurCreationAction = 'Le code et le libellé sont obligatoires.';
+      return;
+    }
+
+    this.creationActionEnCours = true;
+    this.erreurCreationAction = null;
+
+    this.profilService.createAction(
+      this.nouvelleActionCode.trim().toUpperCase(),
+      this.nouvelleActionLibelle.trim(),
+      this.nouvelleActionDescription.trim()
+    ).subscribe({
+      next: () => {
+        this.creationActionEnCours = false;
+        this.afficherFormulaireAction = false;
+        // Recharge le catalogue et, si une matrice est affichee, la matrice
+        // du profil courant pour que la nouvelle colonne apparaisse tout de suite.
+        this.loadActions();
+        if (this.selectedProfil) {
+          this.selectionnerProfil(this.selectedProfil);
+        }
+      },
+      error: (error) => {
+        console.error('Erreur lors de la creation de l\'action:', error);
+        this.erreurCreationAction = error?.error?.message || 'Erreur lors de la création de l\'action (code déjà utilisé ?).';
+        this.creationActionEnCours = false;
+      }
+    });
+  }
+
+  ouvrirDuplication(profil: Profil, event: Event): void {
+    event.stopPropagation();
+    this.profilEnDuplication = profil;
+    this.codeDuplication = '';
+    this.erreurDuplication = null;
+  }
+
+  fermerDuplication(): void {
+    this.profilEnDuplication = null;
+    this.erreurDuplication = null;
+  }
+
+  confirmerDuplication(): void {
+    if (!this.profilEnDuplication) return;
+    if (!this.codeDuplication.trim()) {
+      this.erreurDuplication = 'Le code du nouveau profil est obligatoire.';
+      return;
+    }
+
+    this.duplicationEnCours = true;
+    this.erreurDuplication = null;
+
+    this.profilService.dupliquerProfil(
+      this.profilEnDuplication.id,
+      this.codeDuplication.trim().toUpperCase(),
+      `Copie de ${this.profilEnDuplication.code}`
+    ).subscribe({
+      next: (copie) => {
+        this.profils.push(copie);
+        this.duplicationEnCours = false;
+        this.profilEnDuplication = null;
+        this.selectionnerProfil(copie);
+      },
+      error: (error) => {
+        console.error('Erreur lors de la duplication du profil:', error);
+        this.erreurDuplication = error?.error?.message || 'Erreur lors de la duplication (code déjà utilisé ?).';
+        this.duplicationEnCours = false;
       }
     });
   }

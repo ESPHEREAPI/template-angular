@@ -49,18 +49,81 @@
             <div *ngIf="chargementProfils" class="p-3 text-muted">Chargement...</div>
             <div *ngIf="erreur" class="p-3 text-danger">Erreur lors du chargement des profils.</div>
             <div class="list-group list-group-flush">
-              <button type="button" *ngFor="let profil of profils"
-                      class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
-                      [class.active]="selectedProfil?.id === profil.id"
-                      (click)="selectionnerProfil(profil)">
+              <div *ngFor="let profil of profils"
+                   class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                   [class.active]="selectedProfil?.id === profil.id"
+                   style="cursor: pointer;"
+                   (click)="selectionnerProfil(profil)">
                 <span>
                   <strong>{{ profil.code }}</strong>
                   <br *ngIf="profil.description">
                   <small [class.text-muted]="selectedProfil?.id !== profil.id">{{ profil.description }}</small>
                 </span>
-                <i class="fas fa-chevron-right"></i>
-              </button>
+                <span>
+                  <button type="button" class="btn btn-sm" title="Dupliquer ce profil"
+                          [class.btn-outline-light]="selectedProfil?.id === profil.id"
+                          [class.btn-outline-secondary]="selectedProfil?.id !== profil.id"
+                          (click)="ouvrirDuplication(profil, $event)">
+                    <i class="fas fa-copy"></i>
+                  </button>
+                </span>
+              </div>
             </div>
+          </div>
+        </div>
+
+        <!-- Duplication de profil -->
+        <div class="card" *ngIf="profilEnDuplication">
+          <div class="card-header">
+            <h3 class="card-title">Dupliquer « {{ profilEnDuplication.code }} »</h3>
+          </div>
+          <div class="card-body">
+            <p class="text-muted small">Crée un nouveau profil avec exactement les mêmes droits, à ajuster ensuite.</p>
+            <div class="form-group">
+              <label>Code du nouveau profil</label>
+              <input type="text" class="form-control" [(ngModel)]="codeDuplication"
+                     placeholder="Ex: CAISSIER_CODEBARRE" [disabled]="duplicationEnCours">
+            </div>
+            <div *ngIf="erreurDuplication" class="text-danger small mb-2">{{ erreurDuplication }}</div>
+            <button type="button" class="btn btn-success btn-sm mr-2" (click)="confirmerDuplication()" [disabled]="duplicationEnCours">
+              {{ duplicationEnCours ? 'Duplication...' : 'Dupliquer' }}
+            </button>
+            <button type="button" class="btn btn-default btn-sm" (click)="fermerDuplication()" [disabled]="duplicationEnCours">
+              Annuler
+            </button>
+          </div>
+        </div>
+
+        <!-- Nouvelle action (catalogue global - SUPER_ADMIN/SYSTEM_ADMIN) -->
+        <div class="card" *ngIf="peutGererActions">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title mb-0">Actions</h3>
+            <button type="button" class="btn btn-sm btn-primary" (click)="basculerFormulaireAction()">
+              <i class="fas" [ngClass]="afficherFormulaireAction ? 'fa-times' : 'fa-plus'"></i>
+              {{ afficherFormulaireAction ? 'Annuler' : 'Nouvelle action' }}
+            </button>
+          </div>
+          <div class="card-body" *ngIf="afficherFormulaireAction">
+            <p class="text-muted small">
+              Catalogue global (plateforme) : une nouvelle action devient disponible pour toutes les compagnies,
+              à cocher menu par menu dans la matrice ci-contre.
+            </p>
+            <div class="form-group">
+              <label>Code</label>
+              <input type="text" class="form-control" [(ngModel)]="nouvelleActionCode" placeholder="Ex: EXPORTER" [disabled]="creationActionEnCours">
+            </div>
+            <div class="form-group">
+              <label>Libellé</label>
+              <input type="text" class="form-control" [(ngModel)]="nouvelleActionLibelle" placeholder="Ex: Exporter" [disabled]="creationActionEnCours">
+            </div>
+            <div class="form-group">
+              <label>Description (optionnelle)</label>
+              <input type="text" class="form-control" [(ngModel)]="nouvelleActionDescription" [disabled]="creationActionEnCours">
+            </div>
+            <div *ngIf="erreurCreationAction" class="text-danger small mb-2">{{ erreurCreationAction }}</div>
+            <button type="button" class="btn btn-success btn-sm" (click)="creerAction()" [disabled]="creationActionEnCours">
+              {{ creationActionEnCours ? 'Création...' : 'Créer' }}
+            </button>
           </div>
         </div>
       </div>
