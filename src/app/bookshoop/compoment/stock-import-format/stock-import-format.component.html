@@ -109,6 +109,11 @@
             <p class="text-muted small" *ngIf="boutiqueDansFormat">
               La boutique fait partie de votre format : le fichier peut restaurer plusieurs points de vente à la fois.
             </p>
+            <p class="text-muted small">
+              Une référence absente du catalogue n'est pas bloquante : le produit (et son point de vente dans la
+              boutique choisie) sera créé à l'application, marqué <span class="badge badge-info">Nouveau produit</span>
+              dans l'aperçu ci-dessous.
+            </p>
 
             <button type="button" class="btn btn-default mb-3" (click)="telechargerModele()">
               <i class="fas fa-download"></i> Télécharger le modèle
@@ -155,9 +160,12 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let ligne of apercu.lignes" [class.table-danger]="ligne.erreur">
+                    <tr *ngFor="let ligne of apercu.lignes" [class.table-danger]="ligne.erreur" [class.table-info]="!ligne.erreur && ligne.nouveauProduit">
                       <td>{{ ligne.ligneNo }}</td>
-                      <td>{{ ligne.reference }}</td>
+                      <td>
+                        {{ ligne.reference }}
+                        <span *ngIf="!ligne.erreur && ligne.nouveauProduit" class="badge badge-info ml-1">Nouveau produit</span>
+                      </td>
                       <td>{{ ligne.boutiqueNom }}</td>
                       <td>{{ ligne.ancienneQuantite ?? '-' }}</td>
                       <td>{{ ligne.nouvelleQuantite ?? '-' }}</td>

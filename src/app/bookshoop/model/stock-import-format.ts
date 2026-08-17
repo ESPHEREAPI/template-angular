@@ -23,6 +23,9 @@ export interface LigneApercuImportStock {
   ancienneQuantite: number | null;
   nouvelleQuantite: number | null;
   erreur: string | null;
+  // true si ce produit n'existe pas encore : sera cree (avec son point de
+  // vente) au lieu d'une simple mise a jour de stock.
+  nouveauProduit: boolean;
 }
 
 export interface ApercuImportStock {
