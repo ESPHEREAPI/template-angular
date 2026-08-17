@@ -1,0 +1,180 @@
+<section class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1>Initialisation Stock</h1>
+      </div>
+      <div class="col-sm-6">
+        <ol class="breadcrumb float-sm-right">
+          <li class="breadcrumb-item"><a href="#">Accueil</a></li>
+          <li class="breadcrumb-item active">Initialisation Stock</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="content">
+  <div class="container-fluid">
+    <div class="card">
+      <div class="card-header p-0">
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="ongletActif === 'format'" href="javascript:void(0)" (click)="changerOnglet('format')">
+              <i class="fas fa-table"></i> Format du fichier
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" [class.active]="ongletActif === 'restauration'" href="javascript:void(0)" (click)="changerOnglet('restauration')">
+              <i class="fas fa-file-import"></i> Restauration
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="card-body">
+
+        <!-- Onglet Format -->
+        <div *ngIf="ongletActif === 'format'">
+          <div *ngIf="chargementFormat" class="text-muted">Chargement...</div>
+
+          <div *ngIf="!chargementFormat">
+            <p class="text-muted small">
+              Choisissez les colonnes de votre fichier de restauration de stock, dans l'ordre où elles doivent
+              apparaître. <strong>Référence</strong> et <strong>Quantité</strong> sont obligatoires. Si
+              <strong>Boutique</strong> fait partie du format, un même fichier peut restaurer plusieurs points de
+              vente ; sinon la boutique sera choisie séparément avant chaque restauration.
+            </p>
+
+            <table class="table table-sm table-bordered w-auto" *ngIf="colonnes.length > 0">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Colonne</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let champ of colonnes; let i = index">
+                  <td>{{ i + 1 }}</td>
+                  <td>
+                    {{ libelleChamp[champ] }}
+                    <span class="badge badge-info ml-1" *ngIf="champ === 'REFERENCE' || champ === 'QUANTITE'">obligatoire</span>
+                  </td>
+                  <td class="text-nowrap">
+                    <button type="button" class="btn btn-xs btn-default" [disabled]="i === 0" (click)="monterColonne(i)" title="Monter">
+                      <i class="fas fa-arrow-up"></i>
+                    </button>
+                    <button type="button" class="btn btn-xs btn-default" [disabled]="i === colonnes.length - 1" (click)="descendreColonne(i)" title="Descendre">
+                      <i class="fas fa-arrow-down"></i>
+                    </button>
+                    <button type="button" class="btn btn-xs btn-danger" (click)="retirerColonne(i)" title="Retirer">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <p *ngIf="colonnes.length === 0" class="text-muted">Aucune colonne configurée pour l'instant.</p>
+
+            <div class="form-inline mb-3" *ngIf="champsDisponibles.length > 0">
+              <select class="form-control mr-2" [(ngModel)]="nouveauChamp">
+                <option value="">Ajouter une colonne...</option>
+                <option *ngFor="let champ of champsDisponibles" [value]="champ">{{ libelleChamp[champ] }}</option>
+              </select>
+              <button type="button" class="btn btn-default" [disabled]="!nouveauChamp" (click)="ajouterColonne()">
+                <i class="fas fa-plus"></i> Ajouter
+              </button>
+            </div>
+
+            <button type="button" class="btn btn-primary" [disabled]="enregistrementFormat" (click)="enregistrerFormat()">
+              {{ enregistrementFormat ? 'Enregistrement...' : 'Enregistrer le format' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Onglet Restauration -->
+        <div *ngIf="ongletActif === 'restauration'">
+          <div class="alert alert-warning" *ngIf="colonnes.length === 0">
+            Configurez d'abord un format dans l'onglet "Format du fichier".
+          </div>
+
+          <ng-container *ngIf="colonnes.length > 0">
+            <div class="form-group" *ngIf="!boutiqueDansFormat">
+              <label>Boutique</label>
+              <select class="form-control w-auto" [(ngModel)]="boutiqueSelectionneeId">
+                <option [ngValue]="null">Sélectionner une boutique</option>
+                <option *ngFor="let boutique of boutiques" [ngValue]="boutique.id">{{ boutique.nom }}</option>
+              </select>
+            </div>
+            <p class="text-muted small" *ngIf="boutiqueDansFormat">
+              La boutique fait partie de votre format : le fichier peut restaurer plusieurs points de vente à la fois.
+            </p>
+
+            <button type="button" class="btn btn-default mb-3" (click)="telechargerModele()">
+              <i class="fas fa-download"></i> Télécharger le modèle
+            </button>
+
+            <div class="form-group">
+              <label>Fichier rempli</label>
+              <input type="file" class="form-control-file" accept=".xlsx" (change)="onFichierChange($event)">
+            </div>
+
+            <div class="form-group">
+              <label class="d-block">Mode de restauration</label>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="mode" id="modeAjout" value="AJOUT" [(ngModel)]="mode">
+                <label class="form-check-label" for="modeAjout">Ajout (s'ajoute au stock existant)</label>
+              </div>
+              <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="mode" id="modeRemplacement" value="REMPLACEMENT" [(ngModel)]="mode">
+                <label class="form-check-label" for="modeRemplacement">Remplacement (écrase le stock existant)</label>
+              </div>
+            </div>
+
+            <button type="button" class="btn btn-primary" [disabled]="!fichierSelectionne || chargementApercu" (click)="previsualiser()">
+              {{ chargementApercu ? 'Analyse...' : 'Prévisualiser' }}
+            </button>
+
+            <div class="mt-4" *ngIf="apercu">
+              <div class="alert" [class.alert-danger]="apercu.hasErreurs" [class.alert-success]="!apercu.hasErreurs">
+                {{ apercu.hasErreurs
+                  ? 'Le fichier contient des erreurs - corrigez-le puis reprévisualisez avant de pouvoir appliquer.'
+                  : 'Aucune erreur détectée - vous pouvez appliquer la restauration.' }}
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                  <thead>
+                    <tr>
+                      <th>Ligne</th>
+                      <th>Référence</th>
+                      <th>Boutique</th>
+                      <th>Ancienne qté</th>
+                      <th>Nouvelle qté</th>
+                      <th>Erreur</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let ligne of apercu.lignes" [class.table-danger]="ligne.erreur">
+                      <td>{{ ligne.ligneNo }}</td>
+                      <td>{{ ligne.reference }}</td>
+                      <td>{{ ligne.boutiqueNom }}</td>
+                      <td>{{ ligne.ancienneQuantite ?? '-' }}</td>
+                      <td>{{ ligne.nouvelleQuantite ?? '-' }}</td>
+                      <td class="text-danger">{{ ligne.erreur }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <button type="button" class="btn btn-success" [disabled]="apercu.hasErreurs || applicationEnCours" (click)="confirmerEtAppliquer()">
+                {{ applicationEnCours ? 'Application...' : 'Confirmer et appliquer' }}
+              </button>
+            </div>
+          </ng-container>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</section>

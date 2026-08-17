@@ -243,6 +243,11 @@ export class SidebarComponent implements OnInit {
           icon: 'far fa-circle',
           route: '/security'
         },
+        {
+          title: 'Initialisation Stock',
+          icon: 'far fa-circle',
+          route: '/compagnie/initialisation-stock'
+        },
       ]
     },
     {

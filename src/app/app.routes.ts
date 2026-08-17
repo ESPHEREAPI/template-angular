@@ -75,6 +75,7 @@ import { LicenceComponent } from './bookshoop/compoment/licence/licence.componen
 import { AuditComponent } from './bookshoop/compoment/audit/audit.component';
 import { MonEntrepriseComponent } from './bookshoop/compoment/mon-entreprise/mon-entreprise.component';
 import { OptionEntrepriseComponent } from './bookshoop/compoment/option-entreprise/option-entreprise.component';
+import { StockImportFormatComponent } from './bookshoop/compoment/stock-import-format/stock-import-format.component';
 import { ChangePasswordComponent } from './module-users/change-password/change-password.component';
 import { MesLicencesComponent } from './bookshoop/compoment/mes-licences/mes-licences.component';
 
@@ -652,6 +653,15 @@ export const routes: Routes = [
       {
         path: 'compagnie/option-entreprise',
         component: OptionEntrepriseComponent,
+        canActivate: [RoleGuard],
+        data: {
+          permissions: ['MANAGE_OWN_COMPAGNIE'],
+          permissionCheckMethod: 'any'
+        }
+      },
+      {
+        path: 'compagnie/initialisation-stock',
+        component: StockImportFormatComponent,
         canActivate: [RoleGuard],
         data: {
           permissions: ['MANAGE_OWN_COMPAGNIE'],
