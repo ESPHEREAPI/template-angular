@@ -26,6 +26,11 @@ export interface LigneApercuImportStock {
   // true si ce produit n'existe pas encore : sera cree (avec son point de
   // vente) au lieu d'une simple mise a jour de stock.
   nouveauProduit: boolean;
+  // true si ce produit existe deja au catalogue mais n'a encore aucun point
+  // de vente dans cette boutique precise (catalogue partage entre
+  // boutiques) : un nouveau point de vente sera cree, sans recreer le
+  // produit. Toujours vrai quand nouveauProduit l'est aussi.
+  nouveauPointVente: boolean;
 }
 
 export interface ApercuImportStock {

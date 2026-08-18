@@ -112,7 +112,9 @@
             <p class="text-muted small">
               Une référence absente du catalogue n'est pas bloquante : le produit (et son point de vente dans la
               boutique choisie) sera créé à l'application, marqué <span class="badge badge-info">Nouveau produit</span>
-              dans l'aperçu ci-dessous.
+              dans l'aperçu ci-dessous. Une référence déjà au catalogue mais jamais stockée dans cette boutique
+              (catalogue partagé entre boutiques) n'est pas bloquante non plus : seul un nouveau point de vente est
+              créé, marqué <span class="badge badge-secondary">Nouveau point de vente</span>.
             </p>
 
             <button type="button" class="btn btn-default mb-3" (click)="telechargerModele()">
@@ -160,11 +162,12 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr *ngFor="let ligne of apercu.lignes" [class.table-danger]="ligne.erreur" [class.table-info]="!ligne.erreur && ligne.nouveauProduit">
+                    <tr *ngFor="let ligne of apercu.lignes" [class.table-danger]="ligne.erreur" [class.table-info]="!ligne.erreur && ligne.nouveauPointVente">
                       <td>{{ ligne.ligneNo }}</td>
                       <td>
                         {{ ligne.reference }}
                         <span *ngIf="!ligne.erreur && ligne.nouveauProduit" class="badge badge-info ml-1">Nouveau produit</span>
+                        <span *ngIf="!ligne.erreur && !ligne.nouveauProduit && ligne.nouveauPointVente" class="badge badge-secondary ml-1">Nouveau point de vente</span>
                       </td>
                       <td>{{ ligne.boutiqueNom }}</td>
                       <td>{{ ligne.ancienneQuantite ?? '-' }}</td>
