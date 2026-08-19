@@ -189,9 +189,17 @@ export class StockImportFormatComponent implements OnInit {
     if (!this.fichierSelectionne || !this.apercu || this.apercu.hasErreurs) { return; }
     this.applicationEnCours = true;
     this.stockImportService.appliquer(this.fichierSelectionne, this.boutiqueSelectionneeId, this.mode).subscribe({
-      next: () => {
+      next: (resultat) => {
         this.applicationEnCours = false;
-        this.toastr.success('Restauration de stock appliquée.');
+        if (resultat.lignesEnErreur > 0) {
+          this.toastr.warning(
+            `${resultat.lignesAppliquees} ligne(s) appliquée(s), ${resultat.lignesEnErreur} en échec ` +
+            `(${resultat.referencesEnErreur.slice(0, 10).join(', ')}${resultat.referencesEnErreur.length > 10 ? '…' : ''}).`,
+            'Restauration partiellement appliquée'
+          );
+        } else {
+          this.toastr.success(`Restauration de stock appliquée (${resultat.lignesAppliquees} ligne(s)).`);
+        }
         this.apercu = null;
         this.fichierSelectionne = null;
       },

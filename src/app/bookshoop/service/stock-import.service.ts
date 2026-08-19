@@ -42,11 +42,21 @@ export class StockImportService {
     return this.http.post<ApercuImportStock>(`${this.RESTAURATION_URL}/previsualiser?${params.toString()}`, formData);
   }
 
-  appliquer(fichier: File, boutiqueId: number | null, mode: ModeRestauration): Observable<{ batchId: string }> {
+  appliquer(fichier: File, boutiqueId: number | null, mode: ModeRestauration): Observable<ResultatApplicationStock> {
     const formData = new FormData();
     formData.append('fichier', fichier);
     const params = new URLSearchParams({ mode });
     if (boutiqueId) { params.set('boutiqueId', String(boutiqueId)); }
-    return this.http.post<{ batchId: string }>(`${this.RESTAURATION_URL}/appliquer?${params.toString()}`, formData);
+    return this.http.post<ResultatApplicationStock>(`${this.RESTAURATION_URL}/appliquer?${params.toString()}`, formData);
   }
+}
+
+// Chaque ligne est appliquee independamment (voir RestaurationLigneService
+// cote backend) - un fichier volumineux n'est plus tout-ou-rien au niveau de
+// l'application, seule la previsualisation prealable doit etre sans erreur.
+export interface ResultatApplicationStock {
+  batchId: string;
+  lignesAppliquees: number;
+  lignesEnErreur: number;
+  referencesEnErreur: string[];
 }
