@@ -9,6 +9,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { StatutFactureColor, StatutFactureLibelle } from '../../../enums/ModePaiement';
 import { VersementResponse } from '../../../model/VersementResponse';
 import { Facture } from '../../../model/facture';
+import { FactureItem } from '../../../model/facture-item';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../../auth/auth.service';
@@ -39,6 +40,7 @@ facture?: Facture;
   // Actions en cours
   validating = false;
   cancelling = false;
+  cancellingItemId: number | null = null;
   
   private destroy$ = new Subject<void>();
 
@@ -171,6 +173,51 @@ facture?: Facture;
           },
           error: () => {
             this.cancelling = false;
+          }
+        });
+    }
+  }
+
+  /**
+   * Une ligne peut etre annulee individuellement seulement si : la facture
+   * elle-meme peut encore etre touchee (memes regles que canAnnuler()),
+   * aucun paiement n'a ete enregistre, la ligne n'est pas deja annulee, et
+   * ce n'est pas la derniere ligne active (voir FactureService.annulerLigneFacture
+   * pour la meme verification, faite a nouveau cote serveur).
+   */
+  canAnnulerLigne(item: FactureItem): boolean {
+    if (!this.facture || item.annule) {
+      return false;
+    }
+    if (!this.canAnnuler() || (this.facture.montantPaye || 0) > 0) {
+      return false;
+    }
+    const lignesActives = this.facture.items.filter(i => !i.annule).length;
+    return lignesActives > 1;
+  }
+
+  annulerLigne(item: FactureItem): void {
+    if (!this.facture || !item.id || !this.canAnnulerLigne(item)) {
+      return;
+    }
+
+    const motif = prompt(`Motif d'annulation pour "${item.produitLibelleSnapshot}" (obligatoire):`);
+    if (!motif || motif.trim() === '') {
+      alert('Le motif d\'annulation est obligatoire');
+      return;
+    }
+
+    if (confirm(`Confirmer l'annulation de cet article ? Le stock sera réintégré.`)) {
+      this.cancellingItemId = item.id;
+      this.factureService.annulerLigneFacture(this.factureId, item.id, motif)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: () => {
+            this.cancellingItemId = null;
+            this.loadFacture();
+          },
+          error: () => {
+            this.cancellingItemId = null;
           }
         });
     }

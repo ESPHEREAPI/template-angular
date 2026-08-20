@@ -228,16 +228,21 @@
                         <th class="text-center">Remise (%)</th>
                         <th class="text-right">Montant HT</th>
                         <th class="text-right">Montant TTC</th>
+                        <th class="text-center">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      <tr *ngFor="let item of facture.items; let i = index">
+                      <tr *ngFor="let item of facture.items; let i = index" [class.text-muted]="item.annule">
                         <td>{{ i + 1 }}</td>
                         <td>
-                          <strong>{{ item.produit.libelle }}</strong><br>
+                          <strong [style.text-decoration]="item.annule ? 'line-through' : 'none'">{{ item.produit.libelle }}</strong>
+                          <span *ngIf="item.annule" class="badge badge-secondary ml-1">Annulé</span><br>
                           <small class="text-muted">{{ item.produit.reference }}</small>
                           <div *ngIf="item.description" class="small text-muted">
                             {{ item.description }}
+                          </div>
+                          <div *ngIf="item.annule" class="small text-muted">
+                            Motif : {{ item.motifAnnulationLigne }}
                           </div>
                         </td>
                         <td class="text-center">{{ item.quantite }}</td>
@@ -251,6 +256,14 @@
                         </td>
                         <td class="text-right">{{ formatMontant(item.montantHT) }}</td>
                         <td class="text-right"><strong>{{ formatMontant(item.montantTTC) }}</strong></td>
+                        <td class="text-center">
+                          <button type="button" class="btn btn-outline-danger btn-sm"
+                                  *ngIf="canAnnulerLigne(item)"
+                                  [disabled]="cancellingItemId === item.id"
+                                  (click)="annulerLigne(item)" title="Annuler cet article">
+                            <i class="fas fa-times"></i>
+                          </button>
+                        </td>
                       </tr>
                     </tbody>
                   </table>

@@ -104,6 +104,21 @@ export class FactureService {
   }
 
   /**
+   * Annule une seule ligne d'une facture (le reste de la facture reste
+   * valide) - voir FactureController.annulerLigneFacture.
+   */
+  annulerLigneFacture(factureId: number, itemId: number, motif: string): Observable<FactureResponse> {
+    return this.http.post<FactureResponse>(`${this.apiUrl}/${factureId}/items/${itemId}/annuler`, { motif })
+      .pipe(
+        map(response => {
+          this.toastr.warning('Article annulé', 'Attention');
+          return response;
+        }),
+        catchError(error => this.handleError(error, 'Erreur lors de l\'annulation de l\'article'))
+      );
+  }
+
+  /**
    * Récupère une facture par son ID
    */
   getFacture(id: number): Observable<FactureResponse> {

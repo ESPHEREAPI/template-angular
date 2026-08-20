@@ -27,4 +27,11 @@ export interface FactureItem {
   ordre?: number;
   commentaire?: string;
 
+  // Annulation de ligne (voir FactureService.annulerLigneFacture) - la ligne
+  // reste presente pour l'audit, seuls ces champs indiquent qu'elle a ete
+  // retiree des totaux.
+  annule?: boolean;
+  dateAnnulationLigne?: Date;
+  motifAnnulationLigne?: string;
+  usernameAnnulationLigne?: string;
 }
