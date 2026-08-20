@@ -1,5 +1,5 @@
 import { ApplicationConfig, LOCALE_ID, provideZoneChangeDetection, importProvidersFrom } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withRouterConfig } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { HTTP_INTERCEPTORS, provideHttpClient, withFetch, withInterceptorsFromDi } from '@angular/common/http';
 import { providePrimeNG } from 'primeng/config';
@@ -16,7 +16,13 @@ export const appConfig: ApplicationConfig = {
   providers: [
     // Configuration Angular
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    // paramsInheritanceStrategy 'always' : les routes enfants (storefront/*,
+    // ex. shop/:code/boutique/:boutiqueId) heritent des params du parent
+    // (:code) sans avoir a remonter via route.parent a chaque fois - le
+    // bootstrap standalone (provideRouter) est ce qui charge REELLEMENT le
+    // routeur ici, pas le RouterModule.forRoot(...) de app.routes.ts (mort,
+    // jamais importe depuis que ce projet a migre en standalone).
+    provideRouter(routes, withRouterConfig({ paramsInheritanceStrategy: 'always' })),
     provideHttpClient(withFetch(), withInterceptorsFromDi()),
     { provide: HTTP_INTERCEPTORS, useClass: TokenInterceptor, multi: true },
     { provide: HTTP_INTERCEPTORS, useClass: StorefrontTokenInterceptor, multi: true },
