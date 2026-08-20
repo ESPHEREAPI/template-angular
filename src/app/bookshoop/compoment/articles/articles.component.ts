@@ -45,6 +45,8 @@ export class ArticlesComponent implements OnInit,OnDestroy {
     readonly Math = Math;
 
   selectedArticle: Produit | null = null;
+  photoEnErreur = false;
+  photoCacheBust = 0;
   currentPage = 0;
   //pageSize = 10;
   searchTerm = '';
@@ -181,6 +183,44 @@ console.log(this.searchTerm);
     this.articleForm.patchValue(article);
     this.loadArticleSpecifications(article.id!);
     this.activeTab = 'article';
+    this.photoEnErreur = false;
+    this.photoCacheBust = Date.now();
+  }
+
+  get photoUrl(): string {
+    return this.selectedArticle?.id
+      ? this.articleService.getPhotoUrl(this.selectedArticle.id, this.photoCacheBust)
+      : '';
+  }
+
+  onPhotoSelectionnee(files: FileList | null): void {
+    if (!files || files.length === 0 || !this.selectedArticle?.id) {
+      return;
+    }
+    const file = files[0];
+    this.articleService.uploadPhoto(this.selectedArticle.id, file).subscribe({
+      next: () => {
+        this.photoEnErreur = false;
+        this.photoCacheBust = Date.now();
+        this.toastr.success('Photo televersee avec succes');
+      },
+      error: (err) => {
+        this.toastr.error(err?.error || 'Erreur lors du televersement de la photo');
+      }
+    });
+  }
+
+  supprimerPhoto(): void {
+    if (!this.selectedArticle?.id) {
+      return;
+    }
+    this.articleService.deletePhoto(this.selectedArticle.id).subscribe({
+      next: () => {
+        this.photoEnErreur = true;
+        this.toastr.success('Photo supprimee');
+      },
+      error: () => this.toastr.error('Erreur lors de la suppression de la photo')
+    });
   }
 
   confirmDelete(article: Produit): void {

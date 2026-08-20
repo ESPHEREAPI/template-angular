@@ -39,3 +39,8 @@ export interface ArticlesPage {
   totalPages: number;
   page: number;
 }
+
+export interface CategoriePublique {
+  id: number;
+  libelle: string;
+}

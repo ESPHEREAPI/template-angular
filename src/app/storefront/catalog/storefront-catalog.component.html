@@ -1,36 +1,86 @@
 <div class="sf-title">Catalogue</div>
 
-<div *ngIf="chargement" class="sf-empty">Chargement...</div>
-
-<div *ngIf="!chargement && produits.length === 0" class="sf-empty">
-  Aucun produit disponible dans cette boutique pour le moment.
+<div class="sf-search-bar">
+  <input
+    type="text"
+    class="sf-search-input"
+    placeholder="Rechercher un produit (nom ou reference)..."
+    [ngModel]="searchTerm"
+    (ngModelChange)="onRecherche($event)"
+  />
 </div>
 
-<div class="sf-grid" *ngIf="!chargement && produits.length > 0">
-  <div class="sf-product" *ngFor="let produit of produits">
-    <div class="sf-product-name">{{ produit.libelle }}</div>
-    <div class="sf-product-ref">Ref. {{ produit.reference }}</div>
-    <div class="sf-price">{{ produit.prixVenteNet | number: '1.0-0' }} FCFA</div>
-    <div class="sf-stock" [class.faible]="produit.quantiteDisponible <= 5">
-      {{ produit.quantiteDisponible > 0 ? produit.quantiteDisponible + ' en stock' : 'Rupture' }}
+<div class="sf-catalog-layout">
+  <div class="sf-catalog-main">
+    <div *ngIf="chargement" class="sf-empty">Chargement...</div>
+
+    <div *ngIf="!chargement && produits.length === 0" class="sf-empty">
+      Aucun produit ne correspond a votre recherche.
     </div>
-    <button
-      type="button"
-      class="sf-btn"
-      [disabled]="produit.quantiteDisponible <= 0"
-      (click)="ajouterAuPanier(produit)"
-    >
-      {{ ajoutes.has(produit.produitId) ? 'Ajoute !' : 'Ajouter au panier' }}
-    </button>
-  </div>
-</div>
 
-<div *ngIf="totalPages > 1" style="display:flex; justify-content:center; gap:12px; margin-top:24px;">
-  <button type="button" class="sf-btn sf-btn-outline" [disabled]="page === 0" (click)="pagePrecedente()">
-    Precedent
-  </button>
-  <span>Page {{ page + 1 }} / {{ totalPages }}</span>
-  <button type="button" class="sf-btn sf-btn-outline" [disabled]="page + 1 >= totalPages" (click)="pageSuivante()">
-    Suivant
-  </button>
+    <div class="sf-grid" *ngIf="!chargement && produits.length > 0">
+      <div class="sf-product" *ngFor="let produit of produits">
+        <img
+          *ngIf="!photosEnErreur.has(produit.produitId)"
+          class="sf-product-photo"
+          [src]="photoUrl(produit)"
+          (error)="onPhotoErreur(produit.produitId)"
+          alt="{{ produit.libelle }}"
+        />
+        <div *ngIf="photosEnErreur.has(produit.produitId)" class="sf-product-photo sf-product-photo-placeholder">
+          <span>📦</span>
+        </div>
+        <div class="sf-product-name">{{ produit.libelle }}</div>
+        <div class="sf-product-ref">Ref. {{ produit.reference }}</div>
+        <div class="sf-price">{{ produit.prixVenteNet | number: '1.0-0' }} FCFA</div>
+        <div class="sf-stock" [class.faible]="produit.quantiteDisponible <= 5">
+          {{ produit.quantiteDisponible > 0 ? produit.quantiteDisponible + ' en stock' : 'Rupture' }}
+        </div>
+        <button
+          type="button"
+          class="sf-btn"
+          [disabled]="produit.quantiteDisponible <= 0"
+          (click)="ajouterAuPanier(produit)"
+        >
+          {{ ajoutes.has(produit.produitId) ? 'Ajoute !' : 'Ajouter au panier' }}
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="totalPages > 1" style="display:flex; justify-content:center; gap:12px; margin-top:24px;">
+      <button type="button" class="sf-btn sf-btn-outline" [disabled]="page === 0" (click)="pagePrecedente()">
+        Precedent
+      </button>
+      <span>Page {{ page + 1 }} / {{ totalPages }}</span>
+      <button type="button" class="sf-btn sf-btn-outline" [disabled]="page + 1 >= totalPages" (click)="pageSuivante()">
+        Suivant
+      </button>
+    </div>
+  </div>
+
+  <aside class="sf-catalog-sidebar" *ngIf="categories.length > 0">
+    <div class="sf-title" style="font-size:1.1rem;">Categories</div>
+    <ul class="sf-category-list">
+      <li>
+        <button
+          type="button"
+          class="sf-category-item"
+          [class.active]="categorieSelectionnee === null"
+          (click)="selectionnerCategorie(null)"
+        >
+          Toutes les categories
+        </button>
+      </li>
+      <li *ngFor="let categorie of categories">
+        <button
+          type="button"
+          class="sf-category-item"
+          [class.active]="categorieSelectionnee === categorie.id"
+          (click)="selectionnerCategorie(categorie.id)"
+        >
+          {{ categorie.libelle }}
+        </button>
+      </li>
+    </ul>
+  </aside>
 </div>

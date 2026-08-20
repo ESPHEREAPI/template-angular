@@ -135,11 +135,40 @@
                     <div class="form-group">
                       <label>Supprimer:</label>
                       <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input" id="deletes" 
+                        <input type="checkbox" class="custom-control-input" id="deletes"
                                formControlName="deletes">
                         <label class="custom-control-label" for="deletes">
                           {{ articleForm.get('deletes')?.value ? 'Oui' : 'Non' }}
                         </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="row" *ngIf="isEditMode && selectedArticle">
+                  <div class="col-md-6">
+                    <div class="form-group">
+                      <label>Photo du produit:</label>
+                      <div class="d-flex align-items-center">
+                        <img *ngIf="!photoEnErreur" [src]="photoUrl" alt="Photo produit"
+                             (error)="photoEnErreur = true"
+                             style="width:100px; height:75px; object-fit:cover; border-radius:6px; margin-right:12px; background:#f0f1f5;">
+                        <div *ngIf="photoEnErreur" class="text-center text-muted"
+                             style="width:100px; height:75px; border-radius:6px; margin-right:12px; background:#f0f1f5; display:flex; align-items:center; justify-content:center;">
+                          <i class="fas fa-image"></i>
+                        </div>
+                        <div>
+                          <input type="file" accept="image/jpeg,image/png,image/webp" #photoInput
+                                 (change)="onPhotoSelectionnee(photoInput.files)" style="display:none;">
+                          <button type="button" class="btn btn-sm btn-outline-primary mr-1"
+                                  (click)="photoInput.click()">
+                            <i class="fas fa-upload"></i> Televerser
+                          </button>
+                          <button type="button" class="btn btn-sm btn-outline-danger" *ngIf="!photoEnErreur"
+                                  (click)="supprimerPhoto()">
+                            <i class="fas fa-trash"></i> Supprimer
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

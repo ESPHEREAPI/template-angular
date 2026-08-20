@@ -74,6 +74,23 @@ export class ArticleService {
     return this.http.delete<void>(`${this.apiUrl}/articles/${id}`);
   }
 
+  // Photo produit (voir ProduitPhoto cote backend - stockage BLOB, distinct
+  // du champ Produit.photoName qui n'est qu'un ancien nom de fichier).
+  uploadPhoto(produitId: number, file: File): Observable<void> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return this.http.post<void>(`${this.apiUrl}/articles/${produitId}/photo`, formData);
+  }
+
+  getPhotoUrl(produitId: number, cacheBust?: number): string {
+    const suffix = cacheBust ? `?t=${cacheBust}` : '';
+    return `${this.apiUrl}/articles/${produitId}/photo${suffix}`;
+  }
+
+  deletePhoto(produitId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/articles/${produitId}/photo`);
+  }
+
   // Categories
   getCategories(): Observable<Categorie[]> {
     return this.http.get<Categorie[]>(`${this.apiUrl}/categories`);

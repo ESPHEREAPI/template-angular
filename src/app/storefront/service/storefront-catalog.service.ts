@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ArticlesPage, CompagniePublique } from '../model/storefront-catalog';
+import { ArticlesPage, CategoriePublique, CompagniePublique } from '../model/storefront-catalog';
 
 /**
  * Catalogue public par compagnie - consomme EcomPublicController
@@ -18,9 +18,29 @@ export class StorefrontCatalogService {
     return this.http.get<CompagniePublique>(`${this.apiUrl}/${code}`);
   }
 
-  getProduits(code: string, boutiqueId: number, page = 0, size = 20): Observable<ArticlesPage> {
-    return this.http.get<ArticlesPage>(`${this.apiUrl}/${code}/boutiques/${boutiqueId}/produits`, {
-      params: { page: String(page), size: String(size) }
-    });
+  getProduits(
+    code: string,
+    boutiqueId: number,
+    page = 0,
+    size = 20,
+    categorieId?: number | null,
+    search?: string | null
+  ): Observable<ArticlesPage> {
+    const params: Record<string, string> = { page: String(page), size: String(size) };
+    if (categorieId != null) {
+      params['categorieId'] = String(categorieId);
+    }
+    if (search) {
+      params['search'] = search;
+    }
+    return this.http.get<ArticlesPage>(`${this.apiUrl}/${code}/boutiques/${boutiqueId}/produits`, { params });
+  }
+
+  getCategories(code: string, boutiqueId: number): Observable<CategoriePublique[]> {
+    return this.http.get<CategoriePublique[]>(`${this.apiUrl}/${code}/boutiques/${boutiqueId}/categories`);
+  }
+
+  photoUrl(code: string, produitId: number): string {
+    return `${this.apiUrl}/${code}/produits/${produitId}/photo`;
   }
 }
