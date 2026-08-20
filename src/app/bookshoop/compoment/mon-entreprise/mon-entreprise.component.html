@@ -92,6 +92,34 @@
           </div>
 
           <hr>
+          <h5>Boutique en ligne</h5>
+          <div class="row">
+            <div class="col-md-4">
+              <div class="form-group">
+                <label for="code">Identifiant de la boutique en ligne</label>
+                <input type="text" class="form-control" id="code" [(ngModel)]="compagnie.code" name="code"
+                       placeholder="ex: ma-boutique">
+                <small class="form-text text-muted">
+                  Lettres, chiffres et tirets uniquement. Modifiable a tout moment (l'ancien lien cesse de fonctionner).
+                </small>
+              </div>
+            </div>
+            <div class="col-md-8" *ngIf="compagnie.code">
+              <div class="form-group">
+                <label>Lien de votre boutique</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" readonly [value]="lienBoutique">
+                  <div class="input-group-append">
+                    <a class="btn btn-outline-secondary" [href]="lienBoutique" target="_blank">
+                      <i class="fas fa-external-link-alt"></i> Ouvrir
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <hr>
           <h5>Mentions légales (factures)</h5>
           <div class="row">
             <div class="col-md-3">

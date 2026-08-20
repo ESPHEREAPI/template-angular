@@ -3,6 +3,11 @@ import { TypeCommerce } from "./type-commerce";
 export interface Compagnie {
   id?: number;
   nom: string;
+  // Identifiant de l'URL publique de la boutique en ligne (voir
+  // /shop/:code cote storefront) - choisi par l'admin de compagnie,
+  // unique tous compagnies confondues (voir CompagnieService.genererCodeUnique
+  // cote backend, qui ajoute un suffixe -2/-3... en cas de collision).
+  code?: string;
   typeCommerce?: TypeCommerce;
   actif?: boolean;
   dateCreation?: Date;

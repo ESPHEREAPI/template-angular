@@ -19,6 +19,10 @@ export class MonEntrepriseComponent implements OnInit {
 
   constructor(private compagnieService: CompagnieService, private toastr: ToastrService) {}
 
+  get lienBoutique(): string {
+    return `${window.location.origin}/shop/${this.compagnie?.code ?? ''}`;
+  }
+
   ngOnInit(): void {
     this.load();
   }
