@@ -10,6 +10,7 @@ import { provideAnimations } from '@angular/platform-browser/animations';
 
 import { routes } from './app.routes';
 import { TokenInterceptor } from './auth/token-interceptor';
+import { StorefrontTokenInterceptor } from './storefront/service/storefront-token-interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -18,6 +19,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideHttpClient(withFetch(), withInterceptorsFromDi()),
     { provide: HTTP_INTERCEPTORS, useClass: TokenInterceptor, multi: true },
+    { provide: HTTP_INTERCEPTORS, useClass: StorefrontTokenInterceptor, multi: true },
     provideAnimationsAsync(),
     provideAnimations(),
 

@@ -79,6 +79,14 @@ import { OptionEntrepriseComponent } from './bookshoop/compoment/option-entrepri
 import { StockImportFormatComponent } from './bookshoop/compoment/stock-import-format/stock-import-format.component';
 import { ChangePasswordComponent } from './module-users/change-password/change-password.component';
 import { MesLicencesComponent } from './bookshoop/compoment/mes-licences/mes-licences.component';
+import { StorefrontLayoutComponent } from './storefront/layout/storefront-layout.component';
+import { StorefrontHomeComponent } from './storefront/home/storefront-home.component';
+import { StorefrontCatalogComponent } from './storefront/catalog/storefront-catalog.component';
+import { StorefrontCartComponent } from './storefront/cart/storefront-cart.component';
+import { StorefrontCheckoutComponent } from './storefront/checkout/storefront-checkout.component';
+import { StorefrontLoginComponent } from './storefront/login/storefront-login.component';
+import { StorefrontRegisterComponent } from './storefront/register/storefront-register.component';
+import { StorefrontOrdersComponent } from './storefront/orders/storefront-orders.component';
 
 export const routes: Routes = [
   // Routes publiques (sans guards)
@@ -108,6 +116,25 @@ export const routes: Routes = [
   {
     path: 'liste-order',
     component: ListOrderComponent
+  },
+
+  // ========== SITE PUBLIC E-COMMERCE PAR COMPAGNIE ==========
+  // Entierement hors de l'arbre AuthGuard : un visiteur anonyme doit pouvoir
+  // parcourir le catalogue et commander sans session staff. Voir
+  // EcomPublicController/EcomCheckoutController/EcomAuthController (backend)
+  // et StorefrontTokenInterceptor (JWT client distinct du JWT staff).
+  {
+    path: 'shop/:code',
+    component: StorefrontLayoutComponent,
+    children: [
+      { path: '', component: StorefrontHomeComponent },
+      { path: 'boutique/:boutiqueId', component: StorefrontCatalogComponent },
+      { path: 'cart', component: StorefrontCartComponent },
+      { path: 'checkout', component: StorefrontCheckoutComponent },
+      { path: 'login', component: StorefrontLoginComponent },
+      { path: 'register', component: StorefrontRegisterComponent },
+      { path: 'orders', component: StorefrontOrdersComponent }
+    ]
   },
 
   // Page 404
@@ -803,7 +830,10 @@ export const routes: Routes = [
     enableTracing: false, // Mettre à true pour déboguer
     scrollPositionRestoration: 'top',
     anchorScrolling: 'enabled',
-    onSameUrlNavigation: 'reload'
+    onSameUrlNavigation: 'reload',
+    // 'always' : les routes enfants (ex. storefront/*) heritent des params
+    // du parent (:code) sans avoir a remonter via route.parent a chaque fois.
+    paramsInheritanceStrategy: 'always'
   })],
   exports: [RouterModule]
 })

@@ -1,0 +1,25 @@
+<div *ngIf="chargement" class="sf-empty">Chargement...</div>
+
+<div *ngIf="erreur" class="sf-empty">
+  Cette boutique n'est pas disponible.
+</div>
+
+<div *ngIf="compagnie && !chargement" class="sf-card">
+  <div class="sf-title">{{ compagnie.nom }}</div>
+
+  <p *ngIf="compagnie.boutiques.length === 0" class="sf-empty">
+    Aucune boutique n'est encore ouverte en ligne pour cette compagnie.
+  </p>
+
+  <div *ngIf="compagnie.boutiques.length > 1" class="sf-boutique-list">
+    <p>Choisissez une boutique :</p>
+    <a
+      *ngFor="let boutique of compagnie.boutiques"
+      class="sf-boutique-item"
+      [routerLink]="['/shop', code, 'boutique', boutique.id]"
+    >
+      <span>{{ boutique.nom }}</span>
+      <span *ngIf="boutique.quartier">{{ boutique.quartier }}</span>
+    </a>
+  </div>
+</div>

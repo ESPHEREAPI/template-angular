@@ -1,0 +1,53 @@
+<div class="sf-title">Finaliser la commande</div>
+
+<div class="sf-card" *ngIf="confirmation">
+  <p class="sf-success">
+    Commande {{ confirmation.numeroDevis }} enregistree ! Elle sera traitee par la boutique prochainement.
+  </p>
+  <a class="sf-btn" [routerLink]="['/shop', code]">Retour a la boutique</a>
+</div>
+
+<div class="sf-card" *ngIf="!confirmation && cart.items.length === 0">
+  <p class="sf-empty">Votre panier est vide.</p>
+  <a class="sf-btn" [routerLink]="['/shop', code]">Voir le catalogue</a>
+</div>
+
+<div class="sf-card" *ngIf="!confirmation && cart.items.length > 0">
+  <div *ngFor="let item of cart.items" style="display:flex; justify-content:space-between; padding:6px 0;">
+    <span>{{ item.libelle }} &times; {{ item.quantite }}</span>
+    <span>{{ item.prixUnitaire * item.quantite | number: '1.0-0' }} FCFA</span>
+  </div>
+  <div style="font-weight:700; text-align:right; margin:12px 0 20px; padding-top:12px; border-top:1px solid #eee;">
+    Total : {{ cart.total | number: '1.0-0' }} FCFA
+  </div>
+
+  <ng-container *ngIf="estInvite; else infoConnecte">
+    <p>Vous commandez en tant qu'invite. <a [routerLink]="['/shop', code, 'login']">Se connecter</a> pour retrouver vos commandes plus tard.</p>
+
+    <div class="sf-form-group">
+      <label for="guestNom">Nom complet *</label>
+      <input id="guestNom" type="text" [(ngModel)]="guestNom" name="guestNom" />
+    </div>
+    <div class="sf-form-group">
+      <label for="guestTelephone">Telephone *</label>
+      <input id="guestTelephone" type="tel" [(ngModel)]="guestTelephone" name="guestTelephone" />
+    </div>
+    <div class="sf-form-group">
+      <label for="guestEmail">Email (optionnel)</label>
+      <input id="guestEmail" type="email" [(ngModel)]="guestEmail" name="guestEmail" />
+    </div>
+    <div class="sf-form-group">
+      <label for="guestAdresse">Adresse de livraison (optionnel)</label>
+      <textarea id="guestAdresse" [(ngModel)]="guestAdresse" name="guestAdresse" rows="2"></textarea>
+    </div>
+  </ng-container>
+  <ng-template #infoConnecte>
+    <p>Commande liee a votre compte : <strong>{{ storefrontAuth.currentSession?.nom }}</strong></p>
+  </ng-template>
+
+  <p class="sf-error" *ngIf="erreur">{{ erreur }}</p>
+
+  <button type="button" class="sf-btn" [disabled]="!formulaireValide || envoiEnCours" (click)="confirmer()">
+    {{ envoiEnCours ? 'Envoi...' : 'Confirmer la commande' }}
+  </button>
+</div>

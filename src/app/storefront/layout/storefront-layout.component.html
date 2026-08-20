@@ -1,0 +1,27 @@
+<div class="sf-shell">
+  <header class="sf-header">
+    <a class="sf-brand" [routerLink]="['/shop', code]">🛍️ Boutique en ligne</a>
+    <nav class="sf-nav">
+      <a [routerLink]="['/shop', code, 'cart']" class="sf-nav-link">
+        Panier
+        <span class="sf-badge" *ngIf="(cart.items$ | async)?.length">{{ cart.nombreArticles }}</span>
+      </a>
+      <ng-container *ngIf="storefrontAuth.session$ | async as session; else notLoggedIn">
+        <a [routerLink]="['/shop', code, 'orders']" class="sf-nav-link">Mes commandes</a>
+        <span class="sf-nav-link">{{ session.nom }}</span>
+        <button type="button" class="sf-btn-link" (click)="deconnexion()">Deconnexion</button>
+      </ng-container>
+      <ng-template #notLoggedIn>
+        <a [routerLink]="['/shop', code, 'login']" class="sf-nav-link">Connexion</a>
+      </ng-template>
+    </nav>
+  </header>
+
+  <main class="sf-main">
+    <router-outlet></router-outlet>
+  </main>
+
+  <footer class="sf-footer">
+    <small>Propulse par EasyCom-Pro</small>
+  </footer>
+</div>

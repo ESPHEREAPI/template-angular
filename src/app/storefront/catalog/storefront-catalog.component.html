@@ -1,0 +1,36 @@
+<div class="sf-title">Catalogue</div>
+
+<div *ngIf="chargement" class="sf-empty">Chargement...</div>
+
+<div *ngIf="!chargement && produits.length === 0" class="sf-empty">
+  Aucun produit disponible dans cette boutique pour le moment.
+</div>
+
+<div class="sf-grid" *ngIf="!chargement && produits.length > 0">
+  <div class="sf-product" *ngFor="let produit of produits">
+    <div class="sf-product-name">{{ produit.libelle }}</div>
+    <div class="sf-product-ref">Ref. {{ produit.reference }}</div>
+    <div class="sf-price">{{ produit.prixVenteNet | number: '1.0-0' }} FCFA</div>
+    <div class="sf-stock" [class.faible]="produit.quantiteDisponible <= 5">
+      {{ produit.quantiteDisponible > 0 ? produit.quantiteDisponible + ' en stock' : 'Rupture' }}
+    </div>
+    <button
+      type="button"
+      class="sf-btn"
+      [disabled]="produit.quantiteDisponible <= 0"
+      (click)="ajouterAuPanier(produit)"
+    >
+      {{ ajoutes.has(produit.produitId) ? 'Ajoute !' : 'Ajouter au panier' }}
+    </button>
+  </div>
+</div>
+
+<div *ngIf="totalPages > 1" style="display:flex; justify-content:center; gap:12px; margin-top:24px;">
+  <button type="button" class="sf-btn sf-btn-outline" [disabled]="page === 0" (click)="pagePrecedente()">
+    Precedent
+  </button>
+  <span>Page {{ page + 1 }} / {{ totalPages }}</span>
+  <button type="button" class="sf-btn sf-btn-outline" [disabled]="page + 1 >= totalPages" (click)="pageSuivante()">
+    Suivant
+  </button>
+</div>

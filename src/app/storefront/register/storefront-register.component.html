@@ -1,0 +1,32 @@
+<div class="sf-title">Creer un compte</div>
+
+<div class="sf-card" style="max-width:400px;">
+  <form (ngSubmit)="creerCompte()">
+    <div class="sf-form-group">
+      <label for="nom">Nom complet</label>
+      <input id="nom" type="text" [(ngModel)]="nom" name="nom" required />
+    </div>
+    <div class="sf-form-group">
+      <label for="email">Email</label>
+      <input id="email" type="email" [(ngModel)]="email" name="email" required />
+    </div>
+    <div class="sf-form-group">
+      <label for="telephone">Telephone</label>
+      <input id="telephone" type="tel" [(ngModel)]="telephone" name="telephone" />
+    </div>
+    <div class="sf-form-group">
+      <label for="password">Mot de passe</label>
+      <input id="password" type="password" [(ngModel)]="password" name="password" required />
+    </div>
+
+    <p class="sf-error" *ngIf="erreur">{{ erreur }}</p>
+
+    <button type="submit" class="sf-btn" [disabled]="envoiEnCours">
+      {{ envoiEnCours ? 'Creation...' : 'Creer mon compte' }}
+    </button>
+  </form>
+
+  <p style="margin-top:16px;">
+    Deja un compte ? <a [routerLink]="['/shop', code, 'login']">Se connecter</a>
+  </p>
+</div>

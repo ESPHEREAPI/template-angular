@@ -13,6 +13,15 @@ export class TokenInterceptor implements HttpInterceptor{
   constructor(private authService: AuthService, private router: Router, private toastr: ToastrService) { }
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+    // Le site public e-commerce (/e-com/compagnie/**) a son propre token
+    // (client, pas staff) et son propre intercepteur - voir
+    // StorefrontTokenInterceptor. Ne jamais y attacher le token staff, ni
+    // rediriger vers /login sur un 401 la-bas (ce serait la mauvaise page
+    // de connexion pour un visiteur).
+    if (request.url.includes('/e-com/compagnie/')) {
+      return next.handle(request);
+    }
+
     // Ajouter le token d'authentification si l'utilisateur est connecté
     const currentUser = this.authService.currentUserValue;
     if (currentUser && currentUser.token) {
