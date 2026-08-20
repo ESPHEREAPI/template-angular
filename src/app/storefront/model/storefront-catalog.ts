@@ -27,6 +27,10 @@ export interface ArticlePublic {
   categorieLibelle: string | null;
   prixVenteNet: number;
   prixVenteTTC: number;
+  // Prix reellement facture (identique a prixVenteNet hors promotion active) -
+  // toujours utiliser celui-ci pour l'affichage/le panier, jamais prixVenteNet
+  // directement (voir PrixArticles.getPrixEffectif cote backend).
+  prixEffectif: number;
   remise: number;
   typePromotion: string;
   promotionActive: boolean;

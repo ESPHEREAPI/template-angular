@@ -1,6 +1,9 @@
 <div class="sf-shell">
   <header class="sf-header">
-    <a class="sf-brand" [routerLink]="['/shop', code]">🛍️ Boutique en ligne</a>
+    <a class="sf-brand" [routerLink]="['/shop', code]">
+      🛍️ Boutique en ligne
+      <span *ngIf="boutiqueActuelle" class="sf-brand-boutique"> — {{ boutiqueActuelle.nom }}</span>
+    </a>
     <nav class="sf-nav">
       <a [routerLink]="['/shop', code, 'cart']" class="sf-nav-link">
         Panier

@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Subject, takeUntil, forkJoin, debounceTime, distinctUntilChanged } from 'rxjs';
+import { Subject, takeUntil, forkJoin, debounceTime, distinctUntilChanged, finalize } from 'rxjs';
 import { CommonModule } from '@angular/common';
 
 import { PrixArticles } from '../../model/prix-articles';
@@ -126,7 +126,14 @@ export class PointVentesComponent implements OnInit, OnDestroy {
       villes: this.pointVenteService.getAllVilles()
     });
 
-    requests$.pipe(takeUntil(this.destroy$)).subscribe({
+    requests$.pipe(
+      takeUntil(this.destroy$),
+      // "complete" ne se declenche jamais apres "error" sur un forkJoin - si
+      // loading n'etait remis a false qu'ici, une seule requete en echec
+      // laissait le spinner tourner indefiniment malgre le bandeau d'erreur
+      // affiche juste au-dessus.
+      finalize(() => this.loading = false)
+    ).subscribe({
       next: ({ prixArticles, depots, boutiques, villes }) => {
         this.listePrixArticles = prixArticles || [];
         this.filteredPrixArticles = [...this.listePrixArticles];
@@ -138,9 +145,6 @@ export class PointVentesComponent implements OnInit, OnDestroy {
       error: (error) => {
         console.error('Erreur lors du chargement des données :', error);
         this.showMessage('error', 'Erreur', 'Impossible de charger les données');
-      },
-      complete: () => {
-        this.loading = false;
       }
     });
   }

@@ -15,6 +15,11 @@ export interface Devis {
   statut: 'EN_ATTENTE' | 'ACCEPTE' | 'REFUSE' | 'CONVERTI' | 'EXPIRE' | 'ANNULE';
   remarques?: string;
   facture?: Facture;
+  // Champs plats renvoyes par DevisDTO une fois converti (voir DevisMapper) -
+  // distincts du champ "facture" ci-dessus qui reflete la forme de l'entite
+  // JPA, pas celle du DTO reellement recu du backend.
+  factureId?: number;
+  factureNumero?: string;
   dateExpiration: Date;
   tva_applicable?: boolean;
   taux?: number;

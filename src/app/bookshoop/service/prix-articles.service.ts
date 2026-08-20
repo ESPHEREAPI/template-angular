@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { PaginationResponse } from '../model/pagination-response';
-import { PrixArticles } from '../model/prix-articles';
+import { PrixArticles, PromotionUpdate } from '../model/prix-articles';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../auth/auth.service';
 import { Boutique } from '../model/boutique';
@@ -65,5 +65,11 @@ export class PrixArticlesService {
   getPrixArticlesByFilters(filters: any): Observable<PrixArticles[]> {
     let boutiqueid =this.getBoutiqueUser();
     return this.http.post<PrixArticles[]>(`${this.apiUrl}/prix-articles/filter/${boutiqueid}`, filters);
+  }
+
+  // Modifier le prix et/ou activer un solde/promo sur une ligne PrixArticles
+  // (un produit dans une boutique) - voir CommandeController.definirPromotion.
+  definirPromotion(id: number, payload: PromotionUpdate): Observable<PrixArticles> {
+    return this.http.put<PrixArticles>(`${this.apiUrl}/prix-articles/${id}/promotion`, payload);
   }
 }

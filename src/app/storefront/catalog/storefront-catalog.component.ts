@@ -115,7 +115,7 @@ export class StorefrontCatalogComponent implements OnInit, OnDestroy {
         produitId: produit.produitId,
         reference: produit.reference,
         libelle: produit.libelle,
-        prixUnitaire: produit.prixVenteNet,
+        prixUnitaire: produit.prixEffectif,
         quantite: 1,
         stockDisponible: produit.quantiteDisponible
       },

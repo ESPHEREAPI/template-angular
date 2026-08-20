@@ -2,7 +2,7 @@ import { ChangeDetectorRef, Component, OnChanges, OnDestroy, OnInit } from '@ang
 import { AbstractControl, FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { debounceTime, delay, distinctUntilChanged, finalize, Subject, take, takeUntil } from 'rxjs';
 import { Commande } from '../../model/commande';
-import { PrixArticles } from '../../model/prix-articles';
+import { PrixArticles, PromotionUpdate } from '../../model/prix-articles';
 import { Produit } from '../../model/produit';
 import { Categorie } from '../../model/categorie';
 import { Depot } from '../../model/depot';
@@ -91,6 +91,12 @@ export class CommandComponent implements OnInit, OnDestroy {
   // Search
   searchTerm = '';
   filteredPrixArticles: PrixArticles[] = [];
+
+  // Modal "Modifier le prix / Solde" (voir prixArticlesService.definirPromotion)
+  showPrixModal = false;
+  prixEnEdition: PrixArticles | null = null;
+  prixModalForm: PromotionUpdate = {};
+  enregistrementPrixEnCours = false;
 
   constructor(
     private fb: FormBuilder,
@@ -795,6 +801,59 @@ private loadPricesAndAddToCommand(produit: Produit): void {
   closeModal(): void {
     this.showProduitModal = false;
     this.resetProduitForm();
+  }
+
+  // ==================== PRIX / SOLDE ====================
+
+  ouvrirModalPrix(item: PrixArticles): void {
+    this.prixEnEdition = item;
+    this.prixModalForm = {
+      prixVenteNet: item.prixVenteNet,
+      remise: item.remise ?? 0,
+      typePromotion: item.typePromotion ?? 'AUCUNE',
+      dateDebutPromo: item.dateDebutPromo ? item.dateDebutPromo.substring(0, 10) : null,
+      dateFinPromo: item.dateFinPromo ? item.dateFinPromo.substring(0, 10) : null
+    };
+    this.showPrixModal = true;
+  }
+
+  fermerModalPrix(): void {
+    this.showPrixModal = false;
+    this.prixEnEdition = null;
+  }
+
+  enregistrerPrix(): void {
+    if (!this.prixEnEdition?.id) {
+      return;
+    }
+    this.enregistrementPrixEnCours = true;
+    this.prixArticlesService.definirPromotion(this.prixEnEdition.id, this.prixModalForm)
+      .pipe(finalize(() => this.enregistrementPrixEnCours = false))
+      .subscribe({
+        next: (updated) => {
+          const index = this.filteredPrixArticles.findIndex(p => p.id === updated.id);
+          if (index !== -1) {
+            this.filteredPrixArticles[index] = updated;
+          }
+          this.showAlert('Prix mis a jour avec succes', 'success');
+          this.fermerModalPrix();
+        },
+        error: () => this.showAlert('Erreur lors de la mise a jour du prix', 'error')
+      });
+  }
+
+  estEnSolde(item: PrixArticles): boolean {
+    if (!item.typePromotion || item.typePromotion === 'AUCUNE') {
+      return false;
+    }
+    const maintenant = new Date();
+    if (item.dateDebutPromo && new Date(item.dateDebutPromo) > maintenant) {
+      return false;
+    }
+    if (item.dateFinPromo && new Date(item.dateFinPromo) < maintenant) {
+      return false;
+    }
+    return true;
   }
 
   // ==================== PAGINATION ====================

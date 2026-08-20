@@ -30,6 +30,12 @@
   font-size: 1.15rem;
 }
 
+.sf-brand-boutique {
+  font-weight: 400;
+  color: #dfe3ef;
+  font-size: 0.95rem;
+}
+
 .sf-nav {
   display: flex;
   align-items: center;
@@ -217,6 +223,35 @@
   font-weight: 700;
   color: #1f2a44;
   font-size: 1.05rem;
+}
+
+.sf-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sf-price-old {
+  color: #999;
+  text-decoration: line-through;
+  font-size: 0.85rem;
+}
+
+.sf-price-solde {
+  color: #c0392b;
+}
+
+.sf-badge-solde {
+  display: inline-block;
+  align-self: flex-start;
+  background: #c0392b;
+  color: #fff;
+  border-radius: 4px;
+  padding: 1px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
 .sf-stock {

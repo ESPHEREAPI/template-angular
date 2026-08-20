@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { ToastrService } from 'ngx-toastr';
 import { finalize } from 'rxjs';
 
@@ -24,7 +25,7 @@ import { Devis } from '../../model/devis';
 @Component({
   selector: 'app-commandes-en-ligne',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './commandes-en-ligne.component.html',
   styleUrl: './commandes-en-ligne.component.css'
 })

@@ -265,12 +265,16 @@
               <th>TVA</th>
               <th>Prix vente net</th>
               <th>Tarif TTC</th>
+              <th class="text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of filteredPrixArticles" class="clickable-row">
               <td><span class="badge badge-info">{{ item.pointVente.produit.reference }}</span></td>
-              <td>{{ item.pointVente.produit.libelle }}</td>
+              <td>
+                {{ item.pointVente.produit.libelle }}
+                <span *ngIf="estEnSolde(item)" class="badge badge-danger ml-1">Solde</span>
+              </td>
               <td>{{ (item.pointVente.entreeProduit || 0) + (item.pointVente.stockInitial || 0) }}</td>
               <td>
                 <span class="badge"
@@ -285,9 +289,15 @@
               <td>{{ item.tva }}%</td>
               <td><strong>{{ item.prixVenteNet | currency:'XAF':'symbol':'1.2-2':'fr' }}</strong></td>
               <td>{{ item.prixVenteTTC | currency:'XAF':'symbol':'1.2-2':'fr' }}</td>
+              <td class="text-center">
+                <button type="button" class="btn btn-outline-primary btn-sm" (click)="ouvrirModalPrix(item)"
+                        title="Modifier le prix / mettre en solde">
+                  <i class="fas fa-tag"></i>
+                </button>
+              </td>
             </tr>
             <tr *ngIf="filteredPrixArticles.length === 0">
-              <td colspan="11" class="text-center text-muted">
+              <td colspan="12" class="text-center text-muted">
                 <i class="fas fa-inbox fa-3x mb-3"></i>
                 <p>Aucun article trouvé</p>
               </td>
@@ -598,6 +608,77 @@
     </div>
   </div>
 </div>
+
+<!-- Modal Modifier le prix / Solde -->
+<div class="modal fade" [class.show]="showPrixModal"
+     [style.display]="showPrixModal ? 'block' : 'none'"
+     tabindex="-1" role="dialog" *ngIf="showPrixModal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content" *ngIf="prixEnEdition">
+      <div class="modal-header bg-primary">
+        <h4 class="modal-title">
+          <i class="fas fa-tag"></i> Prix - {{ prixEnEdition.pointVente.produit.libelle }}
+        </h4>
+        <button type="button" class="close text-white" (click)="fermerModalPrix()">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Prix de vente net</label>
+          <div class="input-group">
+            <input type="number" class="form-control" [(ngModel)]="prixModalForm.prixVenteNet" min="0" step="1">
+            <div class="input-group-append">
+              <span class="input-group-text">XAF</span>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Type de promotion</label>
+          <select class="form-control" [(ngModel)]="prixModalForm.typePromotion">
+            <option value="AUCUNE">Aucune</option>
+            <option value="PROMOTION">Promotion</option>
+            <option value="SOLDE">Solde</option>
+          </select>
+        </div>
+        <div class="form-group" *ngIf="prixModalForm.typePromotion !== 'AUCUNE'">
+          <label>Remise (%)</label>
+          <input type="number" class="form-control" [(ngModel)]="prixModalForm.remise" min="0" max="100" step="1">
+          <small class="form-text text-muted" *ngIf="prixModalForm.prixVenteNet && prixModalForm.remise">
+            Prix affiche au client : {{ prixModalForm.prixVenteNet * (1 - (prixModalForm.remise || 0) / 100) | number:'1.0-0' }} XAF
+          </small>
+        </div>
+        <div class="row" *ngIf="prixModalForm.typePromotion !== 'AUCUNE'">
+          <div class="col-md-6">
+            <div class="form-group">
+              <label>Date debut (optionnel)</label>
+              <input type="date" class="form-control" [(ngModel)]="prixModalForm.dateDebutPromo">
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="form-group">
+              <label>Date fin (optionnel)</label>
+              <input type="date" class="form-control" [(ngModel)]="prixModalForm.dateFinPromo">
+            </div>
+          </div>
+        </div>
+        <small class="form-text text-muted" *ngIf="prixModalForm.typePromotion === 'AUCUNE'">
+          Sans date de fin, la promotion reste active jusqu'a desactivation manuelle.
+        </small>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" (click)="fermerModalPrix()">
+          <i class="fas fa-times"></i> Annuler
+        </button>
+        <button type="button" class="btn btn-primary" [disabled]="enregistrementPrixEnCours"
+                (click)="enregistrerPrix()">
+          <i class="fas fa-save"></i> Enregistrer
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="showPrixModal"></div>
 
 <!-- Modal Backdrop -->
 <div class="modal-backdrop fade show" *ngIf="showProduitModal"></div>

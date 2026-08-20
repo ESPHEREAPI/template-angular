@@ -32,7 +32,16 @@
         </div>
         <div class="sf-product-name">{{ produit.libelle }}</div>
         <div class="sf-product-ref">Ref. {{ produit.reference }}</div>
-        <div class="sf-price">{{ produit.prixVenteNet | number: '1.0-0' }} FCFA</div>
+        <div *ngIf="produit.promotionActive" class="sf-badge-solde">
+          {{ produit.typePromotion === 'SOLDE' ? 'Solde' : 'Promo' }}
+        </div>
+        <div class="sf-price-row" *ngIf="produit.promotionActive; else prixNormal">
+          <span class="sf-price-old">{{ produit.prixVenteNet | number: '1.0-0' }} FCFA</span>
+          <span class="sf-price sf-price-solde">{{ produit.prixEffectif | number: '1.0-0' }} FCFA</span>
+        </div>
+        <ng-template #prixNormal>
+          <div class="sf-price">{{ produit.prixEffectif | number: '1.0-0' }} FCFA</div>
+        </ng-template>
         <div class="sf-stock" [class.faible]="produit.quantiteDisponible <= 5">
           {{ produit.quantiteDisponible > 0 ? produit.quantiteDisponible + ' en stock' : 'Rupture' }}
         </div>

@@ -70,6 +70,12 @@
                     <i class="fas fa-times"></i>
                   </button>
                 </ng-container>
+                <ng-container *ngIf="commande.statut === 'CONVERTI' && commande.factureId">
+                  <a class="btn btn-outline-primary btn-sm" [routerLink]="['/factures', commande.factureId]"
+                     title="Voir la facture (permet aussi de l'annuler si le client ne paie pas)">
+                    <i class="fas fa-file-invoice"></i> Voir la facture {{ commande.factureNumero }}
+                  </a>
+                </ng-container>
               </td>
             </tr>
           </tbody>
