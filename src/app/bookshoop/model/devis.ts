@@ -36,7 +36,11 @@ export interface Devis {
   totalTVA?:number;
   totalRemise?:number;
   appliquerTVA?:boolean;
-
+  // 'EN_LIGNE' = commande soumise par un client via le site public
+  // e-commerce, 'INTERNE' = devis cree par le personnel. Voir CanalOrigine
+  // cote backend et CommandesEnLigneComponent.
+  canalOrigine?: 'INTERNE' | 'EN_LIGNE';
+  canalOrigineLibelle?: string;
 
 }
 type TypeRemise = 'POURCENTAGE' | 'MONTANT';

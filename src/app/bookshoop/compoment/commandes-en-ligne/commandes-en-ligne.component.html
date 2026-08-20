@@ -1,0 +1,81 @@
+<div class="content-header">
+  <div class="container-fluid">
+    <div class="row mb-2">
+      <div class="col-sm-6">
+        <h1 class="m-0">
+          <i class="fas fa-shopping-cart text-primary mr-2"></i>Commandes en ligne
+        </h1>
+      </div>
+      <div class="col-sm-6 text-right">
+        <button class="btn btn-info btn-lg" (click)="chargerCommandes()" [disabled]="chargement" title="Actualiser">
+          <i class="fas fa-sync-alt" [class.fa-spin]="chargement"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="container-fluid">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="form-inline">
+          <label class="mr-2 mb-0">Statut</label>
+          <select class="form-control" [(ngModel)]="statutFiltre" (ngModelChange)="chargerCommandes()">
+            <option *ngFor="let s of statuts" [value]="s">{{ s }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        <div *ngIf="chargement" class="text-center p-4">
+          <i class="fas fa-2x fa-sync-alt fa-spin"></i>
+        </div>
+
+        <div *ngIf="!chargement && commandes.length === 0" class="text-center p-4 text-muted">
+          Aucune commande en ligne avec ce statut.
+        </div>
+
+        <table *ngIf="!chargement && commandes.length > 0" class="table table-hover mb-0">
+          <thead>
+            <tr>
+              <th>N&deg; commande</th>
+              <th>Date</th>
+              <th>Client</th>
+              <th>Telephone</th>
+              <th>Articles</th>
+              <th class="text-right">Total</th>
+              <th>Statut</th>
+              <th class="text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let commande of commandes">
+              <td>{{ commande.numeroDevis }}</td>
+              <td>{{ commande.dateDevis | date:'dd/MM/yyyy HH:mm' }}</td>
+              <td>{{ commande.client?.nom }}</td>
+              <td>{{ commande.client?.telephone }}</td>
+              <td>{{ commande.items.length || 0 }}</td>
+              <td class="text-right">{{ formaterMontant(commande.total) }}</td>
+              <td><span class="badge" [ngClass]="getStatutBadgeClass(commande.statut)">{{ commande.statut }}</span></td>
+              <td class="text-right">
+                <ng-container *ngIf="commande.statut === 'EN_ATTENTE'">
+                  <button class="btn btn-success btn-sm" [disabled]="actionEnCoursId === commande.id"
+                          (click)="validerEtFacturer(commande)" title="Valider et facturer">
+                    <i class="fas fa-check"></i> Valider et facturer
+                  </button>
+                  <button class="btn btn-outline-danger btn-sm ml-1" [disabled]="actionEnCoursId === commande.id"
+                          (click)="refuser(commande)" title="Refuser">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </ng-container>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>

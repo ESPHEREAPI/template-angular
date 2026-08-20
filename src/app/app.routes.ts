@@ -41,6 +41,7 @@ import { ListOrderComponent } from './bookshoop/e-commerce/list-order/list-order
 import { DevisFormComponent } from './bookshoop/compoment/devis-form/devis-form.component';
 
 import { DevisListComponent } from './bookshoop/compoment/devis-list/devis-list.component';
+import { CommandesEnLigneComponent } from './bookshoop/compoment/commandes-en-ligne/commandes-en-ligne.component';
 import { FactureListComponent } from './bookshoop/compoment/facture-list/facture-list.component';
 import { VersementFormComponent } from './bookshoop/compoment/versement-form/versement-form.component';
 import { VersementListComponent } from './bookshoop/compoment/versement-list/versement-list/versement-list.component';
@@ -746,6 +747,12 @@ export const routes: Routes = [
             data: { title: 'Modifier Devis' }
           }
         ]
+      },
+      // ========== COMMANDES EN LIGNE ==========
+      {
+        path: 'commandes-en-ligne',
+        component: CommandesEnLigneComponent,
+        data: { title: 'Commandes en ligne' }
       },
       // ========== STOCK ==========
       {

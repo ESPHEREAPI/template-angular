@@ -597,6 +597,47 @@ private readonly apiUrl =`${environment.apiUrl}/gateway-proxy/api/microservice-p
   }
 
   // ========================================================================
+  // SECTION 4bis: COMMANDES EN LIGNE (voir CommandeEnLigneController)
+  // ========================================================================
+
+  /**
+   * LISTER LES COMMANDES EN LIGNE
+   * =============================
+   * GET /microservice-produits/commandes-en-ligne?statut=X&boutiqueid=Y
+   *
+   * Uniquement les devis d'origine EN_LIGNE (site public e-commerce) -
+   * jamais les devis crees en interne par le personnel, filtre deja fait
+   * cote serveur (voir DevisService.findCommandesEnLigne).
+   */
+  findCommandesEnLigne(statut: string, boutiqueid: number): Observable<Devis[]> {
+    const commandesUrl = `${environment.apiUrl}/gateway-proxy/api/microservice-produits/commandes-en-ligne`;
+    const params = new HttpParams().set('statut', statut).set('boutiqueid', boutiqueid.toString());
+
+    return this.http.get<ApiResponse<Devis[]>>(commandesUrl, { params })
+      .pipe(
+        map(response => response.data || (response as any) || []),
+        catchError(error => this.handleError(error))
+      );
+  }
+
+  /**
+   * VALIDER ET FACTURER UNE COMMANDE EN LIGNE (one-click)
+   * =======================================================
+   * POST /microservice-produits/commandes-en-ligne/{devisId}/valider-et-facturer
+   *
+   * Enchaine accepter -> convertir en facture -> valider la facture (qui
+   * deduit le stock) en une seule action, plutot que 3 ecrans separes -
+   * voir CommandeEnLigneController.
+   */
+  validerEtFacturerCommandeEnLigne(devisId: number): Observable<any> {
+    const commandesUrl = `${environment.apiUrl}/gateway-proxy/api/microservice-produits/commandes-en-ligne`;
+    return this.http.post<any>(`${commandesUrl}/${devisId}/valider-et-facturer`, {})
+      .pipe(
+        catchError(error => this.handleError(error))
+      );
+  }
+
+  // ========================================================================
   // SECTION 5: ALERTES ET NOTIFICATIONS
   // ========================================================================
 

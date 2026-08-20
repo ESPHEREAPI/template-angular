@@ -161,6 +161,19 @@ export class SidebarComponent implements OnInit {
         { title: 'Mes Licences', icon: 'far fa-circle', route: '/compagnie/mes-licences', alwaysVisible: true }
       );
     }
+    // "Commandes en ligne" (voir CommandeEnLigneController) n'a pas encore
+    // d'entree dans le catalogue Menu/Permission backend (Usermodule/Usermenu) -
+    // meme contournement temporaire que ci-dessus, visible pour COMPANY_ADMIN
+    // uniquement pour l'instant. Un profil avec juste PERM_FACTURE_VALIDER
+    // peut deja atteindre la page par son URL (le backend l'autorise), mais
+    // ne verra pas encore ce lien - a rattacher au vrai catalogue de menus
+    // en meme temps que "Devis"/"Factures" plus tard.
+    this.menuItems.push({
+      title: 'Commandes en ligne',
+      icon: 'fas fa-shopping-cart',
+      route: '/commandes-en-ligne',
+      children: []
+    });
   }
   }
   hasPermission(item: MenuItem): boolean {
