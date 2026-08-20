@@ -9,8 +9,21 @@ import { CommandeFournisseur } from '../model/commande-fournisseur';
 import { environment } from '../../../environments/environment';
 import { PaginationResponse } from '../model/pagination-response';
 import { ApiResponse } from '../model/api-response';
-import { PrixArticles } from '../model/prix-articles';
 import { AuthService } from '../../auth/auth.service';
+
+/**
+ * Projection scalaire pour /alert-stock (voir AlerteStockDTO cote backend) -
+ * remplace l'ancienne reponse PrixArticles[] (entite complete avec Produit
+ * imbrique) qui declenchait "Found shared references to a collection" sur
+ * un catalogue volumineux.
+ */
+export interface AlerteStockDTO {
+  produitId: number;
+  libelle: string;
+  reference: string;
+  stockFinalTheorie: number;
+  categorieLibelle: string | null;
+}
 
 @Injectable({
   providedIn: 'root'
@@ -40,9 +53,9 @@ export class ArticleService {
     
     return this.http.get<Produit[]>(`${this.apiUrl}/articles`);
   }
-  getAlerteStock(): Observable<PrixArticles[]> {
-    
-    return this.http.get<PrixArticles[]>(`${this.apiUrl}/alert-stock`);
+  getAlerteStock(): Observable<AlerteStockDTO[]> {
+
+    return this.http.get<AlerteStockDTO[]>(`${this.apiUrl}/alert-stock`);
   }
 
   getArticleById(id: number): Observable<Produit> {

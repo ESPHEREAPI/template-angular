@@ -141,10 +141,10 @@ export class AdminLayoutComponentComponent implements OnInit {
       next: (produits) => {
         if (produits.length > 0) {
           const messages = produits.map(p => ({
-            name: `🛑 Rupture : ${p.pointVente.produit.libelle}`,
-            ref: p.pointVente.produit.reference,
-            quantity: p.pointVente.stockFinalTheorie,
-            category: p.pointVente.produit.categories?.libelle
+            name: `🛑 Rupture : ${p.libelle}`,
+            ref: p.reference,
+            quantity: p.stockFinalTheorie,
+            category: p.categorieLibelle ?? undefined
           }));
           this.alertBox.display(messages);
         }
