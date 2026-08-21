@@ -106,7 +106,7 @@
             </div>
             <div class="col-md-8" *ngIf="compagnie.code">
               <div class="form-group">
-                <label>Lien de votre boutique</label>
+                <label>Lien general de votre boutique</label>
                 <div class="input-group">
                   <input type="text" class="form-control" readonly [value]="lienBoutique">
                   <div class="input-group-append">
@@ -114,6 +114,26 @@
                       <i class="fas fa-external-link-alt"></i> Ouvrir
                     </a>
                   </div>
+                </div>
+                <small class="form-text text-muted">
+                  Ce lien affiche automatiquement la seule boutique s'il n'y en a qu'une, ou une liste a choisir sinon.
+                </small>
+              </div>
+            </div>
+          </div>
+
+          <div class="row" *ngIf="compagnie.code && boutiques.length > 1">
+            <div class="col-12">
+              <label>Lien direct vers une boutique precise (a donner a un client pour eviter l'etape de choix)</label>
+              <div class="input-group mb-2" *ngFor="let boutique of boutiques">
+                <div class="input-group-prepend">
+                  <span class="input-group-text" style="min-width:160px;">{{ boutique.nom }}</span>
+                </div>
+                <input type="text" class="form-control" readonly [value]="lienPourBoutique(boutique)">
+                <div class="input-group-append">
+                  <a class="btn btn-outline-secondary" [href]="lienPourBoutique(boutique)" target="_blank">
+                    <i class="fas fa-external-link-alt"></i> Ouvrir
+                  </a>
                 </div>
               </div>
             </div>
