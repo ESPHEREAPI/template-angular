@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { ArticlesPage, CategoriePublique, CompagniePublique } from '../model/storefront-catalog';
+import { ArticlePublic, ArticlesPage, CategoriePublique, CompagniePublique } from '../model/storefront-catalog';
 
 /**
  * Catalogue public par compagnie - consomme EcomPublicController
@@ -38,6 +38,10 @@ export class StorefrontCatalogService {
 
   getCategories(code: string, boutiqueId: number): Observable<CategoriePublique[]> {
     return this.http.get<CategoriePublique[]>(`${this.apiUrl}/${code}/boutiques/${boutiqueId}/categories`);
+  }
+
+  getProduitDetail(code: string, boutiqueId: number, produitId: number): Observable<ArticlePublic> {
+    return this.http.get<ArticlePublic>(`${this.apiUrl}/${code}/boutiques/${boutiqueId}/produits/${produitId}`);
   }
 
   photoUrl(code: string, produitId: number): string {

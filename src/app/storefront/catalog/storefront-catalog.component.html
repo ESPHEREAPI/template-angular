@@ -20,18 +20,20 @@
 
     <div class="sf-grid" *ngIf="!chargement && produits.length > 0">
       <div class="sf-product" *ngFor="let produit of produits">
-        <img
-          *ngIf="!photosEnErreur.has(produit.produitId)"
-          class="sf-product-photo"
-          [src]="photoUrl(produit)"
-          (error)="onPhotoErreur(produit.produitId)"
-          alt="{{ produit.libelle }}"
-        />
-        <div *ngIf="photosEnErreur.has(produit.produitId)" class="sf-product-photo sf-product-photo-placeholder">
-          <span>📦</span>
-        </div>
-        <div class="sf-product-name">{{ produit.libelle }}</div>
-        <div class="sf-product-ref">Ref. {{ produit.reference }}</div>
+        <a [routerLink]="['/shop', code, 'boutique', boutiqueId, 'produit', produit.produitId]" class="sf-product-link">
+          <img
+            *ngIf="!photosEnErreur.has(produit.produitId)"
+            class="sf-product-photo"
+            [src]="photoUrl(produit)"
+            (error)="onPhotoErreur(produit.produitId)"
+            alt="{{ produit.libelle }}"
+          />
+          <div *ngIf="photosEnErreur.has(produit.produitId)" class="sf-product-photo sf-product-photo-placeholder">
+            <span>📦</span>
+          </div>
+          <div class="sf-product-name">{{ produit.libelle }}</div>
+          <div class="sf-product-ref">Ref. {{ produit.reference }}</div>
+        </a>
         <div *ngIf="produit.promotionActive" class="sf-badge-solde">
           {{ produit.typePromotion === 'SOLDE' ? 'Solde' : 'Promo' }}
         </div>

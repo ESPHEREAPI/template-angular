@@ -87,6 +87,7 @@ import { StorefrontCheckoutComponent } from './storefront/checkout/storefront-ch
 import { StorefrontLoginComponent } from './storefront/login/storefront-login.component';
 import { StorefrontRegisterComponent } from './storefront/register/storefront-register.component';
 import { StorefrontOrdersComponent } from './storefront/orders/storefront-orders.component';
+import { StorefrontProductDetailComponent } from './storefront/product-detail/storefront-product-detail.component';
 
 export const routes: Routes = [
   // Routes publiques (sans guards)
@@ -129,6 +130,7 @@ export const routes: Routes = [
     children: [
       { path: '', component: StorefrontHomeComponent },
       { path: 'boutique/:boutiqueId', component: StorefrontCatalogComponent },
+      { path: 'boutique/:boutiqueId/produit/:produitId', component: StorefrontProductDetailComponent },
       { path: 'cart', component: StorefrontCartComponent },
       { path: 'checkout', component: StorefrontCheckoutComponent },
       { path: 'login', component: StorefrontLoginComponent },

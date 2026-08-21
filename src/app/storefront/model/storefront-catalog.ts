@@ -35,6 +35,14 @@ export interface ArticlePublic {
   typePromotion: string;
   promotionActive: boolean;
   quantiteDisponible: number;
+  // Uniquement rempli par la fiche produit detaillee (pas la liste du
+  // catalogue) - voir StorefrontCatalogService.getProduitDetail.
+  specifications?: SpecificationPublique[];
+}
+
+export interface SpecificationPublique {
+  libelle: string;
+  valeur: string;
 }
 
 export interface ArticlesPage {

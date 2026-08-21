@@ -1,0 +1,81 @@
+<div *ngIf="chargement" class="sf-empty">Chargement...</div>
+
+<div *ngIf="!chargement && introuvable" class="sf-empty">
+  Produit introuvable.
+  <div style="margin-top:12px;">
+    <a [routerLink]="['/shop', code, 'boutique', boutiqueId]" class="sf-btn sf-btn-outline">Retour au catalogue</a>
+  </div>
+</div>
+
+<div *ngIf="!chargement && produit" class="sf-product-detail">
+  <a [routerLink]="['/shop', code, 'boutique', boutiqueId]" class="sf-back-link">&larr; Retour au catalogue</a>
+
+  <div class="sf-detail-layout">
+    <!-- Specifications a gauche : uniquement si le produit en a -->
+    <aside class="sf-detail-specs" *ngIf="produit.specifications && produit.specifications.length > 0">
+      <div class="sf-title" style="font-size:1.1rem;">Caractéristiques</div>
+      <table class="sf-table">
+        <tbody>
+          <tr *ngFor="let spec of produit.specifications">
+            <td><strong>{{ spec.libelle }}</strong></td>
+            <td>{{ spec.valeur }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </aside>
+
+    <div class="sf-detail-main">
+      <div class="sf-card sf-detail-card">
+        <img
+          *ngIf="!photoEnErreur"
+          class="sf-detail-photo"
+          [src]="photoUrl()"
+          (error)="onPhotoErreur()"
+          alt="{{ produit.libelle }}"
+        />
+        <div *ngIf="photoEnErreur" class="sf-detail-photo sf-product-photo-placeholder">
+          <span>📦</span>
+        </div>
+
+        <div class="sf-detail-info">
+          <div *ngIf="produit.categorieLibelle" class="sf-product-ref">{{ produit.categorieLibelle }}</div>
+          <div class="sf-title" style="margin-bottom:4px;">{{ produit.libelle }}</div>
+          <div class="sf-product-ref">Ref. {{ produit.reference }}</div>
+
+          <p *ngIf="produit.description" style="margin-top:12px;">{{ produit.description }}</p>
+
+          <div *ngIf="produit.promotionActive" class="sf-badge-solde" style="margin-top:12px;">
+            {{ produit.typePromotion === 'SOLDE' ? 'Solde' : 'Promo' }}
+          </div>
+          <div class="sf-price-row" *ngIf="produit.promotionActive; else prixNormal">
+            <span class="sf-price-old">{{ produit.prixVenteNet | number: '1.0-0' }} FCFA</span>
+            <span class="sf-price sf-price-solde">{{ produit.prixEffectif | number: '1.0-0' }} FCFA</span>
+          </div>
+          <ng-template #prixNormal>
+            <div class="sf-price">{{ produit.prixEffectif | number: '1.0-0' }} FCFA</div>
+          </ng-template>
+
+          <div class="sf-stock" [class.faible]="produit.quantiteDisponible <= 5" style="margin-top:8px;">
+            {{ produit.quantiteDisponible > 0 ? produit.quantiteDisponible + ' en stock' : 'Rupture' }}
+          </div>
+
+          <div class="sf-qty-control" style="margin-top:16px;">
+            <button type="button" (click)="quantite = quantite > 1 ? quantite - 1 : 1">-</button>
+            <span>{{ quantite }}</span>
+            <button type="button" (click)="quantite = quantite + 1">+</button>
+          </div>
+
+          <button
+            type="button"
+            class="sf-btn"
+            style="margin-top:16px;"
+            [disabled]="produit.quantiteDisponible <= 0"
+            (click)="ajouterAuPanier()"
+          >
+            {{ ajoute ? 'Ajoute !' : 'Ajouter au panier' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
