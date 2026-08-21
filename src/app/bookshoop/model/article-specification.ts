@@ -1,9 +1,9 @@
-import { Produit } from "./produit";
-import { Specification } from "./specification";
-
+// Correspond a SpecificationArticleDTO cote backend (projection, jamais
+// l'entite Specificationarticles brute).
 export interface ArticleSpecification {
-    id?: number;
-  specifique: Specification;
-  libelle: string;
-  prodduit?: Produit;
+  id: number;
+  produitId: number;
+  specifiqueId: number;
+  specifiqueLibelle: string;
+  valeur: string;
 }

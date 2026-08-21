@@ -183,22 +183,53 @@
                   <thead>
                     <tr>
                       <th style="width: 200px;">Spécifique</th>
-                      <th>Libellé</th>
+                      <th>Valeur</th>
+                      <th style="width: 60px;"></th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr *ngFor="let spec of articleSpecifications">
-                      <td>{{ spec.specifique.libelle }}</td>
+                      <td>{{ spec.specifiqueLibelle }}</td>
                       <td>
-                        <input type="text" class="form-control" 
-                               [(ngModel)]="spec.libelle" 
+                        <input type="text" class="form-control"
+                               [(ngModel)]="spec.valeur"
                                (blur)="updateSpecification(spec)">
+                      </td>
+                      <td>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                (click)="supprimerSpecification(spec)" title="Supprimer">
+                          <i class="fas fa-trash"></i>
+                        </button>
                       </td>
                     </tr>
                   </tbody>
                 </table>
                 <div *ngIf="articleSpecifications.length === 0" class="text-center text-muted py-4">
-                  Aucune spécification disponible
+                  Aucune spécification renseignée
+                </div>
+
+                <div class="row align-items-end" *ngIf="selectedArticle">
+                  <div class="col-md-5">
+                    <label>Ajouter une caractéristique</label>
+                    <select class="form-control" [(ngModel)]="nouvelleSpecifiqueId" [ngModelOptions]="{standalone: true}">
+                      <option [ngValue]="null">-- Choisir --</option>
+                      <option *ngFor="let s of specifiquesDisponibles" [ngValue]="s.id">{{ s.libelle }}</option>
+                    </select>
+                    <small class="form-text text-muted" *ngIf="specifiquesDisponibles.length === 0">
+                      Aucune caractéristique disponible pour cette catégorie - allez dans Paramétrage &gt; Spécifiques pour en créer.
+                    </small>
+                  </div>
+                  <div class="col-md-5">
+                    <label>Valeur</label>
+                    <input type="text" class="form-control" [(ngModel)]="nouvelleValeur" [ngModelOptions]="{standalone: true}">
+                  </div>
+                  <div class="col-md-2">
+                    <button type="button" class="btn btn-primary btn-block"
+                            [disabled]="!nouvelleSpecifiqueId || !nouvelleValeur.trim()"
+                            (click)="ajouterSpecification()">
+                      <i class="fas fa-plus"></i> Ajouter
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

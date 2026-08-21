@@ -48,6 +48,7 @@
                 <th>ID</th>
                 <th>Code</th>
                 <th>Libellé</th>
+                <th>Catégorie</th>
                 <th style="width: 150px">Actions</th>
               </tr>
             </thead>
@@ -56,6 +57,7 @@
                 <td>{{ specifique.id }}</td>
                 <td>{{ specifique.code }}</td>
                 <td>{{ specifique.libelle }}</td>
+                <td>{{ categorieLibelle(specifique) }}</td>
                 <td>
                   <button class="btn btn-sm btn-info mr-1" (click)="openModal(specifique)">
                     <i class="fas fa-edit"></i>
@@ -66,7 +68,7 @@
                 </td>
               </tr>
               <tr *ngIf="specifiques.length === 0">
-                <td colspan="4" class="text-center">Aucune spécificité trouvée</td>
+                <td colspan="5" class="text-center">Aucune spécificité trouvée</td>
               </tr>
             </tbody>
           </table>
@@ -112,6 +114,17 @@
             <label for="libelle">Libellé *</label>
             <input type="text" class="form-control" id="libelle"
                    [(ngModel)]="selectedSpecifique.libelle" name="libelle" required>
+          </div>
+          <div class="form-group">
+            <label for="categorie">Catégorie</label>
+            <select class="form-control" id="categorie"
+                    [(ngModel)]="selectedSpecifique.categorieId" name="categorieId">
+              <option [ngValue]="null">Toutes catégories</option>
+              <option *ngFor="let c of categories" [ngValue]="c.id">{{ c.libelle }}</option>
+            </select>
+            <small class="form-text text-muted">
+              Si une catégorie est choisie, cette spécification ne sera proposée que pour les produits de cette catégorie.
+            </small>
           </div>
         </form>
       </div>

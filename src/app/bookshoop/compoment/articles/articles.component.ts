@@ -41,6 +41,8 @@ export class ArticlesComponent implements OnInit,OnDestroy {
   categories: Categorie[] = [];
   specifiques: Specification[] = [];
   articleSpecifications: ArticleSpecification[] = [];
+  nouvelleSpecifiqueId: number | null = null;
+  nouvelleValeur = '';
   fournisseurs: CommandeFournisseur[] = [];
     readonly Math = Math;
 
@@ -185,6 +187,49 @@ console.log(this.searchTerm);
     this.activeTab = 'article';
     this.photoEnErreur = false;
     this.photoCacheBust = Date.now();
+
+    // Ne proposer que les specifications pertinentes pour la categorie de
+    // CE produit (+ celles sans categorie, applicables partout) - une
+    // categorie differente d'un produit precedemment edite ne doit pas
+    // laisser trainer les mauvaises options dans le select.
+    this.articleService.getSpecifiques(article.categories?.id).subscribe({
+      next: (specifiques) => this.specifiques = specifiques,
+      error: () => this.toastr.error('Erreur lors du chargement des spécifications disponibles')
+    });
+    this.nouvelleSpecifiqueId = null;
+    this.nouvelleValeur = '';
+  }
+
+  get specifiquesDisponibles(): Specification[] {
+    return this.specifiques.filter(
+      s => !this.articleSpecifications.some(as => as.specifiqueId === s.id)
+    );
+  }
+
+  ajouterSpecification(): void {
+    if (!this.selectedArticle?.id || !this.nouvelleSpecifiqueId || !this.nouvelleValeur.trim()) {
+      return;
+    }
+    this.articleService.addArticleSpecification(this.selectedArticle.id, this.nouvelleSpecifiqueId, this.nouvelleValeur.trim())
+      .subscribe({
+        next: (spec) => {
+          this.articleSpecifications.push(spec);
+          this.nouvelleSpecifiqueId = null;
+          this.nouvelleValeur = '';
+          this.toastr.success('Spécification ajoutée');
+        },
+        error: (err) => this.toastr.error(err?.error?.message || 'Erreur lors de l\'ajout de la spécification')
+      });
+  }
+
+  supprimerSpecification(spec: ArticleSpecification): void {
+    this.articleService.deleteArticleSpecification(spec.id).subscribe({
+      next: () => {
+        this.articleSpecifications = this.articleSpecifications.filter(s => s.id !== spec.id);
+        this.toastr.success('Spécification supprimée');
+      },
+      error: () => this.toastr.error('Erreur lors de la suppression de la spécification')
+    });
   }
 
   get photoUrl(): string {

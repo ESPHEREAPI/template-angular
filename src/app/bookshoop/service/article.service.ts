@@ -96,18 +96,34 @@ export class ArticleService {
     return this.http.get<Categorie[]>(`${this.apiUrl}/categories`);
   }
 
-  // Specifiques
-  getSpecifiques(): Observable<Specification[]> {
-    return this.http.get<Specification[]>(`${this.apiUrl}/specifiques`);
+  // Specifiques (definitions) - /all renvoie un tableau plat (l'ancien
+  // appel tombait sur l'endpoint pagine /specifiques, qui renvoie une
+  // Page<Specifique> et pas un tableau). categorieId optionnel: ne
+  // renvoie que les specifications pertinentes pour cette categorie de
+  // produit (+ celles sans categorie, applicables partout).
+  getSpecifiques(categorieId?: number): Observable<Specification[]> {
+    let params = new HttpParams();
+    if (categorieId) {
+      params = params.set('categorieId', categorieId.toString());
+    }
+    return this.http.get<Specification[]>(`${this.apiUrl}/specifiques/all`, { params });
   }
 
-  // Article Specifications
+  // Valeurs de specification d'un produit
   getArticleSpecifications(articleId: number): Observable<ArticleSpecification[]> {
     return this.http.get<ArticleSpecification[]>(`${this.apiUrl}/articles/${articleId}/specifications`);
   }
 
+  addArticleSpecification(articleId: number, specifiqueId: number, valeur: string): Observable<ArticleSpecification> {
+    return this.http.post<ArticleSpecification>(`${this.apiUrl}/articles/${articleId}/specifications`, { specifiqueId, valeur });
+  }
+
   updateArticleSpecification(specification: ArticleSpecification): Observable<ArticleSpecification> {
-    return this.http.put<ArticleSpecification>(`${this.apiUrl}/specifications/${specification.id}`, specification);
+    return this.http.put<ArticleSpecification>(`${this.apiUrl}/specifications/${specification.id}`, { valeur: specification.valeur });
+  }
+
+  deleteArticleSpecification(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/specifications/${id}`);
   }
 
   // Fournisseurs par article
