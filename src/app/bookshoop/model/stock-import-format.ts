@@ -31,9 +31,14 @@ export interface LigneApercuImportStock {
   // boutiques) : un nouveau point de vente sera cree, sans recreer le
   // produit. Toujours vrai quand nouveauProduit l'est aussi.
   nouveauPointVente: boolean;
+  // true si le fichier n'a pas de prix de vente exploitable pour cette ligne -
+  // pas bloquant (le prix reste facultatif a l'import) mais affiche pour
+  // eviter la surprise silencieuse d'un produit importe a 0 FCFA.
+  prixManquant: boolean;
 }
 
 export interface ApercuImportStock {
   lignes: LigneApercuImportStock[];
   hasErreurs: boolean;
+  nombreSansPrix: number;
 }

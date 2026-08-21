@@ -71,6 +71,14 @@ export class PointVentesComponent implements OnInit, OnDestroy {
   // Messages
   messages: Message[] = [];
 
+  // Filtre "Sans prix" + edition en masse (voir CommandeController.definirPrixEnMasse) -
+  // typiquement utilise apres un import Excel dont le fichier ne portait pas
+  // de colonne prix (import a alors 0 FCFA, volontairement non bloquant).
+  filtreSansPrix = false;
+  prixEnMasse = new Map<number, number>();
+  enregistrementEnMasseEnCours = false;
+  private dernierTermeRecherche = '';
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly pointVenteService: PointVenteService
@@ -136,11 +144,12 @@ export class PointVentesComponent implements OnInit, OnDestroy {
     ).subscribe({
       next: ({ prixArticles, depots, boutiques, villes }) => {
         this.listePrixArticles = prixArticles || [];
-        this.filteredPrixArticles = [...this.listePrixArticles];
         this.listeDepots = depots || [];
         this.listeBoutiques = boutiques || [];
         this.listeVilles = villes || [];
-        this.updatePagination();
+        // Reapplique le filtre "Sans prix"/la recherche en cours (ex. apres
+        // enregistrerPrixEnMasse, pour voir immediatement ce qu'il reste a corriger).
+        this.appliquerFiltres();
       },
       error: (error) => {
         console.error('Erreur lors du chargement des données :', error);
@@ -162,18 +171,74 @@ export class PointVentesComponent implements OnInit, OnDestroy {
   }
 
   private performSearch(searchTerm: string): void {
-    if (searchTerm?.trim()) {
-      const term = searchTerm.toLowerCase();
-      this.filteredPrixArticles = this.listePrixArticles.filter(item =>
+    this.dernierTermeRecherche = searchTerm ?? '';
+    this.appliquerFiltres();
+  }
+
+  // Combine le terme de recherche et le filtre "Sans prix" - les deux
+  // peuvent etre actifs en meme temps.
+  private appliquerFiltres(): void {
+    let resultat = [...this.listePrixArticles];
+
+    const term = this.dernierTermeRecherche?.trim().toLowerCase();
+    if (term) {
+      resultat = resultat.filter(item =>
         item.pointVente.produit.reference?.toLowerCase().includes(term) ||
         item.pointVente.produit.libelle?.toLowerCase().includes(term) ||
         item.pointVente.boutique?.nom?.toLowerCase().includes(term)
       );
-    } else {
-      this.filteredPrixArticles = [...this.listePrixArticles];
     }
+
+    if (this.filtreSansPrix) {
+      resultat = resultat.filter(item => !item.prixVenteNet || item.prixVenteNet === 0);
+    }
+
+    this.filteredPrixArticles = resultat;
     this.pagination.currentPage = 1;
     this.updatePagination();
+  }
+
+  toggleFiltreSansPrix(): void {
+    this.filtreSansPrix = !this.filtreSansPrix;
+    this.prixEnMasse.clear();
+    this.appliquerFiltres();
+  }
+
+  onPrixSaisi(item: PrixArticles, valeur: string): void {
+    const nombre = Number(valeur);
+    if (item.id && nombre > 0) {
+      this.prixEnMasse.set(item.id, nombre);
+    } else if (item.id) {
+      this.prixEnMasse.delete(item.id);
+    }
+  }
+
+  get nombrePrixSaisis(): number {
+    return this.prixEnMasse.size;
+  }
+
+  enregistrerPrixEnMasse(): void {
+    if (this.prixEnMasse.size === 0) {
+      return;
+    }
+    this.enregistrementEnMasseEnCours = true;
+    const items = Array.from(this.prixEnMasse.entries()).map(([id, prixVenteNet]) => ({ id, prixVenteNet }));
+
+    this.pointVenteService.definirPrixEnMasse(items)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (resultat) => {
+          this.enregistrementEnMasseEnCours = false;
+          this.prixEnMasse.clear();
+          this.showMessage('success', 'Succès', `${resultat.miseAJour} prix mis à jour`);
+          this.loadInitialData();
+        },
+        error: (error) => {
+          this.enregistrementEnMasseEnCours = false;
+          console.error('Erreur lors de la mise a jour en masse:', error);
+          this.showMessage('error', 'Erreur', 'Impossible de mettre à jour les prix');
+        }
+      });
   }
 
   private updatePagination(): void {

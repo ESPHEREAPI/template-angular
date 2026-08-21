@@ -40,6 +40,12 @@ export class PointVenteService {
     return this.http.get<PrixArticles[]>(`${this.apiUrl}/prix-articles/all/${boutiqueid}`);
   }
 
+  // Correction en masse des prix (voir filtre "Sans prix" - typiquement apres
+  // un import Excel dont le fichier ne portait pas de colonne prix).
+  definirPrixEnMasse(items: { id: number; prixVenteNet: number }[]): Observable<{ miseAJour: number; total: number }> {
+    return this.http.put<{ miseAJour: number; total: number }>(`${this.apiUrl}/prix-articles/bulk-prix`, items);
+  }
+
   getPointVenteById(id: number): Observable<PointVente> {
     return this.http.get<PointVente>(`${this.apiUrl}/${id}`);
   }

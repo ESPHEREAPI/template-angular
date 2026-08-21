@@ -144,11 +144,16 @@
         <div class="card">
           <div class="card-header">
             <h3 class="card-title">Liste des Prix Articles</h3>
-            <div class="card-tools">
+            <div class="card-tools d-flex flex-wrap" style="gap: 0.5rem;">
+              <button type="button" class="btn btn-sm mr-2"
+                      [class.btn-warning]="filtreSansPrix" [class.btn-outline-warning]="!filtreSansPrix"
+                      (click)="toggleFiltreSansPrix()" title="N'afficher que les produits sans prix (0 FCFA)">
+                <i class="fas fa-exclamation-triangle"></i> Sans prix
+              </button>
               <!-- Recherche -->
               <form [formGroup]="searchForm" class="input-group input-group-sm" style="width: 300px;">
-                <input type="text" 
-                       class="form-control float-right" 
+                <input type="text"
+                       class="form-control float-right"
                        placeholder="Rechercher..."
                        formControlName="searchTerm">
                 <div class="input-group-append">
@@ -159,7 +164,19 @@
               </form>
             </div>
           </div>
-          
+
+          <div class="alert alert-info m-3 mb-0 d-flex justify-content-between align-items-center" *ngIf="filtreSansPrix">
+            <span>
+              <i class="fas fa-info-circle"></i>
+              Saisissez un prix dans la colonne "Prix Vente Net" pour les produits a corriger, puis enregistrez en une fois.
+            </span>
+            <button type="button" class="btn btn-success btn-sm" [disabled]="nombrePrixSaisis === 0 || enregistrementEnMasseEnCours"
+                    (click)="enregistrerPrixEnMasse()">
+              <span *ngIf="enregistrementEnMasseEnCours" class="spinner-border spinner-border-sm mr-1"></span>
+              Enregistrer {{ nombrePrixSaisis > 0 ? '(' + nombrePrixSaisis + ')' : '' }}
+            </button>
+          </div>
+
           <div class="card-body table-responsive p-0">
             <!-- Loader -->
             <div *ngIf="loading" class="text-center p-4">
@@ -199,7 +216,12 @@
                   <td>
                     <span class="badge badge-primary">{{ formatNumber(item.pointVente.stockFinalTheorie) }}</span>
                   </td>
-                  <td>{{ formatNumber(item.prixVenteNet) }} FCFA</td>
+                  <td>
+                    <span *ngIf="!filtreSansPrix">{{ formatNumber(item.prixVenteNet) }} FCFA</span>
+                    <input *ngIf="filtreSansPrix" type="number" class="form-control form-control-sm" min="0" step="1"
+                           style="width:120px;" placeholder="Prix..."
+                           (change)="onPrixSaisi(item, $any($event.target).value)">
+                  </td>
                   <td>{{ formatNumber(item.tva || 0) }}%</td>
                   <td>{{ formatNumber(item.remise || 0) }}%</td>
                   <td>
