@@ -56,17 +56,32 @@ export class StorefrontProductDetailComponent implements OnInit {
     this.photoEnErreur = true;
   }
 
+  augmenterQuantite(): void {
+    const max = this.produit?.quantiteDisponible ?? 0;
+    if (this.quantite < max) {
+      this.quantite++;
+    }
+  }
+
+  diminuerQuantite(): void {
+    this.quantite = this.quantite > 1 ? this.quantite - 1 : 1;
+  }
+
   ajouterAuPanier(): void {
-    if (!this.produit) {
+    if (!this.produit || this.produit.quantiteDisponible <= 0) {
       return;
     }
+    // Jamais plus que le stock reellement disponible, meme si la valeur
+    // saisie/affichee a ete manipulee (le stepper est deja borne, mais
+    // ceinture-bretelles avant l'ecriture en panier).
+    const quantiteValidee = Math.min(this.quantite, this.produit.quantiteDisponible);
     this.cart.ajouter(
       {
         produitId: this.produit.produitId,
         reference: this.produit.reference,
         libelle: this.produit.libelle,
         prixUnitaire: this.produit.prixEffectif,
-        quantite: this.quantite,
+        quantite: quantiteValidee,
         stockDisponible: this.produit.quantiteDisponible
       },
       this.boutiqueId

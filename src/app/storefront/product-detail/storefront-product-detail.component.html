@@ -59,10 +59,10 @@
             {{ produit.quantiteDisponible > 0 ? produit.quantiteDisponible + ' en stock' : 'Rupture' }}
           </div>
 
-          <div class="sf-qty-control" style="margin-top:16px;">
-            <button type="button" (click)="quantite = quantite > 1 ? quantite - 1 : 1">-</button>
+          <div class="sf-qty-control" style="margin-top:16px;" *ngIf="produit.quantiteDisponible > 0">
+            <button type="button" (click)="diminuerQuantite()">-</button>
             <span>{{ quantite }}</span>
-            <button type="button" (click)="quantite = quantite + 1">+</button>
+            <button type="button" (click)="augmenterQuantite()" [disabled]="quantite >= produit.quantiteDisponible">+</button>
           </div>
 
           <button

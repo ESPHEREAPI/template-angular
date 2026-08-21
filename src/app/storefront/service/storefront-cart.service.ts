@@ -54,7 +54,11 @@ export class StorefrontCartService {
     if (existant) {
       existant.quantite = Math.min(existant.quantite + item.quantite, existant.stockDisponible);
     } else {
-      items.push(item);
+      // Un nouvel article n'etait jusqu'ici jamais borne au stock reel (seul
+      // le cas "deja dans le panier" l'etait) - un appelant qui laisse
+      // passer une quantite superieure au stock (ex. mauvaise validation
+      // cote formulaire) pouvait ainsi entrer intacte dans le panier.
+      items.push({ ...item, quantite: Math.min(item.quantite, item.stockDisponible) });
     }
     this.save(items);
   }
