@@ -28,10 +28,16 @@ export class PointVenteService {
       if(!user.usersDTO || !user.usersDTO.boutiqueid) return 0;
 
       return user.usersDTO.boutiqueid;
-    
+
 
     }
     return 0;
+  }
+
+  // Expose la boutique de l'utilisateur courant (import de prix - voir
+  // PrixImportController, qui a besoin du boutiqueId explicitement).
+  getBoutiqueIdCourant(): number {
+    return this.getBoutiqueUser();
   }
 
   // Gestion des Points de Vente
@@ -44,6 +50,36 @@ export class PointVenteService {
   // un import Excel dont le fichier ne portait pas de colonne prix).
   definirPrixEnMasse(items: { id: number; prixVenteNet: number }[]): Observable<{ miseAJour: number; total: number }> {
     return this.http.put<{ miseAJour: number; total: number }>(`${this.apiUrl}/prix-articles/bulk-prix`, items);
+  }
+
+  // Import de prix par lot via fichier Excel (voir PrixImportController) -
+  // alternative a definirPrixEnMasse pour corriger des centaines de produits
+  // sans les saisir un par un dans le navigateur.
+  telechargerModelePrix(boutiqueId: number): Observable<Blob> {
+    return this.http.get(`${environment.apiUrl}/gateway-proxy/api/microservice-produits/prix-import/modele`, {
+      params: { boutiqueId: boutiqueId.toString() },
+      responseType: 'blob'
+    });
+  }
+
+  previsualiserImportPrix(fichier: File, boutiqueId: number): Observable<any> {
+    const formData = new FormData();
+    formData.append('fichier', fichier);
+    return this.http.post<any>(
+      `${environment.apiUrl}/gateway-proxy/api/microservice-produits/prix-import/previsualiser`,
+      formData,
+      { params: { boutiqueId: boutiqueId.toString() } }
+    );
+  }
+
+  appliquerImportPrix(fichier: File, boutiqueId: number): Observable<{ miseAJour: number }> {
+    const formData = new FormData();
+    formData.append('fichier', fichier);
+    return this.http.post<{ miseAJour: number }>(
+      `${environment.apiUrl}/gateway-proxy/api/microservice-produits/prix-import/appliquer`,
+      formData,
+      { params: { boutiqueId: boutiqueId.toString() } }
+    );
   }
 
   getPointVenteById(id: number): Observable<PointVente> {

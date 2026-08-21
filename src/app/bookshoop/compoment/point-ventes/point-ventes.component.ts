@@ -79,6 +79,15 @@ export class PointVentesComponent implements OnInit, OnDestroy {
   enregistrementEnMasseEnCours = false;
   private dernierTermeRecherche = '';
 
+  // Import de prix par lot via Excel (voir PrixImportController) -
+  // alternative a la saisie ligne par ligne pour corriger des centaines de
+  // produits d'un coup.
+  showImportPrixModal = false;
+  fichierImportPrix: File | null = null;
+  apercuImportPrix: any = null;
+  previsualisationEnCours = false;
+  applicationImportEnCours = false;
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly pointVenteService: PointVenteService
@@ -237,6 +246,74 @@ export class PointVentesComponent implements OnInit, OnDestroy {
           this.enregistrementEnMasseEnCours = false;
           console.error('Erreur lors de la mise a jour en masse:', error);
           this.showMessage('error', 'Erreur', 'Impossible de mettre à jour les prix');
+        }
+      });
+  }
+
+  // ==================== IMPORT DE PRIX (EXCEL) ====================
+
+  ouvrirModalImportPrix(): void {
+    this.fichierImportPrix = null;
+    this.apercuImportPrix = null;
+    this.showImportPrixModal = true;
+  }
+
+  fermerModalImportPrix(): void {
+    this.showImportPrixModal = false;
+  }
+
+  telechargerModele(): void {
+    this.pointVenteService.telechargerModelePrix(this.pointVenteService.getBoutiqueIdCourant())
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (blob) => this.downloadBlob(blob, 'modele-import-prix.xlsx'),
+        error: () => this.showMessage('error', 'Erreur', 'Impossible de générer le modèle')
+      });
+  }
+
+  onFichierImportChoisi(files: FileList | null): void {
+    this.fichierImportPrix = files && files.length > 0 ? files[0] : null;
+    this.apercuImportPrix = null;
+  }
+
+  previsualiserImportPrix(): void {
+    if (!this.fichierImportPrix) {
+      return;
+    }
+    this.previsualisationEnCours = true;
+    this.pointVenteService
+      .previsualiserImportPrix(this.fichierImportPrix, this.pointVenteService.getBoutiqueIdCourant())
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (apercu) => {
+          this.apercuImportPrix = apercu;
+          this.previsualisationEnCours = false;
+        },
+        error: (error) => {
+          this.previsualisationEnCours = false;
+          this.showMessage('error', 'Erreur', error?.error?.message || 'Impossible de lire le fichier');
+        }
+      });
+  }
+
+  confirmerImportPrix(): void {
+    if (!this.fichierImportPrix) {
+      return;
+    }
+    this.applicationImportEnCours = true;
+    this.pointVenteService
+      .appliquerImportPrix(this.fichierImportPrix, this.pointVenteService.getBoutiqueIdCourant())
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (resultat) => {
+          this.applicationImportEnCours = false;
+          this.showMessage('success', 'Succès', `${resultat.miseAJour} prix mis à jour`);
+          this.fermerModalImportPrix();
+          this.loadInitialData();
+        },
+        error: () => {
+          this.applicationImportEnCours = false;
+          this.showMessage('error', 'Erreur', "Impossible d'appliquer l'import");
         }
       });
   }

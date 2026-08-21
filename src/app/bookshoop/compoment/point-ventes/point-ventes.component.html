@@ -150,6 +150,10 @@
                       (click)="toggleFiltreSansPrix()" title="N'afficher que les produits sans prix (0 FCFA)">
                 <i class="fas fa-exclamation-triangle"></i> Sans prix
               </button>
+              <button type="button" class="btn btn-sm btn-outline-primary mr-2"
+                      (click)="ouvrirModalImportPrix()" title="Corriger les prix de plusieurs produits via un fichier Excel">
+                <i class="fas fa-file-excel"></i> Importer prix (Excel)
+              </button>
               <!-- Recherche -->
               <form [formGroup]="searchForm" class="input-group input-group-sm" style="width: 300px;">
                 <input type="text"
@@ -621,15 +625,97 @@
           <button type="button" class="btn btn-secondary" data-dismiss="modal">
             <i class="fas fa-times"></i> Annuler
           </button>
-          <button type="submit" 
-                  class="btn btn-success" 
+          <button type="submit"
+                  class="btn btn-success"
                   [disabled]="boutiqueForm.invalid || submitting">
             <span *ngIf="submitting" class="spinner-border spinner-border-sm mr-2"></span>
-            <i class="fas fa-save" *ngIf="!submitting"></i> 
+            <i class="fas fa-save" *ngIf="!submitting"></i>
             Créer la boutique
           </button>
         </div>
       </form>
     </div>
   </div>
+
+<!-- Modal Import de prix (Excel) -->
+<div class="modal fade" [class.show]="showImportPrixModal"
+     [style.display]="showImportPrixModal ? 'block' : 'none'"
+     tabindex="-1" role="dialog" *ngIf="showImportPrixModal">
+  <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header bg-primary">
+        <h4 class="modal-title"><i class="fas fa-file-excel"></i> Importer des prix (Excel)</h4>
+        <button type="button" class="close text-white" (click)="fermerModalImportPrix()">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <ol>
+          <li>Téléchargez le modèle : il contient déjà tous vos produits (référence, libellé, prix actuel) pour cette boutique.</li>
+          <li>Complétez/corrigez la colonne <strong>Prix de vente net</strong> dans Excel, sans modifier la colonne Référence.</li>
+          <li>Réimportez le fichier ci-dessous, vérifiez l'aperçu, puis confirmez.</li>
+        </ol>
+
+        <button type="button" class="btn btn-outline-primary mb-3" (click)="telechargerModele()">
+          <i class="fas fa-download"></i> Télécharger le modèle
+        </button>
+
+        <div class="form-group">
+          <label>Fichier Excel complété</label>
+          <input type="file" class="form-control" accept=".xlsx,.xls"
+                 (change)="onFichierImportChoisi($any($event.target).files)">
+        </div>
+
+        <button type="button" class="btn btn-primary" [disabled]="!fichierImportPrix || previsualisationEnCours"
+                (click)="previsualiserImportPrix()">
+          <span *ngIf="previsualisationEnCours" class="spinner-border spinner-border-sm mr-1"></span>
+          Prévisualiser
+        </button>
+
+        <div class="mt-3" *ngIf="apercuImportPrix">
+          <div class="alert alert-info">
+            {{ apercuImportPrix.nombreValides }} ligne(s) valide(s), {{ apercuImportPrix.nombreEnErreur }} en erreur
+            (ignorée(s) automatiquement à l'application).
+          </div>
+          <div class="table-responsive" style="max-height: 350px;">
+            <table class="table table-sm table-bordered">
+              <thead>
+                <tr>
+                  <th>Ligne</th>
+                  <th>Référence</th>
+                  <th>Libellé</th>
+                  <th>Ancien prix</th>
+                  <th>Nouveau prix</th>
+                  <th>Erreur</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let ligne of apercuImportPrix.lignes" [class.table-danger]="ligne.erreur">
+                  <td>{{ ligne.ligneNo }}</td>
+                  <td>{{ ligne.reference }}</td>
+                  <td>{{ ligne.libelle }}</td>
+                  <td>{{ ligne.ancienPrix ?? '-' }}</td>
+                  <td>{{ ligne.nouveauPrix ?? '-' }}</td>
+                  <td class="text-danger">{{ ligne.erreur }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-default" (click)="fermerModalImportPrix()">
+          <i class="fas fa-times"></i> Annuler
+        </button>
+        <button type="button" class="btn btn-success"
+                [disabled]="!apercuImportPrix || apercuImportPrix.nombreValides === 0 || applicationImportEnCours"
+                (click)="confirmerImportPrix()">
+          <span *ngIf="applicationImportEnCours" class="spinner-border spinner-border-sm mr-1"></span>
+          Confirmer et appliquer {{ apercuImportPrix ? '(' + apercuImportPrix.nombreValides + ')' : '' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="modal-backdrop fade show" *ngIf="showImportPrixModal"></div>
 </div>
