@@ -1,3 +1,7 @@
+@media (max-width: 576px) {
+  .modal-header .btn-group { flex-wrap: wrap; gap: 4px; }
+}
+
 .totaux-panel {
     flex: 1;
     background: white;
@@ -886,17 +890,6 @@
 /* Animation pour la modal */
 .modal.show .modal-dialog {
   animation: slideDown 0.3s ease;
-}
-
-@keyframes slideDown {
-  from {
-    transform: translateY(-50px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
 }
 
 /* ==================== ALERTES PERSONNALISÉES ==================== */
