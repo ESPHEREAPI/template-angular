@@ -7,22 +7,24 @@
     Vous n'avez pas encore passe de commande.
   </div>
 
-  <table class="sf-table" *ngIf="!chargement && commandes.length > 0">
-    <thead>
-      <tr>
-        <th>N° commande</th>
-        <th>Date</th>
-        <th>Total</th>
-        <th>Statut</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let commande of commandes">
-        <td>{{ commande.numeroDevis }}</td>
-        <td>{{ commande.dateDevis | date: 'dd/MM/yyyy HH:mm' }}</td>
-        <td>{{ commande.total | number: '1.0-0' }} FCFA</td>
-        <td><span class="sf-statut">{{ commande.statutLibelle }}</span></td>
-      </tr>
-    </tbody>
-  </table>
+  <div class="sf-table-wrap" *ngIf="!chargement && commandes.length > 0">
+    <table class="sf-table">
+      <thead>
+        <tr>
+          <th>N° commande</th>
+          <th>Date</th>
+          <th>Total</th>
+          <th>Statut</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let commande of commandes">
+          <td>{{ commande.numeroDevis }}</td>
+          <td>{{ commande.dateDevis | date: 'dd/MM/yyyy HH:mm' }}</td>
+          <td>{{ commande.total | number: '1.0-0' }} FCFA</td>
+          <td><span class="sf-statut">{{ commande.statutLibelle }}</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
