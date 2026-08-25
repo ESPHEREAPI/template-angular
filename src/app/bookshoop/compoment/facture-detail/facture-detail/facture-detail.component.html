@@ -36,8 +36,8 @@
         
         <!-- Boutons d'action -->
         <div class="row mb-3">
-          <div class="col-md-12">
-            <div class="btn-group no-print">
+          <div class="col-md-12 d-flex flex-wrap justify-content-between" style="gap: 8px;">
+            <div class="btn-group flex-wrap no-print">
               <button type="button" class="btn btn-secondary" (click)="backToList()">
                 <i class="fas fa-arrow-left"></i> Retour
               </button>
@@ -73,7 +73,7 @@
               </button>
             </div>
             
-            <div class="btn-group float-right no-print">
+            <div class="btn-group flex-wrap no-print">
               <button type="button" class="btn btn-info" (click)="printFacture()">
                 <i class="fas fa-print"></i> Imprimer
               </button>

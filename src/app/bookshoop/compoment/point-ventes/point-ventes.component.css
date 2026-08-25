@@ -1,0 +1,18 @@
+/* Le groupe de boutons Ajouter/Modifier/Rafraichir/Imprimer (btn-group) ne
+   passe jamais a la ligne par defaut (inline-flex sans wrap) - sur un
+   telephone etroit les 4 boutons libelles depassent la largeur de l'ecran.
+   En dessous de 576px, on les laisse passer a la ligne et occuper chacun
+   environ la moitie de la largeur (perd le style "pilule" jointe, mais
+   reste utilisable au lieu de deborder). */
+@media (max-width: 576px) {
+  .btn-group[role="group"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .btn-group[role="group"] .btn {
+    flex: 1 1 45%;
+  }
+}

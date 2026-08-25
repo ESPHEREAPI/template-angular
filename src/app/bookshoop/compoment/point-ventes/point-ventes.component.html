@@ -155,7 +155,7 @@
                 <i class="fas fa-file-excel"></i> Importer prix (Excel)
               </button>
               <!-- Recherche -->
-              <form [formGroup]="searchForm" class="input-group input-group-sm" style="width: 300px;">
+              <form [formGroup]="searchForm" class="input-group input-group-sm" style="width: 100%; max-width: 300px;">
                 <input type="text"
                        class="form-control float-right"
                        placeholder="Rechercher..."
@@ -462,7 +462,7 @@
               Commandes à valider ({{ listeCommandes.length }})
             </h3>
           </div>
-          <div class="card-body p-0">
+          <div class="card-body table-responsive p-0">
             <table class="table table-sm">
               <thead>
                 <tr>

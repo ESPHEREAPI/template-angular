@@ -241,8 +241,8 @@
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">Liste des Articles</h3>
-          <div class="card-tools">
-            <div class="input-group input-group-sm" style="width: 250px;">
+          <div class="card-tools d-flex flex-wrap" style="gap: 0.5rem;">
+            <div class="input-group input-group-sm" style="width: 100%; max-width: 250px;">
             <input type="text" class="form-control float-right" placeholder="Rechercher..."
               (input)="onSearch(searchInput.value)" #searchInput>
             <div class="input-group-append">
