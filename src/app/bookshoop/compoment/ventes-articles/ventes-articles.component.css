@@ -134,6 +134,7 @@
 
       .article-item {
         display: flex;
+        flex-wrap: wrap;
         justify-content: space-between;
         align-items: center;
         padding: 1rem;
@@ -154,6 +155,7 @@
 
           .article-details {
             display: flex;
+            flex-wrap: wrap;
             gap: 1rem;
             margin-top: 0.25rem;
             font-size: 0.875rem;
@@ -173,6 +175,8 @@
           font-weight: bold;
           color: #007bff;
           font-size: 1.1rem;
+          white-space: nowrap;
+          margin-left: 0.5rem;
         }
       }
     }
