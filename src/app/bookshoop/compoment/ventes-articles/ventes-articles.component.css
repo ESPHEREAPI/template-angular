@@ -262,6 +262,7 @@
 
     .caisse-panel {
       height: 60vh;
+      overflow-y: auto;
     }
   }
 
@@ -313,6 +314,15 @@
     .paiement-buttons .btn {
       font-size: 1rem;
       padding: 0.75rem;
+    }
+  }
+
+  /* Sur telephone, "height: 60vh" sur .caisse-panel laissait deborder
+     quick-actions/panier-section dans .totaux-panel (icone panier qui
+     semblait chevaucher le champ Remise, bouton Ajouter Article invisible). */
+  @media (max-width: 576px) {
+    .caisse-panel {
+      height: auto;
     }
   }
 

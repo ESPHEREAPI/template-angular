@@ -266,6 +266,7 @@
 
     .caisse-panel {
       height: 60vh;
+      overflow-y: auto;
     }
   }
 
@@ -317,6 +318,22 @@
     .paiement-buttons .btn {
       font-size: 1rem;
       padding: 0.75rem;
+    }
+  }
+
+  /* Sur telephone, le "height: 60vh" fixe sur .caisse-panel (regle
+     max-width:1200px ci-dessus, pensee pour tablette) laisse trop peu de
+     place au bloc Panier (quick-actions + panier-section) une fois le
+     champ date/heure et la recherche affiches - le contenu debordait alors
+     visuellement DANS .totaux-panel juste en dessous (icone panier vide
+     qui semblait chevaucher le champ Remise, bouton "Ajouter Article"
+     invisible). .point-vente-container gere deja le defilement de toute
+     la page sur petit ecran (voir son commentaire plus haut) - on laisse
+     donc .caisse-panel prendre sa hauteur naturelle ici plutot que de lui
+     imposer une hauteur fixe en plus. */
+  @media (max-width: 576px) {
+    .caisse-panel {
+      height: auto;
     }
   }
 
