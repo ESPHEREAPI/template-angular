@@ -1,19 +1,22 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Observable } from 'rxjs';
 import { Barcodeproduit } from '../../model/barcodeproduit';
 import { BarcodeGestionService, BarcodeCreateRequest } from '../../service/BarcodeGestion.service';
 import { ReferenceDataService } from '../../service/reference-data.service';
 import { BarcodeService } from '../../service/barcode.service';
 import { Boutique } from '../../model/boutique';
 import { Produit } from '../../model/produit';
+import { CodeBareOfflineService } from '../../service/code-bare-offline.service';
+import { SyncStatusBadgeComponent, SyncStatusView } from '../sync-status-badge/sync-status-badge.component';
 
 declare var $: any;
 
 @Component({
   selector: 'app-code-bare-gestion',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SyncStatusBadgeComponent],
   templateUrl: './code-bare-gestion.component.html',
   styleUrls: ['./code-bare-gestion.component.css']
 })
@@ -36,24 +39,40 @@ export class CodeBareGestionComponent implements OnInit {
   totalElements = 0;
   totalPages = 0;
 
+  readonly syncStatus$: Observable<SyncStatusView>;
+
   constructor(
     private barcodeGestionService: BarcodeGestionService,
     private referenceDataService: ReferenceDataService,
-    private barcodeService: BarcodeService
-  ) {}
+    private barcodeService: BarcodeService,
+    private codeBareOfflineService: CodeBareOfflineService
+  ) {
+    this.syncStatus$ = this.codeBareOfflineService.status$;
+  }
 
   ngOnInit(): void {
+    this.codeBareOfflineService.configurerPing();
     this.loadBarcodes();
     this.chargerBoutiques();
+  }
+
+  forceSyncNow(): void {
+    this.codeBareOfflineService.forceSyncNow().then(() => this.loadBarcodes());
   }
 
   private chargerBoutiques(): void {
     this.referenceDataService.getBoutiques()
       .subscribe({
-        next: (data) => this.boutiques = data,
+        next: (data) => {
+          this.boutiques = data;
+          this.codeBareOfflineService.cacheBoutiques(data);
+        },
         error: (error) => {
-          console.error('Erreur lors du chargement des boutiques', error);
-          this.showToast('Erreur lors du chargement des boutiques', 'error');
+          console.error('Erreur lors du chargement des boutiques, utilisation du cache local', error);
+          this.boutiques = this.codeBareOfflineService.getCachedBoutiques();
+          if (this.boutiques.length === 0) {
+            this.showToast('Erreur lors du chargement des boutiques', 'error');
+          }
         }
       });
   }
@@ -65,17 +84,22 @@ export class CodeBareGestionComponent implements OnInit {
     this.articlesDeLaBoutique = [];
     if (!this.newBarcode.boutiqueId) return;
 
+    const boutiqueId = this.newBarcode.boutiqueId;
     this.chargementArticles = true;
-    this.barcodeService.getProduitsAutoComplet(this.newBarcode.boutiqueId)
+    this.barcodeService.getProduitsAutoComplet(boutiqueId)
       .subscribe({
         next: (produits) => {
           this.articlesDeLaBoutique = produits;
           this.chargementArticles = false;
+          this.codeBareOfflineService.cacheArticlesBoutique(boutiqueId, produits);
         },
         error: (error) => {
-          console.error('Erreur lors du chargement des articles', error);
-          this.showToast('Erreur lors du chargement des articles de la boutique', 'error');
+          console.error('Erreur lors du chargement des articles, utilisation du cache local', error);
+          this.articlesDeLaBoutique = this.codeBareOfflineService.getCachedArticlesBoutique(boutiqueId);
           this.chargementArticles = false;
+          if (this.articlesDeLaBoutique.length === 0) {
+            this.showToast('Erreur lors du chargement des articles de la boutique', 'error');
+          }
         }
       });
   }
@@ -84,11 +108,41 @@ export class CodeBareGestionComponent implements OnInit {
     return { codeBard: '', produitId: 0, boutiqueId: 0 };
   }
 
-  loadBarcodes(): void {
+  // Fusionne la page recue du serveur avec les operations pas encore
+  // synchronisees (voir CodeBareOfflineService) : creations en attente
+  // ajoutees en tete (page 0 seulement - une creation locale n'a pas de
+  // position reelle dans la pagination serveur), modifications en attente
+  // affichees avec leur nouvelle valeur, suppressions en attente masquees.
+  async loadBarcodes(): Promise<void> {
     this.barcodeGestionService.getAll(this.currentPage, this.pageSize)
       .subscribe({
-        next: (response) => {
-          this.barcodes = response.content;
+        next: async (response) => {
+          const modifications = await this.codeBareOfflineService.getModificationsEnAttente();
+
+          let barcodes = response.content.filter(b => !(b.id !== undefined && modifications.get(b.id)?.supprime));
+          barcodes = barcodes.map(b => {
+            const mod = b.id !== undefined ? modifications.get(b.id) : undefined;
+            return mod && !mod.supprime && mod.codeBard !== undefined
+              ? { ...b, codeBard: mod.codeBard, pending: true }
+              : b;
+          });
+
+          if (this.currentPage === 0) {
+            const pendingRows = await this.codeBareOfflineService.getPendingRows();
+            const enAttente: Barcodeproduit[] = pendingRows.map(row => ({
+              id: row.id,
+              codeBard: row.codeBard,
+              pending: true,
+              prixArticles: {
+                pointVente: {
+                  produit: { libelle: row.produitLibelle, reference: row.produitReference }
+                }
+              }
+            }));
+            barcodes = [...enAttente, ...barcodes];
+          }
+
+          this.barcodes = barcodes;
           this.totalElements = response.totalElements;
           this.totalPages = response.totalPages;
         },
@@ -105,20 +159,18 @@ export class CodeBareGestionComponent implements OnInit {
     $('#barcodeModal').modal('show');
   }
 
-  saveBarcode(): void {
-    this.barcodeGestionService.create(this.newBarcode)
-      .subscribe({
-        next: () => {
-          this.loadBarcodes();
-          $('#barcodeModal').modal('hide');
-          this.showToast('Code-barres associé avec succès', 'success');
-        },
-        error: (error) => {
-          console.error('Erreur lors de la création', error);
-          const message = error?.error?.message || 'Erreur de création';
-          this.showToast(message, 'error');
-        }
-      });
+  async saveBarcode(): Promise<void> {
+    const produit = this.articlesDeLaBoutique.find(p => p.id === this.newBarcode.produitId);
+    try {
+      await this.codeBareOfflineService.creer(this.newBarcode, produit?.libelle, produit?.reference);
+      this.loadBarcodes();
+      $('#barcodeModal').modal('hide');
+      this.showToast('Code-barres associé avec succès', 'success');
+    } catch (error: any) {
+      console.error('Erreur lors de la création', error);
+      const message = error?.error?.message || 'Erreur de création';
+      this.showToast(message, 'error');
+    }
   }
 
   startEdit(barcode: Barcodeproduit): void {
@@ -131,34 +183,28 @@ export class CodeBareGestionComponent implements OnInit {
     this.editingCode = '';
   }
 
-  saveEdit(id: number): void {
-    this.barcodeGestionService.update(id, this.editingCode)
-      .subscribe({
-        next: () => {
-          this.loadBarcodes();
-          this.cancelEdit();
-          this.showToast('Code-barres modifié avec succès', 'success');
-        },
-        error: (error) => {
-          console.error('Erreur lors de la modification', error);
-          this.showToast('Erreur de modification', 'error');
-        }
-      });
+  async saveEdit(id: number): Promise<void> {
+    try {
+      await this.codeBareOfflineService.modifier(id, this.editingCode);
+      this.loadBarcodes();
+      this.cancelEdit();
+      this.showToast('Code-barres modifié avec succès', 'success');
+    } catch (error) {
+      console.error('Erreur lors de la modification', error);
+      this.showToast('Erreur de modification', 'error');
+    }
   }
 
-  deleteBarcode(id: number): void {
+  async deleteBarcode(id: number): Promise<void> {
     if (confirm('Êtes-vous sûr de vouloir supprimer cette association ?')) {
-      this.barcodeGestionService.delete(id)
-        .subscribe({
-          next: () => {
-            this.loadBarcodes();
-            this.showToast('Association supprimée avec succès', 'success');
-          },
-          error: (error) => {
-            console.error('Erreur lors de la suppression', error);
-            this.showToast('Erreur de suppression', 'error');
-          }
-        });
+      try {
+        await this.codeBareOfflineService.supprimer(id);
+        this.loadBarcodes();
+        this.showToast('Association supprimée avec succès', 'success');
+      } catch (error) {
+        console.error('Erreur lors de la suppression', error);
+        this.showToast('Erreur de suppression', 'error');
+      }
     }
   }
 

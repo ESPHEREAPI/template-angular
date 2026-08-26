@@ -1,0 +1,80 @@
+.sync-status-wrapper {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  z-index: 1040;
+  max-width: 320px;
+}
+
+.sync-status-badge {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+  transition: all 0.3s ease;
+}
+
+.sync-status-badge:hover {
+  box-shadow: 0 0 1px rgba(0,0,0,.125), 0 2px 5px rgba(0,0,0,.3);
+  transform: translateY(-1px);
+}
+
+.sync-status-badge .badge-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sync-status-badge.status-online {
+  border-left: 3px solid #28a745;
+}
+
+.sync-status-badge.status-offline {
+  border-left: 3px solid #dc3545;
+  background: #fff3cd;
+}
+
+.sync-status-badge.status-syncing {
+  border-left: 3px solid #007bff;
+}
+
+.sync-details-panel {
+  margin-top: 0.5rem;
+}
+
+.sync-details-panel .card {
+  margin-bottom: 0;
+  box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+}
+
+.sync-details-panel .nav-link {
+  cursor: default;
+  padding: 0.75rem 1rem;
+}
+
+.sync-details-panel .nav-link:hover {
+  background: #f8f9fa;
+}
+
+@media (max-width: 768px) {
+  .sync-status-wrapper {
+    top: 50px;
+    right: 10px;
+    max-width: 280px;
+  }
+
+  .sync-status-badge {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+}
+
+@media print {
+  .sync-status-wrapper {
+    display: none !important;
+  }
+}

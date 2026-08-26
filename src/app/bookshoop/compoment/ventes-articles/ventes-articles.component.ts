@@ -1,5 +1,5 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
-import { Subject, takeUntil } from 'rxjs';
+import { Observable, Subject, takeUntil } from 'rxjs';
 import { Produit } from '../../model/produit';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CaisseItem } from '../../model/caisse-item';
@@ -19,6 +19,9 @@ import { User } from '../../model/user';
 import { AuthService } from '../../../auth/auth.service';
 import { BonAchatService } from '../../service/BonAchat.service';
 import { BonAchat } from '../../model/bon-achat';
+import { ConnectivityService } from '../../service/connectivity.service';
+import { VenteArticlesOfflineService } from '../../service/vente-articles-offline.service';
+import { SyncStatusBadgeComponent, SyncStatusView } from '../sync-status-badge/sync-status-badge.component';
 
 // Une "vente en cours" tenue en memoire cote client - permet de mettre en
 // attente le panier d'un client (ex: il va chercher un article oublie) pour
@@ -40,7 +43,7 @@ const MAX_PANIERS = 5;
 @Component({
   selector: 'app-ventes-articles',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule,CalendarModule],
+  imports: [CommonModule, ReactiveFormsModule, FormsModule,CalendarModule, SyncStatusBadgeComponent],
   templateUrl: './ventes-articles.component.html',
   styleUrl: './ventes-articles.component.css'
 })
@@ -109,9 +112,18 @@ export class VentesArticlesComponent {
     private fb: FormBuilder, private barcodeService: BarcodeService, private notificationService: NotificationService,
     private prixArticlesService: PrixArticlesService, private userService: UserService, private printService: PrintService,
     private stockService: StockServiceService,private router:Router,private authService: AuthService,
-    private bonAchatService: BonAchatService
+    private bonAchatService: BonAchatService,
+    private connectivity: ConnectivityService,
+    private venteArticlesOfflineService: VenteArticlesOfflineService
   ) {
     this.initializeForms();
+    this.syncStatus$ = this.venteArticlesOfflineService.status$;
+  }
+
+  readonly syncStatus$: Observable<SyncStatusView>;
+
+  forceSyncNow(): void {
+    this.venteArticlesOfflineService.forceSyncNow();
   }
 
   ngOnInit(): void {
@@ -847,6 +859,26 @@ export class VentesArticlesComponent {
 
   this.loading = true;
 
+  const procederEnregistrement = () => {
+    this.enregistrerVente().then(() => {
+      console.log('Vente enregistrée avec succès');
+    }).catch(error => {
+      console.error('Erreur lors de l\'enregistrement de la vente:', error);
+      alert('Erreur lors de l\'enregistrement de la vente');
+    }).finally(() => {
+      this.loading = false;
+    });
+  };
+
+  // Hors-ligne (ou backend injoignable) : impossible de verifier un
+  // eventuel doublon de ticket au prealable - on l'accepte (le numero est
+  // deja base sur un timestamp, risque de collision negligeable) plutot
+  // que de bloquer toute la vente sur une simple coupure reseau.
+  if (!this.connectivity.isOnline || !this.connectivity.isBackendAvailable) {
+    procederEnregistrement();
+    return;
+  }
+
   // Vérifie si une vente avec ce ticket existe déjà
   this.barcodeService.verificationNumeTicket(this.numeroTicket).subscribe({
     next: (venteExistante) => {
@@ -858,19 +890,11 @@ export class VentesArticlesComponent {
       }
 
       // Aucun ticket existant, procéder à l'enregistrement
-      this.enregistrerVente().then(() => {
-        console.log('Vente enregistrée avec succès');
-      }).catch(error => {
-        console.error('Erreur lors de l\'enregistrement de la vente:', error);
-        alert('Erreur lors de l\'enregistrement de la vente');
-      }).finally(() => {
-        this.loading = false;
-      });
+      procederEnregistrement();
     },
     error: (error) => {
-      console.error('Erreur lors de la vérification du ticket :', error);
-      alert('Erreur réseau lors de la vérification du ticket');
-      this.loading = false;
+      console.error('Erreur lors de la vérification du ticket, poursuite hors-ligne :', error);
+      procederEnregistrement();
     }
   });
 }
@@ -889,57 +913,38 @@ export class VentesArticlesComponent {
     this.montantRecu = this.totalPaye();
     this.monnaieRendue = this.monnaieARendre();
 
-    return new Promise(resolve => {
-      setTimeout(() => {
-        // Stocker les données de la vente pour l'impression
-        this.venteValidee = {
-          numeroTicket: this.numeroTicket,
-          date: this.venteForm.get('dateSave')?.value,
-          items: [...this.caisseItems],
-          montantTotal: this.montantTotal,
-          typePaiement: this.lignesPaiement.map(l => l.typePaiement).filter((v, i, a) => a.indexOf(v) === i).join(' + '),
-          paiements: this.lignesPaiement.map(l => ({
-            typePaiement: l.typePaiement,
-            montant: Number(l.montant) || 0,
-            reference: l.reference || undefined
-          })),
-          montantRecu: this.montantRecu,
-          monnaieRendue: this.monnaieRendue,
-          montantNet: this.checkMontantApaye(),
-          client: this.getDefautClient(),
-          userinsert: userinsert.username,
-          remise: this.montantRemise || 0,
-          statut: 'TERMINEE'
-        };
-        console.log("donnee vente");
-        console.log(this.venteValidee);
-        const venteCreation$ = this.barcodeService.createVente(this.venteValidee,this.numerocommande)
-          .pipe(takeUntil(this.destroy$))
-          .subscribe({
-            next: (vente) => {
+    // Stocker les données de la vente pour l'impression
+    this.venteValidee = {
+      numeroTicket: this.numeroTicket,
+      date: this.venteForm.get('dateSave')?.value,
+      items: [...this.caisseItems],
+      montantTotal: this.montantTotal,
+      typePaiement: this.lignesPaiement.map(l => l.typePaiement).filter((v, i, a) => a.indexOf(v) === i).join(' + '),
+      paiements: this.lignesPaiement.map(l => ({
+        typePaiement: l.typePaiement,
+        montant: Number(l.montant) || 0,
+        reference: l.reference || undefined
+      })),
+      montantRecu: this.montantRecu,
+      monnaieRendue: this.monnaieRendue,
+      montantNet: this.checkMontantApaye(),
+      client: this.getDefautClient(),
+      userinsert: userinsert.username,
+      remise: this.montantRemise || 0,
+      statut: 'TERMINEE'
+    };
 
-              this.venteid = vente;
-
-              this.showPaiementModal = false;
-              this.showConfirmationModal = true;
-              resolve();
-            },
-
-            error: (error) => {
-              this.handleError('Erreur lors de la creation de vente', error)
-              resolve();
-            }
-          });
-        console.log('Vente enregistrée:', this.venteValidee);
-
-
-        resolve();
-      }, 1000);
-    });
-
-
-
-
+    try {
+      // Enregistre directement si le backend est joignable, sinon met la
+      // vente en file locale (voir VenteArticlesOfflineService) - venteid
+      // vaut 0 tant que la vente n'a pas encore ete synchronisee.
+      const { venteid } = await this.venteArticlesOfflineService.enregistrer(this.venteValidee, this.numerocommande);
+      this.venteid = venteid;
+      this.showPaiementModal = false;
+      this.showConfirmationModal = true;
+    } catch (error) {
+      this.handleError('Erreur lors de la creation de vente', error);
+    }
   }
 
   //verification ticket
@@ -1149,69 +1154,132 @@ refreshApplication(): void {
 
 
   // Print & Download methods
+  //
+  // venteid === 0 signifie que la vente est encore en file d'attente
+  // (voir VenteArticlesOfflineService, hors-ligne ou backend injoignable
+  // au moment de la validation) - impossible de demander un ticket au
+  // backend puisqu'aucune facture n'y existe encore. Le ticket est alors
+  // genere directement depuis venteValidee, cote client, sans appel reseau.
   imprimerTicket(ticketId: number): void {
-    /* if (this.venteValidee) {
-       // Générer le PDF et l'ouvrir pour impression
-       const pdf = this.genererTicketPDF(this.venteValidee);
-       pdf.autoPrint();
-       window.open(pdf.output('bloburl'), '_blank');
-     }*/
-
-    if (this.venteid) {
-      // Ouverture synchrone au clic - sinon le navigateur bloque le popup
-      // une fois que le blob (recupere de facon asynchrone) est pret.
-      const fenetre = window.open('', '_blank');
-      this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe({
-        next: (blob) => {
-          const file = new Blob([blob], { type: 'text/plain;charset=utf-8' });
-          this.printService.imprimerAvecPrevisualisation(file, fenetre);
-        },
-        // Sans ce handler, un echec cote serveur laissait l'onglet ouvert
-        // vide (about:blank) sans aucune explication pour le caissier.
-        error: (err) => {
-          fenetre?.close();
-          this.handleError('Erreur lors de la génération du ticket', err);
-        }
-      });
+    if (!this.venteid) {
+      this.imprimerTicketLocal();
+      return;
     }
-    /* *this.barcodeService.downloadTicketVente(this.venteid).subscribe(blob => {
-       const url = window.URL.createObjectURL(blob);
-       window.open(url); // ✅ Ouvre dans un nouvel onglet
-     });*/
+
+    // Ouverture synchrone au clic - sinon le navigateur bloque le popup
+    // une fois que le blob (recupere de facon asynchrone) est pret.
+    const fenetre = window.open('', '_blank');
+    this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe({
+      next: (blob) => {
+        const file = new Blob([blob], { type: 'text/plain;charset=utf-8' });
+        this.printService.imprimerAvecPrevisualisation(file, fenetre);
+      },
+      // Sans ce handler, un echec cote serveur laissait l'onglet ouvert
+      // vide (about:blank) sans aucune explication pour le caissier.
+      error: (err) => {
+        fenetre?.close();
+        this.notificationService.warning('⚠️ Impression ticket local');
+        this.imprimerTicketLocal();
+      }
+    });
   }
 
   telechargerTicket(ticketId: number): void {
-    /**   if (this.venteValidee) {
-        // Générer et télécharger le PDF du ticket
-        const pdf = this.genererTicketPDF(this.venteValidee);
-        pdf.save(`ticket_${this.venteValidee.numeroTicket}.pdf`);
-      }*/
-    if (this.venteid) {
+    if (!this.venteid) {
+      const ticket = this.genererTicketTexte(this.venteValidee);
+      const blob = new Blob([ticket], { type: 'text/plain;charset=utf-8' });
+      this.telechargerBlob(blob, `ticket_${this.venteValidee.numeroTicket}.txt`);
+      return;
+    }
 
-      this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe({
+    this.barcodeService.downloadTicketVenteTXT(this.venteid).subscribe({
       error: (err) => this.handleError('Erreur lors de la génération du ticket', err),
       next: (blob) => {
-
-        /**  const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = `ticket-vente-${this.venteid}.pdf`;
-          link.click();*/
-        // ✅ Convertir en fichier avec le bon MIME
         const file = new Blob([blob], { type: 'text/plain;charset=utf-8' });
-
-        // ✅ Créer un lien temporaire pour téléchargement
-        const url = window.URL.createObjectURL(file);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'ticket.txt'; // nom du fichier
-        a.click();
-
-        // ✅ Libérer l'URL
-        window.URL.revokeObjectURL(url);
+        this.telechargerBlob(file, `ticket-vente-${this.venteid}.txt`);
       }
-      });
+    });
+  }
+
+  private imprimerTicketLocal(): void {
+    const ticket = this.genererTicketTexte(this.venteValidee);
+    const blob = new Blob([ticket], { type: 'text/plain;charset=utf-8' });
+    this.printService.imprimerAvecPrevisualisation(blob);
+  }
+
+  private telechargerBlob(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
+  private formatMontant(montant: number): string {
+    return new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(montant || 0);
+  }
+
+  /** Genere le contenu texte du ticket entierement cote client, sans appel reseau. */
+  private genererTicketTexte(vente: Vente): string {
+    const ligne = (texte: string) => texte + '\n';
+    const sep = '================================\n';
+
+    let ticket = '';
+    ticket += ligne('╔════════════════════════════════╗');
+    ticket += ligne('║     TICKET DE CAISSE           ║');
+    ticket += ligne('╚════════════════════════════════╝');
+    ticket += ligne('');
+    ticket += sep;
+
+    const clientNom = vente.client ? `${vente.client.nom} ${vente.client.prenom || ''}`.trim() : 'Client de passage';
+
+    ticket += ligne(`Client    : ${clientNom}`);
+    ticket += ligne(`Caissier  : ${vente.userinsert}`);
+    ticket += ligne(`Date      : ${new Date(vente.date).toLocaleString('fr-FR')}`);
+    ticket += ligne(`Ticket N° : ${vente.numeroTicket}`);
+    ticket += sep;
+
+    ticket += ligne('ARTICLES:');
+    ticket += ligne('');
+
+    vente.items.forEach((item, index) => {
+      const numero = (index + 1).toString().padStart(2, ' ');
+      ticket += ligne(`${numero}. ${item.article.libelle}`);
+      ticket += ligne(`    ${item.quantite.toFixed(2)} x ${this.formatMontant(item.prixUnitaire)} = ${this.formatMontant(item.montantTotal)}`);
+    });
+
+    ticket += sep;
+    ticket += ligne(`Sous-total : ${this.formatMontant(vente.montantTotal)} FCFA`);
+
+    if (vente.remise && vente.remise > 0) {
+      ticket += ligne(`Remise     : ${this.formatMontant(vente.remise)} FCFA`);
+      ticket += ligne(`TOTAL      : ${this.formatMontant(vente.montantNet)} FCFA`);
+    } else {
+      ticket += ligne(`TOTAL      : ${this.formatMontant(vente.montantTotal)} FCFA`);
     }
+
+    ticket += ligne(`Articles   : ${vente.items.length}`);
+    ticket += ligne(`Paiement   : ${vente.typePaiement}`);
+
+    if (vente.typePaiement === 'ESPECES') {
+      ticket += ligne(`Reçu       : ${this.formatMontant(vente.montantRecu)} FCFA`);
+      ticket += ligne(`Rendu      : ${this.formatMontant(vente.monnaieRendue)} FCFA`);
+    }
+
+    ticket += sep;
+    ticket += ligne('  Les marchandises vendues ne');
+    ticket += ligne('  sont ni reprises ni échangées');
+    ticket += ligne('');
+    ticket += ligne('      Merci et à bientôt !');
+
+    if (!this.venteid) {
+      ticket += '\n' + sep;
+      ticket += ligne('⚠️  VENTE EN ATTENTE DE SYNCHRONISATION');
+      ticket += ligne('Sync auto dès reconnexion serveur');
+    }
+
+    return ticket;
   }
 
 

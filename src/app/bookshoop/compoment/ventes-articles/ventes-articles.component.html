@@ -1,3 +1,6 @@
+<app-sync-status-badge *ngIf="syncStatus$ | async as syncStatus" [status]="syncStatus"
+    (syncNow)="forceSyncNow()"></app-sync-status-badge>
+
 <!-- point-vente.component.html -->
 <div class="point-vente-container">
     <!-- Header -->

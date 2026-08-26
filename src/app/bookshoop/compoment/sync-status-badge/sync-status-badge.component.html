@@ -1,0 +1,89 @@
+<div class="sync-status-wrapper">
+  <div class="sync-status-badge"
+       [ngClass]="{
+         'status-online': status.isOnline && status.backendAvailable,
+         'status-offline': !status.isOnline || !status.backendAvailable,
+         'status-syncing': status.syncInProgress
+       }"
+       (click)="toggleDetails()">
+    <i class="fas" [ngClass]="{
+      'fa-wifi': status.isOnline && status.backendAvailable && !status.syncInProgress,
+      'fa-wifi-slash': !status.isOnline || !status.backendAvailable,
+      'fa-sync fa-spin': status.syncInProgress
+    }"></i>
+    <span class="badge-text">
+      {{ (status.isOnline && status.backendAvailable) ? 'En ligne' : 'Hors ligne' }}
+    </span>
+    <span class="badge badge-warning ml-1" *ngIf="status.pendingCount > 0">{{ status.pendingCount }}</span>
+    <span class="badge badge-danger ml-1" *ngIf="status.failedCount > 0" title="Echec definitif">{{ status.failedCount }}</span>
+  </div>
+
+  <div class="sync-details-panel" *ngIf="showDetails">
+    <div class="card card-outline card-primary">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-sync-alt"></i> État de synchronisation</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" (click)="toggleDetails()">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <ul class="nav nav-pills flex-column">
+          <li class="nav-item">
+            <a class="nav-link">
+              <i class="fas" [ngClass]="{
+                'fa-wifi text-success': status.isOnline && status.backendAvailable,
+                'fa-wifi-slash text-danger': !status.isOnline || !status.backendAvailable
+              }"></i>
+              Connexion
+              <span class="float-right" [ngClass]="{
+                'badge bg-success': status.isOnline && status.backendAvailable,
+                'badge bg-danger': !status.isOnline || !status.backendAvailable
+              }">
+                {{ (status.isOnline && status.backendAvailable) ? 'En ligne' : 'Hors ligne' }}
+              </span>
+            </a>
+          </li>
+
+          <li class="nav-item" *ngIf="status.pendingCount > 0">
+            <a class="nav-link">
+              <i class="fas fa-clock text-warning"></i>
+              {{ itemLabel }} en attente
+              <span class="float-right badge bg-warning">{{ status.pendingCount }}</span>
+            </a>
+          </li>
+
+          <li class="nav-item" *ngIf="status.failedCount > 0">
+            <a class="nav-link" (click)="retryFailed.emit()" style="cursor:pointer">
+              <i class="fas fa-exclamation-triangle text-danger"></i>
+              Echec definitif (cliquer pour relancer)
+              <span class="float-right badge bg-danger">{{ status.failedCount }}</span>
+            </a>
+          </li>
+
+          <li class="nav-item" *ngIf="status.syncInProgress">
+            <a class="nav-link">
+              <i class="fas fa-sync fa-spin text-primary"></i>
+              Synchronisation en cours...
+            </a>
+          </li>
+
+          <li class="nav-item" *ngIf="status.lastSync && status.isOnline">
+            <a class="nav-link">
+              <i class="fas fa-check-circle text-success"></i>
+              Dernière sync
+              <span class="float-right text-muted small">{{ status.lastSync | date:'short' }}</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+      <div class="card-footer" *ngIf="status.pendingCount > 0 && status.isOnline">
+        <button class="btn btn-primary btn-sm btn-block" (click)="syncNow.emit()" [disabled]="status.syncInProgress">
+          <i class="fas fa-sync-alt" [class.fa-spin]="status.syncInProgress"></i>
+          Synchroniser maintenant
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

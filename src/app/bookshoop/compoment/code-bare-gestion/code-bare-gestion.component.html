@@ -1,3 +1,6 @@
+<app-sync-status-badge *ngIf="syncStatus$ | async as syncStatus" [status]="syncStatus"
+    (syncNow)="forceSyncNow()"></app-sync-status-badge>
+
 <section class="content-header">
   <div class="container-fluid">
     <div class="row mb-2">
@@ -39,10 +42,15 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let barcode of barcodes">
+              <tr *ngFor="let barcode of barcodes" [class.table-warning]="barcode.pending">
                 <td>{{ barcode.id }}</td>
                 <td>
-                  <span *ngIf="editingId !== barcode.id">{{ barcode.codeBard }}</span>
+                  <span *ngIf="editingId !== barcode.id">
+                    {{ barcode.codeBard }}
+                    <span *ngIf="barcode.pending" class="badge badge-warning ml-1" title="En attente de synchronisation">
+                      <i class="fas fa-clock"></i> en attente
+                    </span>
+                  </span>
                   <input *ngIf="editingId === barcode.id" type="text" class="form-control form-control-sm"
                          [(ngModel)]="editingCode" name="editingCode">
                 </td>
