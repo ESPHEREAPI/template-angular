@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { AuthService } from '../../auth/auth.service';
 import { BarcodeService } from './barcode.service';
@@ -83,9 +84,15 @@ export class VenteArticlesOfflineService {
         const venteid = await this.envoyerAuBackend({ vente, numerocommande });
         return { venteid };
       } catch (error) {
-        // Echec reseau (pas un rejet metier, ex. stock insuffisant, qui
-        // doit remonter tel quel a l'appelant) -> bascule sur la file.
-        if (this.estEchecMetier(error)) {
+        // Seule une absence totale de reponse (status 0 - coupure reseau,
+        // CORS, timeout) justifie de mettre en file et de dire "enregistre"
+        // au caissier. TOUT rejet avec une reponse HTTP effective (le
+        // backend a repondu, meme via un code 500 generique - ex. bon
+        // d'achat invalide, stock insuffisant) doit remonter immediatement
+        // a l'appelant : le confondre avec une coupure reseau permettrait
+        // de faire "passer" une vente en payant avec un faux bon d'achat,
+        // le rejet du serveur restant invisible pour le caissier.
+        if (!this.estErreurReseau(error)) {
           throw error;
         }
       }
@@ -138,16 +145,28 @@ export class VenteArticlesOfflineService {
 
   private envoyerAuBackend(payload: VenteArticlesOfflinePayload): Promise<number> {
     return new Promise((resolve, reject) => {
-      this.barcodeService.createVente(payload.vente, payload.numerocommande).subscribe({
-        next: (venteid) => resolve(venteid),
-        error: (err) => reject(err)
-      });
+      this.barcodeService.createVente(payload.vente, payload.numerocommande)
+        .pipe(timeout(20000))
+        .subscribe({
+          next: (venteid) => resolve(venteid),
+          // Un TimeoutError (pas de reponse dans les 20s) n'a pas de
+          // "status" HTTP - estErreurReseau() le traite comme une panne
+          // reseau, correctement (le serveur n'a jamais confirme avoir vu
+          // la requete, contrairement a un rejet explicite type 400/500).
+          error: (err) => reject(err)
+        });
     });
   }
 
-  /** Un rejet 4xx du backend (regle metier) n'est pas une panne reseau. */
-  private estEchecMetier(error: any): boolean {
-    return error?.status >= 400 && error?.status < 500 && error?.status !== 0;
+  /**
+   * status===0 (ou absent) = aucune reponse HTTP recue du tout (coupure,
+   * CORS, timeout) - la seule situation ou l'on peut affirmer que le
+   * backend n'a pas pu voir la requete. Tout code de statut recu, y
+   * compris 500, signifie que le backend a bien traite la requete et l'a
+   * rejetee - jamais a confondre avec une panne reseau (voir enregistrer()).
+   */
+  private estErreurReseau(error: any): boolean {
+    return error?.status === 0 || error?.status === undefined;
   }
 
   private messageErreur(error: any): string {

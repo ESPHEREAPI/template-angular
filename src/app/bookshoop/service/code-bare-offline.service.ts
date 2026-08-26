@@ -98,7 +98,7 @@ export class CodeBareOfflineService {
         await this.envoyerCreation(request);
         return;
       } catch (error) {
-        if (this.estEchecMetier(error)) {
+        if (!this.estErreurReseau(error)) {
           throw error;
         }
         // Echec reseau malgre un statut "en ligne" (blip transitoire) -
@@ -127,7 +127,7 @@ export class CodeBareOfflineService {
         await this.envoyerUpdate(id, codeBard);
         return;
       } catch (error) {
-        if (this.estEchecMetier(error)) {
+        if (!this.estErreurReseau(error)) {
           throw error;
         }
       }
@@ -151,7 +151,7 @@ export class CodeBareOfflineService {
         await this.envoyerDelete(id);
         return;
       } catch (error) {
-        if (this.estEchecMetier(error)) {
+        if (!this.estErreurReseau(error)) {
           throw error;
         }
       }
@@ -310,9 +310,15 @@ export class CodeBareOfflineService {
     return id;
   }
 
-  /** Un rejet 4xx du backend (regle metier, ex. code-barres deja utilise) n'est pas une panne reseau. */
-  private estEchecMetier(error: any): boolean {
-    return error?.status >= 400 && error?.status < 500 && error?.status !== 0;
+  /**
+   * status===0 (ou absent) = aucune reponse HTTP recue (coupure, CORS,
+   * timeout) - seul cas ou l'on peut affirmer que le backend n'a pas vu la
+   * requete. Tout code recu, y compris 500, signifie qu'il l'a traitee et
+   * rejetee - ne jamais confondre avec une panne reseau (voir vente-articles-offline.service.ts
+   * pour le raisonnement complet sur ce choix).
+   */
+  private estErreurReseau(error: any): boolean {
+    return error?.status === 0 || error?.status === undefined;
   }
 
   private messageErreur(error: any): string {
