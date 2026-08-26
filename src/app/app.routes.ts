@@ -4,6 +4,8 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { LoginComponent } from './module-users/login/login.component';
+import { CompanySignupFormComponent } from './company-signup/company-signup-form/company-signup-form.component';
+import { CompanySignupVerifyComponent } from './company-signup/company-signup-verify/company-signup-verify.component';
 import { UsersComponent } from './module-users/users/users.component';
 import { AuthGuard } from './auth/auth.guard';
 import { RoleGuard } from './auth/role-guard';
@@ -94,6 +96,14 @@ export const routes: Routes = [
   {
     path: 'login',
     component: LoginComponent
+  },
+  {
+    path: 'inscription-compagnie',
+    component: CompanySignupFormComponent
+  },
+  {
+    path: 'verification-compagnie',
+    component: CompanySignupVerifyComponent
   },
   {
     path: 'change-password',

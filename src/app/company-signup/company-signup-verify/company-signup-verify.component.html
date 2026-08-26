@@ -1,0 +1,38 @@
+<div class="signup-page">
+  <div class="signup-card text-center">
+
+    <div *ngIf="enCours">
+      <i class="fas fa-spinner fa-spin fa-2x text-primary mb-3"></i>
+      <p>Vérification en cours...</p>
+    </div>
+
+    <div *ngIf="!enCours && succes">
+      <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+      <h4>Email vérifié !</h4>
+      <p class="text-muted">Votre compte est maintenant actif. Vous pouvez vous connecter.</p>
+      <a routerLink="/login" class="btn btn-primary">Se connecter</a>
+    </div>
+
+    <div *ngIf="!enCours && !succes">
+      <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+      <h4>Lien invalide ou expiré</h4>
+      <p class="text-muted">{{ erreur }}</p>
+
+      <div *ngIf="!renvoiEnvoye" class="mt-3 text-left">
+        <label>Recevoir un nouveau lien :</label>
+        <div class="input-group">
+          <input type="email" class="form-control" placeholder="Votre email" [(ngModel)]="emailRenvoi" name="emailRenvoi">
+          <div class="input-group-append">
+            <button type="button" class="btn btn-outline-primary" [disabled]="renvoiEnCours" (click)="renvoyer()">
+              Renvoyer
+            </button>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="renvoiEnvoye" class="alert alert-info mt-3">
+        Si un compte en attente existe pour cette adresse, un nouveau lien vient d'être envoyé.
+      </div>
+    </div>
+
+  </div>
+</div>

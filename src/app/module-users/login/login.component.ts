@@ -1,6 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { LoginService } from '../../services/login.service';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import{ Users} from '../../model/Users'
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
@@ -19,7 +19,7 @@ import { LicenceService } from '../../bookshoop/service/licence.service';
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ToastModule,MessagesModule,CommonModule,FormsModule, BoutiqueSelectionDialogComponent],
+  imports: [ToastModule,MessagesModule,CommonModule,FormsModule, RouterModule, BoutiqueSelectionDialogComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.css'
 })
