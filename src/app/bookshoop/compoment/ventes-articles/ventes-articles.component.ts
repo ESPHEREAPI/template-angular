@@ -1,5 +1,5 @@
 import { Component, ElementRef, ViewChild } from '@angular/core';
-import { Observable, Subject, takeUntil } from 'rxjs';
+import { Observable, Subject, firstValueFrom, takeUntil } from 'rxjs';
 import { Produit } from '../../model/produit';
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CaisseItem } from '../../model/caisse-item';
@@ -816,6 +816,48 @@ export class VentesArticlesComponent {
     });
   }
 
+  /**
+   * Revalide chaque ligne de paiement BON_ACHAT aupres du serveur juste
+   * avant d'accepter la vente. Bloque (sans mettre la vente en file) si un
+   * code est invalide, si le solde est insuffisant, ou si le serveur est
+   * injoignable - un bon d'achat ne peut jamais etre "accepte sur parole".
+   */
+  private async verifierLignesBonAchatAvantValidation(): Promise<boolean> {
+    const references = Array.from(new Set(
+      this.lignesPaiement
+        .filter(l => l.typePaiement === 'BON_ACHAT' && l.reference)
+        .map(l => l.reference!.trim())
+    ));
+    if (references.length === 0) {
+      return true;
+    }
+
+    for (const reference of references) {
+      const montantDemande = this.lignesPaiement
+        .filter(l => l.typePaiement === 'BON_ACHAT' && l.reference?.trim() === reference)
+        .reduce((total, l) => total + (Number(l.montant) || 0), 0);
+
+      try {
+        const bon = await firstValueFrom(this.bonAchatService.verifierCode(reference));
+        const disponible = bon.montantTotal - (bon.montantUtilise ?? 0);
+        if (montantDemande > disponible + 0.01) {
+          this.notificationService.error(
+            `Solde insuffisant sur le bon d'achat ${reference} (disponible : ${disponible} FCFA)`);
+          return false;
+        }
+      } catch (err: any) {
+        if (err?.status === 0 || err?.status === undefined) {
+          this.notificationService.error(
+            `Impossible de verifier le bon d'achat ${reference} hors connexion - utilisez un autre mode de paiement ou reessayez une fois la connexion retablie.`);
+        } else {
+          this.notificationService.error(err?.error?.message || `Bon d'achat ${reference} invalide ou introuvable`);
+        }
+        return false;
+      }
+    }
+    return true;
+  }
+
   // Client methods
   creerClient(): void {
     if (this.clientForm.valid) {
@@ -841,7 +883,7 @@ export class VentesArticlesComponent {
   }
 
   // Vente methods
-   validerVente(): void {
+   async validerVente(): Promise<void> {
   if (this.caisseItems.length === 0) {
     alert('Aucun article dans le panier');
     return;
@@ -858,6 +900,18 @@ export class VentesArticlesComponent {
   }
 
   this.loading = true;
+
+  // Un bon d'achat ne peut pas etre accepte "a credit" comme le reste
+  // d'une vente hors-ligne : sa validite n'est verifiable qu'aupres du
+  // serveur, jamais localement - l'accepter sans reponse du serveur
+  // reviendrait a laisser n'importe quel code invente faire "passer" la
+  // vente. Revalide systematiquement ici, meme pour la ligne deja
+  // verifiee via le champ dedie (le solde a pu changer depuis).
+  const bonAchatOk = await this.verifierLignesBonAchatAvantValidation();
+  if (!bonAchatOk) {
+    this.loading = false;
+    return;
+  }
 
   const procederEnregistrement = () => {
     this.enregistrerVente().then(() => {

@@ -565,7 +565,7 @@ private async chargerStocksAvantAffichage(produits: Produit[]): Promise<void> {
   }
 
   // ==================== VALIDATION VENTE ====================
-  validerVente(): void {
+  async validerVente(): Promise<void> {
     console.log('💰 Validation vente...');
 
     if (this.caisseItems.length === 0) {
@@ -583,8 +583,63 @@ private async chargerStocksAvantAffichage(produits: Produit[]): Promise<void> {
       return;
     }
 
+    // Un bon d'achat ne peut pas etre accepte "a credit" comme le reste
+    // d'une vente hors-ligne : sa validite (existe/pas deja utilise/solde
+    // suffisant) n'est verifiable qu'aupres du serveur, jamais localement.
+    // L'accepter sans reponse du serveur reviendrait a laisser n'importe
+    // quel code invente faire "passer" la vente. Verification systematique
+    // ici, y compris pour la ligne deja verifiee via le champ dedie (le
+    // solde a pu changer depuis, ex. utilise entre-temps par une autre caisse).
     this.loading = true;
+    const bonAchatOk = await this.verifierLignesBonAchatAvantValidation();
+    if (!bonAchatOk) {
+      this.loading = false;
+      return;
+    }
+
     this.enregistrerVenteLocale();
+  }
+
+  /**
+   * Revalide chaque ligne de paiement BON_ACHAT aupres du serveur juste
+   * avant d'accepter la vente. Bloque (sans mettre la vente en file) si un
+   * code est invalide, si le solde est insuffisant, ou si le serveur est
+   * injoignable - un bon d'achat ne peut jamais etre "accepte sur parole".
+   */
+  private async verifierLignesBonAchatAvantValidation(): Promise<boolean> {
+    const references = Array.from(new Set(
+      this.lignesPaiement
+        .filter(l => l.typePaiement === 'BON_ACHAT' && l.reference)
+        .map(l => l.reference!.trim())
+    ));
+    if (references.length === 0) {
+      return true;
+    }
+
+    for (const reference of references) {
+      const montantDemande = this.lignesPaiement
+        .filter(l => l.typePaiement === 'BON_ACHAT' && l.reference?.trim() === reference)
+        .reduce((total, l) => total + (Number(l.montant) || 0), 0);
+
+      try {
+        const bon = await firstValueFrom(this.bonAchatService.verifierCode(reference));
+        const disponible = bon.montantTotal - (bon.montantUtilise ?? 0);
+        if (montantDemande > disponible + 0.01) {
+          this.notificationService.error(
+            `❌ Solde insuffisant sur le bon d'achat ${reference} (disponible : ${disponible} FCFA)`);
+          return false;
+        }
+      } catch (err: any) {
+        if (err?.status === 0 || err?.status === undefined) {
+          this.notificationService.error(
+            `❌ Impossible de verifier le bon d'achat ${reference} hors connexion - utilisez un autre mode de paiement ou reessayez une fois la connexion retablie.`);
+        } else {
+          this.notificationService.error(err?.error?.message || `❌ Bon d'achat ${reference} invalide ou introuvable`);
+        }
+        return false;
+      }
+    }
+    return true;
   }
 
   private async enregistrerVenteLocale(): Promise<void> {
