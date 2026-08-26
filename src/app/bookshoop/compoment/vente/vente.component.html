@@ -557,21 +557,21 @@
                     <label class="mb-1">Paiement (une ou plusieurs lignes)</label>
                     <div class="ligne-paiement row align-items-center mb-2 mx-0"
                         *ngFor="let ligne of lignesPaiement; let i = index">
-                        <div class="col-5 pl-0">
+                        <div class="col-12 col-sm-5 pl-0 mb-2 mb-sm-0">
                             <select class="form-control" [(ngModel)]="ligne.typePaiement" name="typeLigne{{i}}">
                                 <option *ngFor="let type of typesPaiement" [value]="type">{{ type }}</option>
                             </select>
                         </div>
-                        <div class="col-3">
+                        <div class="col-5 col-sm-3">
                             <input type="number" class="form-control" [(ngModel)]="ligne.montant"
                                 name="montantLigne{{i}}" step="0.01" min="0" placeholder="Montant">
                         </div>
-                        <div class="col-3 pr-0">
+                        <div class="col-5 col-sm-3 pr-0">
                             <input type="text" class="form-control" [(ngModel)]="ligne.reference"
                                 name="referenceLigne{{i}}"
                                 [placeholder]="ligne.typePaiement === 'BON_ACHAT' ? 'Code du bon' : 'Référence (optionnel)'">
                         </div>
-                        <div class="col-1 pr-0 text-right">
+                        <div class="col-2 col-sm-1 pr-0 text-right">
                             <button type="button" class="btn btn-sm btn-outline-danger"
                                 (click)="supprimerLignePaiement(i)" [disabled]="lignesPaiement.length <= 1"
                                 title="Retirer cette ligne">
